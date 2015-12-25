@@ -2,5 +2,6 @@
 
 {% block content %}
 	{% csrf_token %}
-	<div id="result"></div>
+	<a href="/send_json_request" class="button">Отправить JSON</a>
+	<a href="/send_simple_location_message" class="button">Отправить SLMP</a>
 {% endblock %}

@@ -36,12 +36,12 @@ class Field_Definition_Message(models.Model):
 # конец сообщений с определениями полей
 
 # тип формата определения сообщений местонахождения
-class LMDM_Format(models.Model):
+class LMDMFormat(models.Model):
 	class Meta():
 		db_table = 'LMDM_Format'
-	LMDM_FormatName = models.CharField(max_length=200)
+	LMDMFormatName = models.CharField(max_length=200)
 	def __str__(self):
-		return self.LMDM_FormatName.encode('utf-8')
+		return self.LMDMFormatName.encode('utf-8')
 # конец типа формата определения сообщений местонахождения
 
 # сообщения с oпределениями формата сообщений местонахождения
@@ -49,7 +49,9 @@ class Locate_Message_Definition_Message(models.Model):
 	class Meta():
 		db_table = 'Locate_Message_Definition_Message'
 	Source = models.CharField(max_length=200)
-	Format = models.ForeignKey(LMDM_Format)
+	Format = models.ForeignKey(LMDMFormat)
+	def __str__(self):
+		return self.Source.encode('utf-8')
 # конец сообщения с определениями формата сообщений местонахождения
 
 # КОНЕЦ СООБЩЕНИЯ

@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 from django.contrib import admin
 from mainapp.models import Field_Definition_Message, DataType
-from mainapp.models import LMDM_Format, Locate_Message_Definition_Message
+from mainapp.models import LMDMFormat, Locate_Message_Definition_Message
 # СООБЩЕНИЯ
 
 # типы данных
@@ -12,7 +12,6 @@ class DataTypeAdmin(admin.ModelAdmin):
 		('Наименование', {'fields': ['DataTypeName']}),
 		('Наименование в Джанго', {'fields': ['DjangoFormat']}),
 	]
-admin.site.register(DataType, DataTypeAdmin)
 # конец типы данных
 
 # сообщения с определениями полей
@@ -26,18 +25,18 @@ class Field_Definition_MessageAdmin(admin.ModelAdmin):
 		('Максимально символов', {'fields': ['LengthMax']}),
 	]
 
-admin.site.register(Field_Definition_Message, Field_Definition_MessageAdmin)
 # конец сообщений с определениями полей
 
+
 # тип формата определения сообщений местонахождения
-class LMDM_FormatAdmin(admin.ModelAdmin):
+class LMDMFormatAdmin(admin.ModelAdmin):
 	fieldsets = [
-		('Наименование', {'fields': ['LMDM_FormatName']}),
+		('Наименование', {'fields': ['LMDMFormatName']}),
 	]
 # конец типа формата определения сообщений местонахождения
 
 # сообщения с oпределениями формата сообщений местонахождения
-class Locate_Message_Definition_Message(admin.ModelAdmin):
+class Locate_Message_Definition_MessageAdmin(admin.ModelAdmin):
 	fieldsets = [
 		('Источник', {'fields': ['Source']}),
 		('Тип формата', {'fields': ['Format']}),
@@ -45,3 +44,7 @@ class Locate_Message_Definition_Message(admin.ModelAdmin):
 # конец сообщения с определениями формата сообщений местонахождения
 
 # КОНЕЦ СООБЩЕНИЯ
+admin.site.register(DataType, DataTypeAdmin)
+admin.site.register(Field_Definition_Message, Field_Definition_MessageAdmin)
+admin.site.register(LMDMFormat, LMDMFormatAdmin)
+admin.site.register(Locate_Message_Definition_Message, Locate_Message_Definition_MessageAdmin)
