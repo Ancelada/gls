@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>ГЛС</title>
+  	{% load staticfiles %}
+  	<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/foundation-icons/foundation-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  	<script src="{% static 'js/vendor/modernizr.js' %}"></script>
+</head>
+<body>
+
+  {% block content %}
+
+  {% endblock %}
+
+
+  <script src="{% static 'js/vendor/jquery.js' %}"></script>
+  <script src="{% static 'js/foundation/foundation.js' %}"></script>
+  <script src="{% static 'js/foundation/foundation-datepicker.js' %}"></script>
+  <script src="{% static 'js/application.js' %}"></script>
+  <script type="text/javascript">
+  </script>
+</body>
