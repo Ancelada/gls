@@ -30,12 +30,21 @@ def recieve_json(request):
 
 def send_simple_location_message(request):
 	slmp = 'locatemessagedefinition,labd,std0,id_format,tag_id,123.00,100.12,99.2,7,125504.049,online,1,p'
-	URL = 'http://localhost:8000/receive_slmp/%s' % slmp
-	f = urlopen(URL)
+	URL = 'http://localhost:8000/receive_slmp'
+	f = urllib.urlopen(URL, urllib.urlencode(slmp))
 	return redirect('/')
 
 
 def receive_slmp(request, slmp=1):
-	if request.method == 'GET':
-		Metka(text=slmp).save()
+	if request.method == 'POST':
+		Metka(text=request.body.decode('utf-8')).save()
 	return HttpResponse('ok')
+
+def glmatrix(request):
+	return render(request, 'glmatrix.html')
+
+def glmatrix2(request):
+	return render(request, 'glmatrix2.html')
+
+def threejs(request):
+	return render(request, 'threejs.html')

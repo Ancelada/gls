@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+
+<html>
+	<title>Our WebGl</title>
+	{% load staticfiles %}
+	<script type="text/javascript" src="{% static 'js/three.js' %}"></script>
+
+	<script type="text/javascript" src="{% static 'js/vendor/jquery.js' %}"></script>
+
+	<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
+
+	<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
+	<style>
+  	body{
+		margin:0;
+		overflow:hidden;
+	}
+	</style>
+	
+	<body>
+
+  		<div id="webGL-container">
+  		</div>
+	</body>
+	<script type="text/javascript" src="{% static 'js/webgl/main.js' %}"></script>
+</html>

@@ -10,5 +10,11 @@ urlpatterns = patterns('',
 	url(r'^recieve_json$', 'mainapp.views.recieve_json'),
 
 	url(r'^send_simple_location_message$', 'mainapp.views.send_simple_location_message'),
-	url(ur'^receive_slmp/(?P<slmp>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.receive_slmp'),
+	url(ur'^receive_slmp$', 'mainapp.views.receive_slmp'),
+
+	url(r'^glmatrix$', 'mainapp.views.glmatrix'),
+	url(r'^glmatrix2$', 'mainapp.views.glmatrix2'),
+
+
+	url(r'threejs$', 'mainapp.views.threejs'),
 )
