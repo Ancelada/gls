@@ -1,3 +1,22 @@
+$(document).ready(function(){
+    var getxyzvalues = function(x){
+        number = x;
+        $.ajax({
+            type: 'POST',
+            url: '/getxyzvalues/',
+            data: {'number': number},
+            success: function(data, textStatus, jqXHR){
+                console.log(data);
+            },
+            dataType: 'html' 
+        });
+    }
+
+    getxyzvalues(1);
+});
+
+
+
 $(function(){
     
     var scene, camera, renderer;
@@ -10,6 +29,8 @@ $(function(){
     var stats;
     var SCREEN_WIDTH, SCREEN_HEIGHT;
     
+
+
     function init(){    
         /*creates empty scene object and renderer*/
         scene = new THREE.Scene();
@@ -46,10 +67,10 @@ $(function(){
         torusKnot = new THREE.Mesh( torGeometry, torMaterial ); 
 
         /*create text*/ 
-        /*textGeometry = new THREE.TextGeometry('Hello  World', {size:2, height:1}); 
+        textGeometry = new THREE.TextGeometry('Hello  World', {size:2, height:1}); 
         textMaterial = new THREE.MeshPhongMaterial( { color: 0xff9000 } ); 
         text = new THREE.Mesh( textGeometry, textMaterial );    
-*/
+
         /*create plane*/    
         planeGeometry = new THREE.PlaneGeometry (100,100,100);
         planeMaterial = new THREE.MeshLambertMaterial({color:0xffffff});
@@ -72,12 +93,12 @@ $(function(){
         torusKnot.castShadow = true;
         scene.add( torusKnot );
         
-/*        text.position.x = 15;
+        text.position.x = 15;
         text.position.y = 6;
         text.position.z = 2.5;
         text.castShadow = true;
         scene.add( text );  
-*/            
+            
         camera.position.x = 40;
         camera.position.y = 40;
         camera.position.z = 40; 

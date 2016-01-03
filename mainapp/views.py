@@ -46,5 +46,9 @@ def glmatrix(request):
 def glmatrix2(request):
 	return render(request, 'glmatrix2.html')
 
-def threejs(request):
-	return render(request, 'threejs.html')
+def landscape(request):
+	return render(request, 'landscape.html')
+
+def getxyzvalues(request):
+	x = request.POST['number'];
+	return HttpResponse(x)

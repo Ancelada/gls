@@ -16,5 +16,7 @@ urlpatterns = patterns('',
 	url(r'^glmatrix2$', 'mainapp.views.glmatrix2'),
 
 
-	url(r'threejs$', 'mainapp.views.threejs'),
+	url(r'landscape$', 'mainapp.views.landscape'),
+
+	url(r'getxyzvalues$', 'mainapp.views.getxyzvalues'),
 )
