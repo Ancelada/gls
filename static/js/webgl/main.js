@@ -1,21 +1,27 @@
-$(document).ready(function(){
-    var getxyzvalues = function(x){
-        number = x;
-        $.ajax({
-            type: 'POST',
-            url: '/getxyzvalues/',
-            data: {'number': number},
-            success: function(data, textStatus, jqXHR){
-                console.log(data);
-            },
-            dataType: 'html' 
-        });
-    }
+/*ajax запрос, возвращает ID и местоположение меток*/
 
-    getxyzvalues(1);
-});
+var marks;
+
+function getxyzvalues(){
+    var arr = {"landscapeID": "001"};
+    $.ajax({
+        type: 'POST',
+        url: '/getxyzvalues',
+        data: JSON.stringify(arr),
+        contentType: "application/json; charset=utf-8",
+        dataType: 'json',
+        async: false,
+        success: function(data, textStatus, jqXHR){
+            marks = data;
+        },
+        
+    });
+}
+
+getxyzvalues();
 
 
+/* конец запроса */
 
 $(function(){
     
@@ -31,7 +37,7 @@ $(function(){
     
 
 
-    function init(){    
+    function init(xpar, ypar, zpar){    
         /*creates empty scene object and renderer*/
         scene = new THREE.Scene();
         camera =  new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, .1, 500);
@@ -202,7 +208,7 @@ $(function(){
             spotLight.shadowDarkness = value;
             spotLight.shadowCamera.updateProjectionMatrix();
         });
-    datGUI.close();
+        datGUI.close();
     
         $("#webGL-container").append(renderer.domElement);
         /*stats*/
@@ -250,4 +256,4 @@ $(function(){
     init(); 
     animate();
     
-}); 
+});

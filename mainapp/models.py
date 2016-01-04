@@ -63,19 +63,20 @@ class Locate_Message_Definition_Message(models.Model):
 class Std0(models.Model):
 	class Meta():
 		db_table  = 'Std0'
-	LocateMessageDefinition = models.CharField(max_length=200)
-	LabD = models.CharField(max_length=200)
-	Std0 = models.CharField(max_length=200)
-	Tag_ID_Format = models.CharField(max_length=200)
-	Tag_ID = models.CharField(max_length=200)
-	X = models.IntegerField()
-	Y = models.IntegerField()
-	Z = models.IntegerField()
-	Battery = models.IntegerField()
-	Timestamp = models.CharField(max_length=10)
-	Status = models.CharField(max_length=1)
-	Session = models.CharField(max_length=8)
-	Zone = models.CharField(max_length=200)
+	LocateMessageDefinition = models.CharField(max_length=200, null=True)
+	LabD = models.CharField(max_length=200, null=True)
+	Std0 = models.CharField(max_length=200, null=True)
+	Tag_ID_Format = models.CharField(max_length=200, null=True)
+	Tag_ID = models.CharField(max_length=200, null=True)
+	X = models.FloatField(null=True)
+	Y = models.FloatField(null=True)
+	Z = models.FloatField(null=True)
+	Battery = models.IntegerField(null=True)
+	Timestamp = models.CharField(max_length=10, null=True)
+	Status = models.CharField(max_length=1, null=True)
+	Session = models.CharField(max_length=8, null=True)
+	Zone = models.CharField(max_length=200, null=True)
+	DateImport = models.DateTimeField(auto_now=True, null=True)
 
 ######################## конец записи сообщений по форматам: ############################
 
