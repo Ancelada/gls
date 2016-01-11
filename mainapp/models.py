@@ -7,7 +7,7 @@ from django.db import models
 class Metka(models.Model):
 	class Meta():
 		db_table = 'Metka'
-	text = models.CharField(max_length=200)
+	text = models.TextField()
 
 #####################
 # СООБЩЕНИЯ SLMP

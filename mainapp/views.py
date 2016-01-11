@@ -30,8 +30,8 @@ def recieve_json(request):
 
 
 def send_simple_location_message(request):
-	slmp = """Labyrinth-RSSI, SLMF, 1.0, 1.0, Welcome to the RTLS Text Stream interface. (c)2015-2016 OOO NaviTec (http://navi-tec.ru)
-LabR,Std0,0000,00000063,39.681625,6.803710,76.457092,2015-12-28T07:29:53:429+3"""
+	slmp = """LabR,Std0,0000,00000063,39.681625,6.803710,76.457092,7,2016-01-11T05:23:37:924+3,2,0038,0000
+LabR,Std0,0001,00000063,39.681625,6.803710,76.457092,7,2016-01-11T05:23:37:924+3,2,0038,0000"""
 	url = 'http://localhost:8000/receive_slmp'
 	r = requests.post(url, data=slmp)
 	return redirect('/')
@@ -40,11 +40,17 @@ LabR,Std0,0000,00000063,39.681625,6.803710,76.457092,2015-12-28T07:29:53:429+3""
 def receive_slmp(request, slmp=1):
 	if request.method == 'POST':
 		line = request.body.decode('utf-8')
-		Metka(text=line).save()
-		# line = line.split('\n')
-		# line = line[1]
-		# line = line.split(',')
-		# Std0(LabD=line[0], Std0=line[1], Tag_ID_Format=line[2], Tag_ID=line[3], X=line[4], Y=line[5], Z=line[6], Zone=line[7], DateImport=datetime.datetime.now()).save()
+		line = line.split('Zone')
+		if (len(line) > 1):
+			Metka(text=line[2].replace('\n', '')).save()
+			line = line[2]
+			line = line.split(',')
+			Std0(LabD=line[0], Std0=line[1], Tag_ID_Format=line[2], Tag_ID=line[3], X=line[4], Y=line[5], Z=line[6], Zone=line[7], DateImport=datetime.datetime.now()).save()
+		else:
+			line = line[0].split('\n')
+			for i in line:
+				line = i.split(',')
+				Std0(LabD=line[0], Std0=line[1], Tag_ID_Format=line[2], Tag_ID=line[3], X=line[4], Y=line[5], Z=line[6], Zone=line[7], DateImport=datetime.datetime.now()).save()
 	return HttpResponse('ok')
 
 
