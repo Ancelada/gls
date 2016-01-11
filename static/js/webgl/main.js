@@ -1,259 +1,220 @@
-/*ajax запрос, возвращает ID и местоположение меток*/
-
-var marks;
-
-function getxyzvalues(){
-    var arr = {"landscapeID": "001"};
-    $.ajax({
-        type: 'POST',
-        url: '/getxyzvalues',
-        data: JSON.stringify(arr),
-        contentType: "application/json; charset=utf-8",
-        dataType: 'json',
-        async: false,
-        success: function(data, textStatus, jqXHR){
-            marks = data;
-        },
-        
-    });
-}
-
-getxyzvalues();
-
-
-/* конец запроса */
-
 $(function(){
-    
+
+    /*global variables*/
+    var axis;
+    var grid,color;
     var scene, camera, renderer;
-    var controls, guiControls, datGUI;
-    var axis, grid, color;
-    var cubeGeometry,  torGeometry, textGeometry,  planeGeometry;
-    var cubeMaterial, torMaterial, textMaterial,  planeMaterial;
-    var cube, torusKnot, text, plane;
-    var spotLight;
+    var controls, gui;
     var stats;
+    var spotLight, hemi;
     var SCREEN_WIDTH, SCREEN_HEIGHT;
-    
+    var loader, model, ballmodel, ballglowmodel;
 
 
-    function init(xpar, ypar, zpar){    
+    function init(){
         /*creates empty scene object and renderer*/
         scene = new THREE.Scene();
-        camera =  new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, .1, 500);
+        camera =  new THREE.PerspectiveCamera(85, window.innerWidth/window.innerHeight, .1, 1000);
         renderer = new THREE.WebGLRenderer({antialias:true});
         
-        renderer.setClearColor(0xdddddd);
+        renderer.setClearColor(0x66c0cf);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMapEnabled= true;
         renderer.shadowMapSoft = true;
         
+        /* add axis helper*/
+        axis = new THREE.AxisHelper(30);
+        /*scene.add(axis);*/
+
+        grid = new THREE.GridHelper(100, 25);
+        color = new THREE.Color("rgb(255, 0, 0)");
+        grid.setColors(color, 0x000000);
+        scene.add(grid);
+
         /*add controls*/
         controls = new THREE.OrbitControls( camera, renderer.domElement );
         controls.addEventListener( 'change', render );
-        
-        /*adds helpers*/
-        axis =  new THREE.AxisHelper(10);
-        scene.add (axis);
-        
-        grid = new THREE.GridHelper(50, 5);
-        color = new THREE.Color("rgb(255,0,0)");
-        grid.setColors(color, 0x000000);
-        
-        scene.add(grid);
-        
-        /*create cube*/
-        cubeGeometry = new THREE.BoxGeometry(5, 5, 5);
-        cubeMaterial = new THREE.MeshLambertMaterial({color:0xff3300});
-        cube  = new THREE.Mesh(cubeGeometry, cubeMaterial);
-
-        /*create torus knot*/   
-        torGeometry = new THREE.TorusKnotGeometry( 3, 1, 64, 64); 
-        torMaterial = new THREE.MeshPhongMaterial( { color: 0xffff00 } ); 
-        torusKnot = new THREE.Mesh( torGeometry, torMaterial ); 
-
-        /*create text*/ 
-        textGeometry = new THREE.TextGeometry('Hello  World', {size:2, height:1}); 
-        textMaterial = new THREE.MeshPhongMaterial( { color: 0xff9000 } ); 
-        text = new THREE.Mesh( textGeometry, textMaterial );    
-
-        /*create plane*/    
-        planeGeometry = new THREE.PlaneGeometry (100,100,100);
-        planeMaterial = new THREE.MeshLambertMaterial({color:0xffffff});
-        plane = new THREE.Mesh(planeGeometry, planeMaterial);
-        
-        /*position and add objects to scene*/
-        plane.rotation.x = -.5*Math.PI;
-        plane.receiveShadow = true; 
-        scene.add(plane);
-        
-        cube.position.x = 2.5;
-        cube.position.y = 4;
-        cube.position.z = 2.5;
-        cube.castShadow = true; 
-        scene.add(cube);
-
-        torusKnot.position.x = -15;
-        torusKnot.position.y = 6;
-        torusKnot.position.z = 2.5;
-        torusKnot.castShadow = true;
-        scene.add( torusKnot );
-        
-        text.position.x = 15;
-        text.position.y = 6;
-        text.position.z = 2.5;
-        text.castShadow = true;
-        scene.add( text );  
-            
+                    
         camera.position.x = 40;
         camera.position.y = 40;
         camera.position.z = 40; 
         camera.lookAt(scene.position);
-        
-        /*datGUI controls object*/
-        guiControls = new function(){
-            this.rotationX  = 0.0;
-            this.rotationY  = 0.0;
-            this.rotationZ  = 0.0;
-            
-            this.lightX = 20;
-            this.lightY = 35;
-            this.lightZ = 40;
-            this.intensity = 1;     
-            this.distance = 0;
-            this.angle = 1.570;
-            this.exponent = 0;
-            this.shadowCameraNear = 10;
-            this.shadowCameraFar = 100;
-            this.shadowCameraFov = 50;
-            this.shadowCameraVisible=true;
-            this.shadowMapWidth=1028;
-            this.shadowMapHeight=1028;
-            this.shadowBias=0;
-            this.shadowDarkness=0.5;        
-            this.target = cube;
 
-        }
+        hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
+        scene.add(hemi);
+        
         /*adds spot light with starting parameters*/
         spotLight = new THREE.SpotLight(0xffffff);
         spotLight.castShadow = true;
         spotLight.position.set (20, 35, 40);
-        spotLight.intensity = guiControls.intensity;        
-        spotLight.distance = guiControls.distance;
-        spotLight.angle = guiControls.angle;
-        spotLight.exponent = guiControls.exponent;
-        spotLight.shadowCameraNear = guiControls.shadowCameraNear;
-        spotLight.shadowCameraFar = guiControls.shadowCameraFar;
-        spotLight.shadowCameraFov = guiControls.shadowCameraFov;
-        spotLight.shadowCameraVisible = guiControls.shadowCameraVisible;
-        spotLight.shadowBias = guiControls.shadowBias;
-        spotLight.shadowDarkness = guiControls.shadowDarkness;
         scene.add(spotLight);
+        
+        /*add loader call add model function*/
+        loader = new THREE.JSONLoader();
+        loader.load( '/static/js/webgl/models/floor.json', floor );
+   
+        loader = new THREE.JSONLoader();
+        loader.load('/static/js/webgl/models/ball.json', ball);
+
+        ballglow();
 
         /*adds controls to scene*/
-        datGUI = new dat.GUI();
-        
-        datGUI.add(guiControls, 'rotationX',0,1);
-        datGUI.add(guiControls, 'rotationY',0,1);   
-        datGUI.add(guiControls, 'rotationZ',0,1);
-        
-        datGUI.add(guiControls, 'lightX',-60,180);  
-        datGUI.add(guiControls, 'lightY',0,180);    
-        datGUI.add(guiControls, 'lightZ',-60,180);
-        
-        datGUI.add(guiControls, 'target', ['cube', 'torusKnot','text']).onChange(function(){
-            if (guiControls.target == 'cube'){
-                spotLight.target =  cube;
-            }   
-            else if (guiControls.target == 'torusKnot'){
-                spotLight.target =  torusKnot;
-            }   
-            else if (guiControls.target == 'text'){
-                spotLight.target =  text;
-            }
-        }); 
-        datGUI.add(guiControls, 'intensity',0.01, 5).onChange(function(value){
-            spotLight.intensity = value;
-        });     
-        datGUI.add(guiControls, 'distance',0, 1000).onChange(function(value){
-            spotLight.distance = value;
-        }); 
-        datGUI.add(guiControls, 'angle',0.001, 1.570).onChange(function(value){
-            spotLight.angle = value;
-        });     
-        datGUI.add(guiControls, 'exponent',0 ,50 ).onChange(function(value){
-            spotLight.exponent = value;
-        });
-        datGUI.add(guiControls, 'shadowCameraNear',0,100).name("Near").onChange(function(value){        
-            spotLight.shadowCamera.near = value;
-            spotLight.shadowCamera.updateProjectionMatrix();        
-        });
-        datGUI.add(guiControls, 'shadowCameraFar',0,5000).name("Far").onChange(function(value){
-            spotLight.shadowCamera.far = value;
-            spotLight.shadowCamera.updateProjectionMatrix();
-        });
-        datGUI.add(guiControls, 'shadowCameraFov',1,180).name("Fov").onChange(function(value){
-            spotLight.shadowCamera.fov = value;
-            spotLight.shadowCamera.updateProjectionMatrix();
-        });
-        datGUI.add(guiControls, 'shadowCameraVisible').onChange(function(value){
-            spotLight.shadowCameraVisible = value;
-            spotLight.shadowCamera.updateProjectionMatrix();
-        });
-        datGUI.add(guiControls, 'shadowBias',0,1).onChange(function(value){
-            spotLight.shadowBias = value;
-            spotLight.shadowCamera.updateProjectionMatrix();
-        });
-        datGUI.add(guiControls, 'shadowDarkness',0,1).onChange(function(value){
-            spotLight.shadowDarkness = value;
-            spotLight.shadowCamera.updateProjectionMatrix();
-        });
-        datGUI.close();
+        gui = new dat.GUI();
+        parameters = 
+        { c: 1.0, p: 1.4, bs: false, fs: true, nb: false, ab: true, mv: true, color: "#ffff00" };
     
+        var top = gui.addFolder('Glow Shader Attributes');
+        
+        var cGUI = top.add( parameters, 'c' ).min(0.0).max(1.0).step(0.01).name("c").listen();
+        cGUI.onChange( function(value) { 
+            ballglowmodel.material.uniforms[ "c" ].value = parameters.c; 
+        });
+        
+        var pGUI = top.add( parameters, 'p' ).min(0.0).max(6.0).step(0.01).name("p").listen();
+        pGUI.onChange( function(value) { 
+            ballglowmodel.material.uniforms[ "p" ].value = parameters.p; 
+        });
+
+        var glowColor = top.addColor( parameters, 'color' ).name('Glow Color').listen();
+        glowColor.onChange( function(value) {
+            ballglowmodel.material.uniforms.glowColor.value.setHex( value.replace("#", "0x"));   
+        });
+        top.open();
+        
+        // toggle front side / back side 
+        var folder1 = gui.addFolder('Render side');
+        var fsGUI = folder1.add( parameters, 'fs' ).name("THREE.FrontSide").listen();
+        fsGUI.onChange( function(value) { 
+            if (value) 
+            {
+                bsGUI.setValue(false);
+                ballglowmodel.material.side = THREE.FrontSide;  
+            }
+        });
+        var bsGUI = folder1.add( parameters, 'bs' ).name("THREE.BackSide").listen();
+        bsGUI.onChange( function(value) { 
+            if (value)
+            {
+                fsGUI.setValue(false);
+                ballglowmodel.material.side = THREE.BackSide;  
+            }
+        });
+        folder1.open();
+        
+        // toggle normal blending / additive blending
+        var folder2 = gui.addFolder('Blending style');
+        var nbGUI = folder2.add( parameters, 'nb' ).name("THREE.NormalBlending").listen();
+        nbGUI.onChange( function(value) { 
+            if (value) 
+            {
+                abGUI.setValue(false);
+                ballglowmodel.material.blending = THREE.NormalBlending;  
+            }
+        });
+        var abGUI = folder2.add( parameters, 'ab' ).name("THREE.AdditiveBlending").listen();
+        abGUI.onChange( function(value) { 
+            if (value)
+            {
+                nbGUI.setValue(false);
+                ballglowmodel.material.blending = THREE.AdditiveBlending; 
+            }
+        });
+        folder2.open();
+
+        // toggle mesh visibility
+        var folder3 = gui.addFolder('Miscellaneous');
+        var mvGUI = folder3.add( parameters, 'mv' ).name("Meshes-Visible").listen();
+        mvGUI.onChange( function(value) { 
+            ballmodel.visible = value; 
+        });
+        folder3.open();
+        gui.close();
+
         $("#webGL-container").append(renderer.domElement);
         /*stats*/
         stats = new Stats();        
         stats.domElement.style.position = 'absolute';
         stats.domElement.style.left = '0px';
         stats.domElement.style.top = '0px';     
-        $("#webGL-container").append( stats.domElement );
-        
+        $("#webGL-container").append( stats.domElement );       
+    }
+
+    function floor( geometry,  materials ){
+        var material = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.5});
+        model = new THREE.Mesh( geometry, material );
+        model.scale.set (10,10,10);
+        model.position.set (0,0,0);
+        /*scene.add( model );*/            
+    }
+    
+    function ballglow(){
+        var shaderProp = {
+            uniforms: {
+                "c": {type: "f", value: 0.3},
+                "p": {type: "f", value: 3.8},
+                glowColor: {type: "c", value: new THREE.Color(0xffff00)},
+                viewVector: {type: "v3", value: camera.position}
+            },
+            vertexShader: document.getElementById("glowVertexShader").textContent,
+            fragmentShader: document.getElementById("glowFragmentShader").textContent,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        };
+        var shaderMat = new THREE.ShaderMaterial(shaderProp);
+        var ballgeometry = new THREE.SphereGeometry(28, 32, 16);
+        ballglowmodel = new THREE.Mesh(ballgeometry, shaderMat);
+        ballglowmodel.position.set(0,0,0);
+        ballglowmodel.scale.multiplyScalar(1, 2);
+        scene.add(ballglowmodel);
+    }
+
+    function ball( geometry,  materials ){
+        var shaderProp = {
+            uniforms: {
+                color_dark : {
+                    type: "v4",
+                    value: new THREE.Vector4(1.0, 1.0, 0.0, 1.0)
+                },
+            },
+            vertexShader: document.getElementById("vs0").textContent,
+            fragmentShader: document.getElementById("fs0").textContent
+        }
+        var shaderMat = new THREE.ShaderMaterial(shaderProp);
+        ballmodel = new THREE.Mesh( geometry, shaderMat);
+        ballmodel.scale.set (20,20,20);
+        ballmodel.position.set (0,0,0);
+        scene.add( ballmodel );
     }
 
     function render() {
-
-        cube.rotation.x += guiControls.rotationX;
-        cube.rotation.y += guiControls.rotationY;
-        cube.rotation.z += guiControls.rotationZ;
-
-        spotLight.position.x = guiControls.lightX;
-        spotLight.position.y = guiControls.lightY;
-        spotLight.position.z = guiControls.lightZ;
-    
     }
     
+    function update(){
+        if (ballglowmodel){
+            ballglowmodel.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(camera.position, ballglowmodel.position);
+        }
+    }
+
     function animate(){
+        if (ballmodel) {
+            ballmodel.rotation.y += .1;    
+        }
         requestAnimationFrame(animate);
         render();
+        update();
         stats.update();     
         renderer.render(scene, camera);
     }
+    init();
+    animate();
     
     $(window).resize(function(){
-
-
         SCREEN_WIDTH = window.innerWidth;
         SCREEN_HEIGHT = window.innerHeight;
-
         camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
         camera.updateProjectionMatrix();
-
         renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
-
-
-
     });
-    init(); 
-    animate();
     
 });

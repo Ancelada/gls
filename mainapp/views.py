@@ -40,10 +40,11 @@ LabR,Std0,0000,00000063,39.681625,6.803710,76.457092,2015-12-28T07:29:53:429+3""
 def receive_slmp(request, slmp=1):
 	if request.method == 'POST':
 		line = request.body.decode('utf-8')
-		line = line.split('\n')
-		line = line[1]
-		line = line.split(',')
-		Std0(LabD=line[0], Std0=line[1], Tag_ID_Format=line[2], Tag_ID=line[3], X=line[4], Y=line[5], Z=line[6], Zone=line[7], DateImport=datetime.datetime.now()).save()
+		Metka(text=line).save()
+		# line = line.split('\n')
+		# line = line[1]
+		# line = line.split(',')
+		# Std0(LabD=line[0], Std0=line[1], Tag_ID_Format=line[2], Tag_ID=line[3], X=line[4], Y=line[5], Z=line[6], Zone=line[7], DateImport=datetime.datetime.now()).save()
 	return HttpResponse('ok')
 
 
