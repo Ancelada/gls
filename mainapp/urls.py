@@ -10,9 +10,17 @@ urlpatterns = patterns('',
 	url(r'^recieve_json$', 'mainapp.views.recieve_json'),
 
 	url(r'^send_simple_location_message$', 'mainapp.views.send_simple_location_message'),
-	url(ur'^receive_slmp$', 'mainapp.views.receive_slmp'),
+	url(r'^receive_slmp$', 'mainapp.views.receive_slmp'),
+	url(r'^save_slmp$', 'mainapp.views.save_slmp'),
 
 	url(r'landscape$', 'mainapp.views.landscape'),
 
 	url(r'getxyzvalues$', 'mainapp.views.getxyzvalues'),
+
+
+	url(r'movement$', 'mainapp.views.movement'),
+
+	url(r'children$', 'mainapp.views.children'),
+
+	url(r'delete$', 'mainapp.views.delete'),
 )

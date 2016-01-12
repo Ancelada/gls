@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Our WebGl</title>
+		{% load staticfiles %}
+
+		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/stats.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/helvetiker_regular.typeface.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
+
+
+  		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
+    	<link rel="stylesheet" href="{% static 'css/foundation-icons/foundation-icons.css' %}">
+    	<link rel="stylesheet" href="{% static 'css/app.css' %}">
+  		<script src="{% static 'js/vendor/modernizr.js' %}"></script>
+
+
+		<style>
+			body{
+				margin:0;
+				overflow:hidden;
+				
+			}
+			.panel_buttons{
+				position: absolute;
+				bottom:0;
+				right:0;
+				min-height:100px;
+				background-color:white;
+			}
+		</style>
+	</head>
+	<body>
+		<div id ="webGL-container"></div>
+		<div class="large-12 columns panel_buttons">
+			<span class="button" id="move">cдвинуть</span>
+			<span class="button" id="back">вернуть</span>
+			<span class="button" id="random">случайно</span>
+		</div>
+	<script src="{% static 'js/webgl/movement.js' %}"></script>
+
+	<script id="glowVertexShader" type="x-shader/x-vertex">
+		uniform vec3 viewVector;
+		uniform float c;
+		uniform float p;
+		varying float intensity;
+		void main() 
+		{
+		    vec3 vNormal = normalize( normalMatrix * normal );
+			vec3 vNormel = normalize( normalMatrix * viewVector );
+			intensity = pow( c - dot(vNormal, vNormel), p );
+			
+		    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+		}
+	</script>
+	<script id="glowFragmentShader" type="x-shader/x-fragment">
+		uniform vec3 glowColor;
+		varying float intensity;
+		void main() 
+		{
+			vec3 glow = glowColor * intensity;
+		    gl_FragColor = vec4( glow, 1.0 );
+		}
+	</script>
+
+
+
+	<script id="vs0" type="x-shader/x-vertex">
+		varying vec4 col;
+		uniform vec4 color_dark;
+		void main(){
+			if (position.x * position.y < 0.0)
+				col = color_dark;
+			else
+				col = vec4(1.0, 1.0, 0.0, 1.0);
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+		}
+	</script>
+	<script id="fs0" type="x-shader/x-fragment">
+		varying vec4 col;
+		void main(){
+			gl_FragColor = col;
+		}
+	</script>
+
+
+  <script src="{% static 'js/vendor/jquery.js' %}"></script>
+  <script src="{% static 'js/foundation/foundation.js' %}"></script>
+  <script src="{% static 'js/foundation/foundation-datepicker.js' %}"></script>
+  <script src="{% static 'js/application.js' %}"></script>
+	</body>
+</html>

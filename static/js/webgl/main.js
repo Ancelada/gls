@@ -1,3 +1,22 @@
+$(document).ready(function(){
+    
+    function parseString(){
+        /* разбор данных */
+        var csrf_token = $("input[name='csrfmiddlewaretoken']").val();
+        $.ajax({
+            type: 'POST',
+            url: '/save_slmp',
+            data: {'csrfmiddlewaretoken': csrf_token},
+            dataType: 'html',
+            success: function(data, textStatus, jqXHR){
+                console.log(data)
+            },
+        });
+    }
+
+    setInterval(parseString, 10000);    
+});
+
 $(function(){
     var marks;
     var cube, cubeGeometry, cubeMaterial;
@@ -31,7 +50,8 @@ $(function(){
         axis =  new THREE.AxisHelper(10);
         scene.add (axis);
         
-        grid = new THREE.GridHelper(50, 5);
+        grid = new THREE.GridHelper(100, 10);
+        grid.rotation.x = -0.5* Math.PI
         color = new THREE.Color("rgb(255,0,0)");
         grid.setColors(color, 0x000000);
         
@@ -40,20 +60,18 @@ $(function(){
         
 
         /*create plane*/    
-        planeGeometry = new THREE.PlaneGeometry (100,100,100);
+        planeGeometry = new THREE.PlaneGeometry (200,200,200);
         planeMaterial = new THREE.MeshLambertMaterial({color:0xffffff});
         plane = new THREE.Mesh(planeGeometry, planeMaterial);
         
         /*position and add objects to scene*/
-        plane.rotation.x = -.5*Math.PI;
         plane.receiveShadow = true; 
         scene.add(plane);
         
         
             
-        camera.position.x = 40;
-        camera.position.y = 40;
-        camera.position.z = 40; 
+        camera.position.set(0, -50, 40);
+        camera.rotation.y = -1*Math.PI;
         camera.lookAt(scene.position);
         
         /*datGUI controls object*/
@@ -83,7 +101,7 @@ $(function(){
         /*adds spot light with starting parameters*/
         spotLight = new THREE.SpotLight(0xffffff);
         spotLight.castShadow = true;
-        spotLight.position.set (20, 35, 40);
+        spotLight.position.set (20, 35, 80);
         spotLight.intensity = guiControls.intensity;        
         spotLight.distance = guiControls.distance;
         spotLight.angle = guiControls.angle;
@@ -113,7 +131,7 @@ $(function(){
 
     
 
-    function getxyzvalues(){
+    /*function getxyzvalues(){
         var arr = {"landscapeID": "001"};
         $.ajax({
             type: 'POST',
@@ -146,14 +164,14 @@ $(function(){
             },
             
         });
-    }
+    }*/
 
     /* конец ajax запрос, возвращает ID и местоположение меток */
     
 
 
     /* вызов  ajax запрос, возвращает ID и местоположение меток каждые 10 сек*/
-    setInterval(getxyzvalues, 5000);
+    /*setInterval(getxyzvalues, 5000);*/
     /* конец вызов  ajax запрос, возвращает ID и местоположение меток каждые 10 сек*/
 
 

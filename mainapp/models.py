@@ -8,6 +8,8 @@ class Metka(models.Model):
 	class Meta():
 		db_table = 'Metka'
 	text = models.TextField()
+	DateImport = models.DateTimeField(auto_now=True, null=True)
+	readed = models.NullBooleanField(null=True)
 
 #####################
 # СООБЩЕНИЯ SLMP
@@ -72,7 +74,7 @@ class Std0(models.Model):
 	Y = models.FloatField(null=True)
 	Z = models.FloatField(null=True)
 	Battery = models.IntegerField(null=True)
-	Timestamp = models.CharField(max_length=10, null=True)
+	Timestamp = models.CharField(max_length=25, null=True)
 	Status = models.CharField(max_length=1, null=True)
 	Session = models.CharField(max_length=8, null=True)
 	Zone = models.CharField(max_length=200, null=True)
