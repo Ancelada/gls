@@ -155,9 +155,6 @@ def save_slmp(request):
 			where readed is null"""))
 		try:
 			line = queryset[0].text.decode('utf-8')
-			end__date = datetime.datetime.now()- datetime.timedelta(minutes=15)
-			start__date = datetime.datetime.now() - datetime.timedelta(hours=256)
-			queryset = Std0.objects.filter(DateImport__range=(start__date, end__date)).delete()
 		except:
 			return HttpResponse('Nothing to parse')
 		line = line.split('Zone')
@@ -221,6 +218,5 @@ def movement(request):
 def children(request):
 	return render(request, 'children.html')
 
-def delete(request):
-
-	return HttpResponse (len(queryset))
+def loadcollada(request):
+	return render(request, 'loadcollada.html')

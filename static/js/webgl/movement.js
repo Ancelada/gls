@@ -58,7 +58,7 @@ $(function(){
         
         /* add axis helper*/
         axis = new THREE.AxisHelper(30);
-        /*scene.add(axis);*/
+        scene.add(axis);
 
         grid = new THREE.GridHelper(200, 25);
         color = new THREE.Color("rgb(255, 0, 0)");

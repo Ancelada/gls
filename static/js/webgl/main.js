@@ -1,7 +1,6 @@
 $(document).ready(function(){
-    
+    /* парс пачки */    
     function parseString(){
-        /* разбор данных */
         var csrf_token = $("input[name='csrfmiddlewaretoken']").val();
         $.ajax({
             type: 'POST',
@@ -13,6 +12,7 @@ $(document).ready(function(){
             },
         });
     }
+    parseString();
 
     setInterval(parseString, 10000);    
 });
@@ -131,7 +131,7 @@ $(function(){
 
     
 
-    /*function getxyzvalues(){
+    function getxyzvalues(){
         var arr = {"landscapeID": "001"};
         $.ajax({
             type: 'POST',
@@ -164,14 +164,14 @@ $(function(){
             },
             
         });
-    }*/
+    }
 
     /* конец ajax запрос, возвращает ID и местоположение меток */
     
 
 
     /* вызов  ajax запрос, возвращает ID и местоположение меток каждые 10 сек*/
-    /*setInterval(getxyzvalues, 5000);*/
+    setInterval(getxyzvalues, 5000);
     /* конец вызов  ajax запрос, возвращает ID и местоположение меток каждые 10 сек*/
 
 

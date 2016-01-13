@@ -14,14 +14,14 @@ $(function(){
         camera =  new THREE.PerspectiveCamera(85, window.innerWidth/window.innerHeight, .1, 1000);
         renderer = new THREE.WebGLRenderer({antialias:true});
         
-        renderer.setClearColor(0x66c0cf);
+        /*renderer.setClearColor(0x66c0cf);*/
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMapEnabled= true;
         renderer.shadowMapSoft = true;
         
         /* add axis helper*/
         axis = new THREE.AxisHelper(30);
-        /*scene.add(axis);*/
+        scene.add(axis);
 
         grid = new THREE.GridHelper(100, 25);
         color = new THREE.Color("rgb(255, 0, 0)");
@@ -29,12 +29,45 @@ $(function(){
         grid.rotation.x = -0.5* Math.PI
         scene.add(grid);
         
+        //skyshader
+        var vertexShader = document.getElementById( 'vertexShader' ).textContent;
+        var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+        var uniforms = {
+            topColor:      { type: "c", value: new THREE.Color(0x000000) },
+            bottomColor: { type: "c", value: new THREE.Color( 0x262626 ) },
+            offset:         { type: "f", value: 100 },
+            exponent:     { type: "f", value: 0.7 }
+        }
+
+        //skydome
+
+        var skyGeo = new THREE.SphereGeometry( 300, 32, 15 );
+        var skyMat = new THREE.ShaderMaterial( { vertexShader: vertexShader, fragmentShader: fragmentShader, uniforms: uniforms, side: THREE.BackSide } );
+
+        var sky = new THREE.Mesh( skyGeo, skyMat );
+        scene.add( sky );
+
+
+
+
         /*adds spot light with starting parameters*/
         spotLight = new THREE.SpotLight(0xffffff);
         spotLight.castShadow = true;
         spotLight.position.set (20, 35, 40);
         scene.add(spotLight);
         
+
+        /* add collada import */
+        var loader = new THREE.ColladaLoader();
+        /*loader.options.convertUpAxis = true;*/
+        loader.load( 'static/js/webgl/models/dummy1.dae', function ( collada ) {
+        //dummy1.dae
+        var dae = collada.scene;
+        var skin = collada.skins[ 0 ];
+        dae.position.set(0,0,0);//x,z,y- if you think in blender dimensions ;)
+        dae.scale.set(1.5,1.5,1.5);
+        scene.add(dae);
+        });
 
         /* add parent mesh */
         var cubeGeom = new THREE.BoxGeometry(20, 20, 20, 2, 2, 2);
@@ -54,12 +87,14 @@ $(function(){
 		/* put child inside parent*/
 		cube.add(cylinder);
 		cube.updateMatrixWorld();
-		console.log(cube);
 
 		/* set default camera position */
-        camera.position.set(0, -40, 40);
-        camera.lookAt(scene.position);
-
+        camera.position.set(0, -20, 0);
+        /* set up direction to axis Z*/
+        camera.up.set( 0, 0, 1 );
+        /* set camera as child to cube */
+        cube.add(camera);
+        console.log(camera);
 
         /*add controls*/
         controls = new THREE.OrbitControls( camera, renderer.domElement );
