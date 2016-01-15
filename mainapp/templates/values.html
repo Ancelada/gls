@@ -30,12 +30,63 @@
 		</style>
 	</head>
 	<body>
-	{% csrf_token %}
-	ok
+		{% csrf_token %}
+		<!-- ***блок 3д изображения*** -->
+		<!--************************-->
+		<div id ="webGL-container"></div>
+		<!-- **********шейдеры ******-->
+		<!--************************-->
+		<script type="x-shader/x-vertex" id="vertexShader">
+
+			varying vec3 vWorldPosition;
+			void main() {
+
+				vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+				vWorldPosition = worldPosition.xyz;
+
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+			}
+		</script>
+
+		<script type="x-shader/x-fragment" id="fragmentShader">
+
+			uniform vec3 topColor;
+			uniform vec3 bottomColor;
+			uniform float offset;
+			uniform float exponent;
+
+			varying vec3 vWorldPosition;
+
+			void main() {
+
+				float h = normalize( vWorldPosition + offset ).y;
+				gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( h, exponent ), 0.0 ) ), 1.0 );
+
+			}
+		</script>
+		<!--************************-->
+<!--***********буфер**************-->
+		<!--************************-->
 	<script>
+	var buffer = {};
+
+	jQuery.initCube = function (tag_id, x, y, z, delta){
+		var cube;
+		/*куб*/
+		var cubeGeom = new THREE.BoxGeometry(20, 20, 20, 2, 2, 2);
+		var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.5});
+		cube = new THREE.Mesh(cubeGeom, cubeMaterial);
+		cube.position.set(0,0,0);
+		scene.add(cube);
+
+	}
+
+
 	$(document).ready(function(){
 		var marks;
-		var unique;
+		var unique = {};
+		var unum = 0;
+		var cron = 0;
 		function getVal(){
 			var csrf_token = $("input[name='csrfmiddlewaretoken']").val();
 	        $.ajax({
@@ -64,40 +115,82 @@
 		            		});
 		            		return doubled;
 	            		}
-	            		console.log(verify());
+	            		var result = verify();
+            			//если пачка не повторяется записываем в буфер
+	            		if(result == 0){
+		            		$.each(data, function(index){
+		            			//первая запись в буфере
+		            			if(unique[0] == undefined){
+		            					unique[0] = data[index][0];
+		            					unum += 1;
+            					} else {
+            						//проверка на уникальность id в буфере
+		            				//если нет, записать в массив
+	            					tag_id_new = data[index][0]['tag_id'];
+	            					zone_new = data[index][0]['zone'];
+	            					doubled = 0;
+	            					$.each(unique, function(index){
+	            						tag_id_unique = unique[index]['tag_id'];
+	            						zone_unique = unique[index]['zone'];
+	            						if (tag_id_new == tag_id_unique && zone_new == zone_unique){
+	            							doubled = 1;
+	            							return false;
+	            						}
+	            					});
+	            					if (doubled==0){
+	            						unique[unum] = data[index][0];
+	            						unum += 1;
+	            					}
+            					}
+		            		});
+	            			//таймер, для отслеживания времения между посылками
+	            			//переменная cron
+	            			function timer(clear){
+	            				var milisec = 0;
+	            				timer = setInterval(function(){
+	            					milisec += 10;
+	            					cron = milisec;
+	            					if (clear){
+	            						milisec += 0;
+	            					}
+	            				}, 10);
+	            			}
+										timer(1);
+										//запись в буфер позиций метки
+										//в том числе повторяющихся
+										//меток с разными позициями
+										$.each(data, function(index){
+											tag_id_new = data[index][0]['tag_id'];
+											var ind = index;
+											$.each(unique, function(index){
+												tag_id_unique = unique[index]['tag_id'];
+												if (tag_id_new == tag_id_unique){
+													//при совпадении задаем список
+													//записываем все повторяющиеся значения 
+													unique[index]['data'] = [];
+													uind = index;
+													no=0;
+													$.each(data, function(index){
+														if (unique[uind]['tag_id'] == data[index][0]['tag_id']){
+															unique[uind]['data'][no] = data[index][0];
+															//количество милисекунд на отображение
+															unique[uind]['delta'] = cron / no;
+															no+=1;	
+														}
+													});
+													return false;
+												}
+											});
+										});
+										//передача буфера в рендер
+										console.log(unique);
+										buffer = unique;
+										//очистить позиции точек в буфере
+	            		}
+	            		marks = data;//не удалять
+
 	            	} else {
 		            	marks = data;
-	            		//если пачка не повторяется записываем в буфер
-	            		/*$.each(marks, function(index){
-	            			if (unique == false){
-	            				//проверка на уникальность id в буфере
-	            				//если нет, записать в массив
-	            				$.each(marks, function(index){
-	            					tag_id_new = marks[index][0]['tag_id'];
-	            					zone_new = marks[index][0]['zone'];
-	            					doubled = 0;
-	            					if (unique.length == 0){
-	            						unique.push(marks[index][0]);
-            						} else if(unique.length > 0) {
-		            					$.each(unique, function(index){
-		            						tag_id_buffer = unique[index][0]['tag_id'];
-		            						zone_buffer = unique[index][0]['zone'];
-		            						if (tag_id_new == tag_id_buffer && zone_new == zone_buffer){
-		            							doubled = 1;
-		            							return false;
-		            						}
-		            					});
-		            					if (doubled == 0){
-		            						unique.push(marks[index][0]);
-		            					}
-	            					}
-	            				});
-	            			} else {
-	            				if (unique){
-	            					unique.push(marks[index][0]);//не удалять, тк 1 запись в unique	
-	            				}
-	            			}
-	            		});*/
 	            	}
 	            },
 	        });
@@ -105,6 +198,127 @@
 
         setInterval(getVal, 2000);
 	});
+	//************************
+	//************************
+	//сцена, фон, сетка, камера
+	//инициализация
+	//************************
+	//************************
+
+	//массив меток
+	var cube = {};
+
+
+	function init(){
+
+    /*сцена, камера */
+    scene = new THREE.Scene();
+    camera =  new THREE.PerspectiveCamera(85, window.innerWidth/window.innerHeight, .1, 1000);
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    
+    /*рендерер;*/
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMapEnabled= true;
+    renderer.shadowMapSoft = true;
+    
+    /*оси*/
+    axis = new THREE.AxisHelper(30);
+    scene.add(axis);
+
+    /* сетка */
+    grid = new THREE.GridHelper(100, 25);
+    color = new THREE.Color("rgb(255, 0, 0)");
+    grid.setColors(color, 0x000000);
+    grid.rotation.x = -0.5* Math.PI
+    scene.add(grid);
+    
+    //шейдер неба
+    var vertexShader = document.getElementById( 'vertexShader' ).textContent;
+    var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+    var uniforms = {
+        topColor:      { type: "c", value: new THREE.Color(0x000000) },
+        bottomColor: { type: "c", value: new THREE.Color( 0x262626 ) },
+        offset:         { type: "f", value: 100 },
+        exponent:     { type: "f", value: 0.7 }
+    }
+
+    //сфера неба
+    var skyGeo = new THREE.SphereGeometry( 300, 32, 15 );
+    var skyMat = new THREE.ShaderMaterial( { vertexShader: vertexShader, fragmentShader: fragmentShader, uniforms: uniforms, side: THREE.BackSide } );
+
+    var sky = new THREE.Mesh( skyGeo, skyMat );
+    scene.add( sky );
+
+    /*свет*/
+    spotLight = new THREE.SpotLight(0xffffff);
+    spotLight.castShadow = true;
+    spotLight.position.set (20, 35, 40);
+    scene.add(spotLight);
+
+		/* позиция камеры по умолчанию */
+    camera.position.set(0, -20, 0);
+    /* вверх - это Z*/
+    camera.up.set( 0, 0, 1 );
+    scene.add(camera);
+
+    /*камера. контроль за сменой позиции*/
+    controls = new THREE.OrbitControls( camera, renderer.domElement );
+    controls.addEventListener( 'change', render );
+    hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
+    scene.add(hemi);
+
+    $("#webGL-container").append(renderer.domElement);
+
+    /*статистика*/
+    stats = new Stats();        
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.left = '0px';
+    stats.domElement.style.top = '0px';     
+    $("#webGL-container").append( stats.domElement );       
+	  }
+
+    function render(){
+    	if ($.isEmptyObject(buffer)==false){
+
+    		//общая геометрия объектов и материал
+				var cubeGeom = new THREE.BoxGeometry(20, 20, 20, 2, 2, 2);
+				var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.5});
+				
+				//наполняем словарь
+				$.each(buffer, function(index){
+					if(cube==undefined){
+						/*console.log(buffer[index]);*/
+					}					
+				});
+
+    		//проверить есть ли объект на сцене
+    		var cube = new THREE.Mesh(cubeGeom, cubeMaterial);
+				cube.position.set(0,0,0);
+    	}
+    }
+
+    function update(){
+    }
+
+    function animate(){
+        requestAnimationFrame(animate);
+        render();
+        update();
+        stats.update();     
+        renderer.render(scene, camera);
+    }
+
+    init();
+    animate();
+
+
+    $(window).resize(function(){
+        SCREEN_WIDTH = window.innerWidth;
+        SCREEN_HEIGHT = window.innerHeight;
+        camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+        camera.updateProjectionMatrix();
+        renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
+    });
 	</script>
 	<script src="{% static 'js/foundation/foundation.js' %}"></script>
   	<script src="{% static 'js/foundation/foundation-datepicker.js' %}"></script>
