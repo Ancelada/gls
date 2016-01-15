@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 from django.db import models
+from django.conf import settings
+
 
 # Create your models here.
 
@@ -79,9 +81,23 @@ class Std0(models.Model):
 	Session = models.CharField(max_length=8, null=True)
 	Zone = models.CharField(max_length=200, null=True)
 	DateImport = models.DateTimeField(auto_now=True, null=True)
+	TimeDelta = models.IntegerField(default=0, null=False)
 
 ######################## конец записи сообщений по форматам: ############################
 
 ###################
 # КОНЕЦ СООБЩЕНИЯ SLMP
+###################
+
+###################
+# ЖУРНАЛ ПЕРИОДИЧЕСКИХ ЗАДАНИЙ
+###################
+class LogsJournal(models.Model):
+	class Meta():
+		db_table = 'LogsJournal'
+	CommandName = models.CharField(max_length=200)
+	ResponseText = models.CharField(max_length=200)
+	DateImport = models.DateTimeField(auto_now=True, null=True)
+###################
+# КОНЕЦ ЖУРНАЛА ПЕРИОДИЧЕСКИХ ЗАДАНИЙ
 ###################

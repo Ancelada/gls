@@ -1,0 +1,112 @@
+<!DOCTYPE HTML>
+
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Our WebGl</title>
+		{% load staticfiles %}
+
+		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/stats.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/helvetiker_regular.typeface.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
+
+
+  		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
+    	<link rel="stylesheet" href="{% static 'css/foundation-icons/foundation-icons.css' %}">
+    	<link rel="stylesheet" href="{% static 'css/app.css' %}">
+  		<script src="{% static 'js/vendor/modernizr.js' %}"></script>
+
+
+		<style>
+			body{
+				margin:0;
+				overflow:hidden;
+				
+			}
+		</style>
+	</head>
+	<body>
+	{% csrf_token %}
+	ok
+	<script>
+	$(document).ready(function(){
+		var marks;
+		var unique;
+		function getVal(){
+			var csrf_token = $("input[name='csrfmiddlewaretoken']").val();
+	        $.ajax({
+	            type: 'POST',
+	            url: '/getmarksvalues',
+	            data: JSON.stringify(csrf_token),
+              contentType: "application/json; charset=utf-8",
+            	dataType: 'json',
+            	async: false,
+	            success: function(data, textStatus, jqXHR){
+	            	if (marks){
+	            		//проверка на повторение пачки
+	            		function verify(){
+	            			var doubled = 0;
+		            		$.each(data, function(index){
+		            			tag_id_new = data[index][0]['tag_id'];
+		            			zone_new = data[index][0]['zone'];
+		            			$.each(marks, function(index){
+		            				tag_id_old = marks[index][0]['tag_id'];
+		            				zone_old = marks[index][0]['zone'];
+		            				if(tag_id_old == tag_id_new && zone_old == zone_new){
+		            					doubled = 1;
+		            					return false;
+		            				}
+		            			});
+		            		});
+		            		return doubled;
+	            		}
+	            		console.log(verify());
+	            	} else {
+		            	marks = data;
+	            		//если пачка не повторяется записываем в буфер
+	            		/*$.each(marks, function(index){
+	            			if (unique == false){
+	            				//проверка на уникальность id в буфере
+	            				//если нет, записать в массив
+	            				$.each(marks, function(index){
+	            					tag_id_new = marks[index][0]['tag_id'];
+	            					zone_new = marks[index][0]['zone'];
+	            					doubled = 0;
+	            					if (unique.length == 0){
+	            						unique.push(marks[index][0]);
+            						} else if(unique.length > 0) {
+		            					$.each(unique, function(index){
+		            						tag_id_buffer = unique[index][0]['tag_id'];
+		            						zone_buffer = unique[index][0]['zone'];
+		            						if (tag_id_new == tag_id_buffer && zone_new == zone_buffer){
+		            							doubled = 1;
+		            							return false;
+		            						}
+		            					});
+		            					if (doubled == 0){
+		            						unique.push(marks[index][0]);
+		            					}
+	            					}
+	            				});
+	            			} else {
+	            				if (unique){
+	            					unique.push(marks[index][0]);//не удалять, тк 1 запись в unique	
+	            				}
+	            			}
+	            		});*/
+	            	}
+	            },
+	        });
+        }
+
+        setInterval(getVal, 2000);
+	});
+	</script>
+	<script src="{% static 'js/foundation/foundation.js' %}"></script>
+  	<script src="{% static 'js/foundation/foundation-datepicker.js' %}"></script>
+	</body>
+</html>

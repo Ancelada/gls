@@ -13,15 +13,15 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 
 #import celery settings
-# import djcelery
+import djcelery
 
-# djcelery.setup_loader()
-# CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+djcelery.setup_loader()
+CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 
 #import djkombu
-# import djkombu
-# BROKER_URL = 'django://'
-# BROKER_BACKEND = "djkombu.transport.DatabaseTransport"
+import djkombu
+BROKER_URL = 'django://'
+BROKER_BACKEND = "djkombu.transport.DatabaseTransport"
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -51,9 +51,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'mainapp',
     #add celery and kombu
-    # 'djcelery',
-    # 'djkombu',
-    # 'kombu.transport.django',
+    'djcelery',
+    'djkombu',
+    'kombu.transport.django',
 ]
 
 MIDDLEWARE_CLASSES = [

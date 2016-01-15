@@ -23,6 +23,7 @@ urlpatterns = patterns('',
 	url(r'children$', 'mainapp.views.children'),
 	url(r'loadcollada$', 'mainapp.views.loadcollada'),
 
-
-
+	#get ajax marks count
+	url(r'getmarksvalues', 'mainapp.views.getmarksvalues'),
+	url(r'values', 'mainapp.views.values'),
 )
