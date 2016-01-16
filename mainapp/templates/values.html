@@ -68,23 +68,12 @@
 <!--***********буфер**************-->
 		<!--************************-->
 	<script>
-	var buffer = {};
-
-	jQuery.initCube = function (tag_id, x, y, z, delta){
-		var cube;
-		/*куб*/
-		var cubeGeom = new THREE.BoxGeometry(20, 20, 20, 2, 2, 2);
-		var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.5});
-		cube = new THREE.Mesh(cubeGeom, cubeMaterial);
-		cube.position.set(0,0,0);
-		scene.add(cube);
-
-	}
-
+	var unique = {};
+	var cubeGeom = new THREE.BoxGeometry(10, 10, 10, 2, 2, 2);
+	var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.5});
 
 	$(document).ready(function(){
 		var marks;
-		var unique = {};
 		var unum = 0;
 		var cron = 0;
 		function getVal(){
@@ -183,9 +172,7 @@
 											});
 										});
 										//передача буфера в рендер
-										console.log(unique);
-										buffer = unique;
-										//очистить позиции точек в буфере
+										console.log(cron);
 	            		}
 	            		marks = data;//не удалять
 
@@ -278,22 +265,28 @@
 	  }
 
     function render(){
-    	if ($.isEmptyObject(buffer)==false){
-
-    		//общая геометрия объектов и материал
-				var cubeGeom = new THREE.BoxGeometry(20, 20, 20, 2, 2, 2);
-				var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.5});
-				
-				//наполняем словарь
-				$.each(buffer, function(index){
-					if(cube==undefined){
-						/*console.log(buffer[index]);*/
-					}					
+    	if (unique){
+				//проверка наличия элемента на сцене
+				$.each(unique, function(index){
+					ind = index;
+					if (unique[index]['mesh']==undefined){
+						//добавление элемента на сцену
+						unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
+						unique[index]['mesh'].position.set(0,0,0);
+						scene.add(unique[index]['mesh']);
+					} else {
+						//прохождение позиций координат
+						$.each(unique[ind]['data'], function(index){
+							x = unique[ind]['data'][index]['x'];
+							y = unique[ind]['data'][index]['y'];
+							z = unique[ind]['data'][index]['z'];
+							/*unique[ind]['mesh'].position.set(1,1,)*/
+						});
+					}
 				});
 
-    		//проверить есть ли объект на сцене
-    		var cube = new THREE.Mesh(cubeGeom, cubeMaterial);
-				cube.position.set(0,0,0);
+    		/*var cube = new THREE.Mesh(cubeGeom, cubeMaterial);
+				cube.position.set(0,0,0);*/
     	}
     }
 
