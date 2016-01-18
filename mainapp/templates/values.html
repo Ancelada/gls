@@ -69,8 +69,8 @@
 		<!--************************-->
 	<script>
 	var unique = {};
-	var cubeGeom = new THREE.BoxGeometry(10, 10, 10, 2, 2, 2);
-	var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.5});
+	var cubeGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
+	var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.8});
 
 	$(document).ready(function(){
 		var marks;
@@ -116,12 +116,10 @@
             						//проверка на уникальность id в буфере
 		            				//если нет, записать в массив
 	            					tag_id_new = data[index][0]['tag_id'];
-	            					zone_new = data[index][0]['zone'];
 	            					doubled = 0;
 	            					$.each(unique, function(index){
 	            						tag_id_unique = unique[index]['tag_id'];
-	            						zone_unique = unique[index]['zone'];
-	            						if (tag_id_new == tag_id_unique && zone_new == zone_unique){
+	            						if (tag_id_new == tag_id_unique){
 	            							doubled = 1;
 	            							return false;
 	            						}
@@ -162,8 +160,10 @@
 													$.each(data, function(index){
 														if (unique[uind]['tag_id'] == data[index][0]['tag_id']){
 															unique[uind]['data'][no] = data[index][0];
-															//количество милисекунд на отображение
-															unique[uind]['delta'] = cron / no;
+															//количество позиций в пачке
+															unique[uind]['count'] = no;
+															//количество миллисекунд до обновления позиции
+															unique[uind]['cron'] = cron;
 															no+=1;	
 														}
 													});
@@ -171,8 +171,9 @@
 												}
 											});
 										});
+
 										//передача буфера в рендер
-										console.log(cron);
+										/*console.log(unique);*/
 	            		}
 	            		marks = data;//не удалять
 
@@ -194,7 +195,12 @@
 
 	//массив меток
 	var cube = {};
-
+	var dae;
+	var camera;
+	var spotLight;
+	var cameraTarget;
+	var renderer;
+	var scene;
 
 	function init(){
 
@@ -242,14 +248,40 @@
     spotLight.position.set (20, 35, 40);
     scene.add(spotLight);
 
+    /* add collada import */
+    var loader = new THREE.ColladaLoader();
+    /*loader.options.convertUpAxis = true;*/
+    loader.load( 'static/js/webgl/models/gls.dae', function ( collada ) {
+    	//gls.dae
+    	var dae = collada.scene;
+    	dae.position.set(40,60,6);//x,z,y- if you think in blender dimensions ;)
+    	setMaterial(dae, new THREE.MeshLambertMaterial({ transparent: true, opacity:0.9}));
+    	scene.add(dae);
+    });
+
+    //изменить материал для dae
+    var setMaterial = function(node, material) {
+ 			node.material = material;
+  			if (node.children) {
+    			for (var i = 0; i < node.children.length; i++) {
+      		setMaterial(node.children[i], material);
+    		}
+  		}
+		}
+
 		/* позиция камеры по умолчанию */
-    camera.position.set(0, -20, 0);
+    camera.position.set(40, 40, 20);
     /* вверх - это Z*/
     camera.up.set( 0, 0, 1 );
     scene.add(camera);
 
+
     /*камера. контроль за сменой позиции*/
     controls = new THREE.OrbitControls( camera, renderer.domElement );
+    /* камера вращается вокруг данных координат*/
+    controls.target.copy(new THREE.Vector3(40, 60, 6));
+    //камера смотрит
+    camera.lookAt(new THREE.Vector3(40, 60, 6));
     controls.addEventListener( 'change', render );
     hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
     scene.add(hemi);
@@ -265,29 +297,61 @@
 	  }
 
     function render(){
-    	if (unique){
+
+    	if ($.isEmptyObject(unique)==false){
 				//проверка наличия элемента на сцене
 				$.each(unique, function(index){
-					ind = index;
 					if (unique[index]['mesh']==undefined){
 						//добавление элемента на сцену
 						unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
-						unique[index]['mesh'].position.set(0,0,0);
 						scene.add(unique[index]['mesh']);
-					} else {
-						//прохождение позиций координат
-						$.each(unique[ind]['data'], function(index){
-							x = unique[ind]['data'][index]['x'];
-							y = unique[ind]['data'][index]['y'];
-							z = unique[ind]['data'][index]['z'];
-							/*unique[ind]['mesh'].position.set(1,1,)*/
-						});
 					}
 				});
 
-    		/*var cube = new THREE.Mesh(cubeGeom, cubeMaterial);
-				cube.position.set(0,0,0);*/
+				$.each(unique, function(index){
+					var timeOut = 5000;
+					ind = index;
+					//прохождение позиций координат
+					$.each(unique[ind]['data'], function(index){
+						if (unique[ind]['data'][index] != undefined){
+							x = unique[ind]['data'][index]['x'];
+							y = unique[ind]['data'][index]['y'];
+							z = unique[ind]['data'][index]['z'];
+							//отрисовка перемещений
+							//установка временного интервала
+							if (unique[ind]['count'] != 0){
+								timeOut = timeOut/unique[ind]['count'];
+							}
+
+							unique[ind]['mesh'].position.set(x,y,z);
+
+							timeOut += timeOut;
+							//удаление пройденных координат из буфера
+							unique[ind]['data'] = jQuery.grep(unique[ind]['data'], function(value){
+								return value != unique[ind]['data'][index];
+							});
+						}
+					});
+					//oчищаем count
+					unique[ind]['count'] = 0;
+				});
+				//проверить, если давно не поступает сигнал удалить из буфера
+				$.each(unique, function(index){
+					delay = 1000;
+					var a = unique[index]['cron'];
+					if (a > delay){
+						unique[index]['removed'] = 1;
+						scene.remove(unique[index]['mesh']);
+					}
+					//если сигнал посупил, снова добавить
+					if (a < delay && unique[index]['removed'] == 1){
+						unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
+						scene.add(unique[index]['mesh']);
+						unique[index]['removed'] = 0;
+					}
+				});
     	}
+
     }
 
     function update(){
