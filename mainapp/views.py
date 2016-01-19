@@ -15,7 +15,48 @@ except ImportError:
 	from urlparse import urljoin
 import ssl
 import datetime
-# Create your views here.
+
+#модули асинхронного сервера
+import redis
+from django.conf import settings
+from django.db import models
+import simplejson
+
+ORDERS_FREE_LOCK_TIME = getattr(settings, 'ORDERS_FREE_LOCK_TIME', 0)
+ORDERS_REDIS_HOST = getattr(settings, 'ORDERS_REDIS_HOST', 'localhost')
+ORDERS_REDIS_PORT = getattr(settings, 'ORDERS_REDIS_PORT', 6379)
+ORDERS_REDIS_PASSWORD = getattr(settings, 'ORDERS_REDIS_PASSWORD', None)
+ORDERS_REDIS_DB = getattr(settings, 'ORDERS_REDIS_DB', None)
+
+service_queue = redis.StrictRedis(
+	host = ORDERS_REDIS_HOST,
+	port = ORDERS_REDIS_PORT,
+	db = ORDERS_REDIS_DB,
+	password = ORDERS_REDIS_PASSWORD
+).publish
+
+json = simplejson.dumps
+
+def lock(self):
+	"""
+	Закрепление заказа
+	"""
+	service_queue('order_lock', json({
+		'user': self.client.pk,
+		'order': self.pk,	
+	}))
+
+def done(self):
+	"""
+	Завершение заказа
+	"""
+	service_queue('order_done', json({
+		'user': self.client.pk,
+		'order': self.pk,	
+	}))
+
+def sockjs(request):
+	return render(request, 'sockjs.html')
 
 # Глобальный словарь с метками
 massive = {}
@@ -37,11 +78,11 @@ def recieve_json(request):
 
 
 def send_simple_location_message(request):
-	slmp = """LabR,Std0,0000,00000b5,10.681625,10.457092,10.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
-	LabR,Std0,0000,00000b6,15.681625,15.457092,15.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
-	LabR,Std0,0000,00000b7,25.681625,25.457092,25.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
-	LabR,Std0,0000,00000b7,35.681625,35.457092,35.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
-	LabR,Std0,0000,00000b7,45.681625,45.457092,45.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
+	slmp = """LabR,Std0,0000,00000a5,10.681625,10.457092,10.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
+	LabR,Std0,0000,00000a6,15.681625,15.457092,15.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
+	LabR,Std0,0000,00000a7,25.681625,25.457092,25.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
+	LabR,Std0,0000,00000a7,35.681625,35.457092,35.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
+	LabR,Std0,0000,00000a7,45.681625,45.457092,45.803710,7,2016-01-13T13:52:31:239+1,2,0038,0000
 """
 	url = 'http://localhost:8000/receive_slmp'
 	r = requests.post(url, data=slmp)

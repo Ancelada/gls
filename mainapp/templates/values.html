@@ -184,7 +184,7 @@
 	        });
         }
 
-        setInterval(getVal, 2000);
+        setInterval(getVal, 1000);
 	});
 	//************************
 	//************************
@@ -248,14 +248,37 @@
     spotLight.position.set (20, 35, 40);
     scene.add(spotLight);
 
+    //маркеры калибровки
+    var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
+    var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
+    this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
+    marker6004.position.set(39.682, 76.457, 7.6);
+    scene.add(marker6004);
+
+    this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
+    marker6045.position.set(30.141, 76.426, 8.7);
+    scene.add(marker6045);
+
+    this.marker6003 = new THREE.Mesh(markGeom, markMaterial);
+    marker6003.position.set(39.8109, 59.531, 7.6);
+    scene.add(marker6003);
+
+    this.marker6012 = new THREE.Mesh(markGeom, markMaterial);
+    marker6012.position.set(28.649, 59.256, 8.7);
+    scene.add(marker6012);
+
     /* add collada import */
     var loader = new THREE.ColladaLoader();
     /*loader.options.convertUpAxis = true;*/
     loader.load( 'static/js/webgl/models/gls.dae', function ( collada ) {
     	//gls.dae
     	var dae = collada.scene;
-    	dae.position.set(40,60,6);//x,z,y- if you think in blender dimensions ;)
-    	setMaterial(dae, new THREE.MeshLambertMaterial({ transparent: true, opacity:0.9}));
+    	dae.position.set(28.141,59.087,8.6);//x,z,y- if you think in blender dimensions ;)
+    	dae.scale.set(1,1,1);
+    	dae.rotation.z = - (Math.PI/2);
+    	dae.rotation.x = Math.PI;
+    	/*dae.rotation.x = Math.PI;*/
+    	setMaterial(dae, new THREE.MeshLambertMaterial({ transparent: true, opacity:0.3}));
     	scene.add(dae);
     });
 
@@ -272,16 +295,16 @@
 		/* позиция камеры по умолчанию */
     camera.position.set(40, 40, 20);
     /* вверх - это Z*/
-    camera.up.set( 0, 0, 1 );
+    camera.up.set( 0, 0, -1 );
     scene.add(camera);
 
 
     /*камера. контроль за сменой позиции*/
     controls = new THREE.OrbitControls( camera, renderer.domElement );
     /* камера вращается вокруг данных координат*/
-    controls.target.copy(new THREE.Vector3(40, 60, 6));
+    controls.target.copy(new THREE.Vector3(34.141, 67.862, 8.6));
     //камера смотрит
-    camera.lookAt(new THREE.Vector3(40, 60, 6));
+    camera.lookAt(new THREE.Vector3(34.141, 67.862, 8.6));
     controls.addEventListener( 'change', render );
     hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
     scene.add(hemi);
@@ -330,25 +353,24 @@
 							unique[ind]['data'] = jQuery.grep(unique[ind]['data'], function(value){
 								return value != unique[ind]['data'][index];
 							});
+
+							//проверить, если давно не поступает сигнал удалить из буфера
+							/*delay = 20000;
+							var a = unique[index]['cron'];
+								if (a > delay){
+									unique[index]['removed'] = 1;
+									scene.remove(unique[index]['mesh']);
+								}
+								//если сигнал посупил, снова добавить
+							if (a < delay && unique[index]['removed'] == 1){
+									unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
+									scene.add(unique[index]['mesh']);
+									unique[index]['removed'] = 0;
+							}*/
 						}
 					});
 					//oчищаем count
 					unique[ind]['count'] = 0;
-				});
-				//проверить, если давно не поступает сигнал удалить из буфера
-				$.each(unique, function(index){
-					delay = 1000;
-					var a = unique[index]['cron'];
-					if (a > delay){
-						unique[index]['removed'] = 1;
-						scene.remove(unique[index]['mesh']);
-					}
-					//если сигнал посупил, снова добавить
-					if (a < delay && unique[index]['removed'] == 1){
-						unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
-						scene.add(unique[index]['mesh']);
-						unique[index]['removed'] = 0;
-					}
 				});
     	}
 

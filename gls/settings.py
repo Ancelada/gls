@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf8 -*-
 """
 Django settings for gls project.
 
@@ -50,7 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'mainapp',
-    #add celery and kombu
+    #add celery and kombu планировщик заданий
     # 'djcelery',
     # 'djkombu',
     # 'kombu.transport.django',

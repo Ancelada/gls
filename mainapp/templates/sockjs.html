@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Our WebGl</title>
+		{% load staticfiles %}
+
+		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/stats.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/helvetiker_regular.typeface.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
+
+
+  		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
+    	<link rel="stylesheet" href="{% static 'css/foundation-icons/foundation-icons.css' %}">
+    	<link rel="stylesheet" href="{% static 'css/app.css' %}">
+  		<script src="{% static 'js/vendor/modernizr.js' %}"></script>
+
+
+		<style>
+			body{
+				margin:0;
+				overflow:hidden;
+				
+			}
+		</style>
+	</head>
+	<body>
+		{% csrf_token %}
+		ok
+		<script src="{% static 'js/sockjs.js' %}"></script>
+		<script src="{% static 'js/foundation/foundation.js' %}"></script>
+		<script src="{% static 'js/foundation/foundation-datepicker.js' %}"></script>
+		<script>
+			socket_connect();
+
+			function socket_connect(){
+				socket = new SockJS('http://' + window.location.host + ':8989/orders');
+				// порт для асинхронного сервиса
+				// при соединении вызывается событие login, которое будет выполнено на серверной стороне
+
+				socket.onmessage = function(msg){
+					window['ws_order_' + msg.data.type][msg.data.data];
+					//роутер, выполняет функцию согласно типу сообщения
+				}
+
+				socket.onclose = function(e){
+					setTimeout(socket_connect, 5000)
+				};
+			}
+
+			function ws_order_lock(msg){
+				if(msg.action == 'highlight'){
+					console.log('order-row_is_locked');
+				} else {
+					console.log('hidden');
+				}
+			}
+		</script>
+	</body>
+</html>

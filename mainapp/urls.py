@@ -26,4 +26,7 @@ urlpatterns = patterns('',
 	#get ajax marks count
 	url(r'getmarksvalues', 'mainapp.views.getmarksvalues'),
 	url(r'values', 'mainapp.views.values'),
+
+	#testing sockjs
+	url(r'sockjs', 'mainapp.views.sockjs'),
 )
