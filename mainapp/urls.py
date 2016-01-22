@@ -28,5 +28,4 @@ urlpatterns = patterns('',
 	url(r'values', 'mainapp.views.values'),
 
 	#testing sockjs
-	url(r'sockjs', 'mainapp.views.sockjs'),
 )

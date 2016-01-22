@@ -17,47 +17,6 @@ import ssl
 import datetime
 
 #модули асинхронного сервера
-import redis
-from django.conf import settings
-from django.db import models
-import simplejson
-
-ORDERS_FREE_LOCK_TIME = getattr(settings, 'ORDERS_FREE_LOCK_TIME', 0)
-ORDERS_REDIS_HOST = getattr(settings, 'ORDERS_REDIS_HOST', 'localhost')
-ORDERS_REDIS_PORT = getattr(settings, 'ORDERS_REDIS_PORT', 6379)
-ORDERS_REDIS_PASSWORD = getattr(settings, 'ORDERS_REDIS_PASSWORD', None)
-ORDERS_REDIS_DB = getattr(settings, 'ORDERS_REDIS_DB', None)
-
-service_queue = redis.StrictRedis(
-	host = ORDERS_REDIS_HOST,
-	port = ORDERS_REDIS_PORT,
-	db = ORDERS_REDIS_DB,
-	password = ORDERS_REDIS_PASSWORD
-).publish
-
-json = simplejson.dumps
-
-def lock(self):
-	"""
-	Закрепление заказа
-	"""
-	service_queue('order_lock', json({
-		'user': self.client.pk,
-		'order': self.pk,	
-	}))
-
-def done(self):
-	"""
-	Завершение заказа
-	"""
-	service_queue('order_done', json({
-		'user': self.client.pk,
-		'order': self.pk,	
-	}))
-
-def sockjs(request):
-	return render(request, 'sockjs.html')
-
 # Глобальный словарь с метками
 massive = {}
 
@@ -175,27 +134,30 @@ def values(request):
 
 def getmarksvalues(request):
 	if request.method == 'POST':
-		marks = {}
-		line = massive['data']
-		line = line.split('Zone')
-		num = 0
-		if (len(line) > 1):
-			line = line[2]
-			line = line.split(',')
-			for i in line:
-				spisok = []
-				spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':[8]})
-				marks[num] = spisok
-			return JsonResponse(marks)
-		else:
-			line = line[0].split('\n')
-			for i in line:
-				try:
-					line = i.split(',')
+		try:
+			marks = {}
+			line = massive['data']
+			line = line.split('Zone')
+			num = 0
+			if (len(line) > 1):
+				line = line[2]
+				line = line.split(',')
+				for i in line:
 					spisok = []
-					spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':line[8]})
+					spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':[8]})
 					marks[num] = spisok
-					num +=1
-				except:
-					pass
-			return JsonResponse(marks)
+				return JsonResponse(marks)
+			else:
+				line = line[0].split('\n')
+				for i in line:
+					try:
+						line = i.split(',')
+						spisok = []
+						spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':line[8]})
+						marks[num] = spisok
+						num +=1
+					except:
+						pass
+				return JsonResponse(marks)
+		except:
+			return HttpResponse('ok')
