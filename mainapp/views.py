@@ -134,30 +134,27 @@ def values(request):
 
 def getmarksvalues(request):
 	if request.method == 'POST':
-		try:
-			marks = {}
-			line = massive['data']
-			line = line.split('Zone')
-			num = 0
-			if (len(line) > 1):
-				line = line[2]
-				line = line.split(',')
-				for i in line:
+		marks = {}
+		line = massive['data']
+		line = line.split('Zone')
+		num = 0
+		if (len(line) > 1):
+			line = line[2]
+			line = line.split(',')
+			for i in line:
+				spisok = []
+				spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':[8]})
+				marks[num] = spisok
+			return JsonResponse(marks)
+		else:
+			line = line[0].split('\n')
+			for i in line:
+				try:
+					line = i.split(',')
 					spisok = []
-					spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':[8]})
+					spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':line[8]})
 					marks[num] = spisok
-				return JsonResponse(marks)
-			else:
-				line = line[0].split('\n')
-				for i in line:
-					try:
-						line = i.split(',')
-						spisok = []
-						spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':line[8]})
-						marks[num] = spisok
-						num +=1
-					except:
-						pass
-				return JsonResponse(marks)
-		except:
-			return HttpResponse('ok')
+					num +=1
+				except:
+					pass
+			return JsonResponse(marks)
