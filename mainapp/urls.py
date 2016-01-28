@@ -25,7 +25,16 @@ urlpatterns = patterns('',
 
 	#get ajax marks count
 	url(r'getmarksvalues', 'mainapp.views.getmarksvalues'),
-	url(r'values', 'mainapp.views.values'),
 
+	#scene view
+	url(ur'values/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.values'),
+
+	#landscape load
+	url(ur'landscapeloadform/(?P<result>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.landscapeloadform'),
+
+	#landscape elems tree to database
+	url(ur'landscapetreeload/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.landscapetreeload'),
+	url(r'landscape_save$', 'mainapp.views.landscape_save'),
+	
 	#testing sockjs
 )

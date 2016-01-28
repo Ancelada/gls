@@ -7,6 +7,7 @@
 		{% load staticfiles %}
 
 		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
@@ -15,7 +16,7 @@
 		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
 
 
-  		<link rel="stylesheet" href="{% static 'css/foundation.min.css' %}">
+  		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
     	<link rel="stylesheet" href="{% static 'css/app.css' %}">
 
 
@@ -33,25 +34,70 @@
 		<div id ="webGL-container"></div>
         <!-- ***блок панель управления*** -->
         <!--************************-->
-        <div class="button_panel">
-            <a href="#" zf-open="panelName" class="button">Open Panel</a>
-            <a href="#" zf-close="panelName" class="button">Close Panel</a>
-            <a href="#" zf-close="panelName" class="button">Toggle Button</a>
-        </div>
-        <div class="instrument_block large-3 small-3 columns">
-            <label for="">Строения
-                <select id="buildings">
-                </select>
-            </label>
-            <section class="block-list">
-                <header>Управление видимостью</header>
-                <ul>
+        <button class="button show_hide_button">Панель инструментов</button>
+        <div class="instrument_block large-3 small-5 columns" style="right:-100%;">
+          
+            <fieldset class="large-12 small-12 columns">
+                <button class="close-button close_panel" aria-label="Close menu" type="button">
+                    <span aria-hidden="true">x</span>
+                </button>
+                <h3 class="subheader">Объекты</h3>
+                <ul class="vertical menu objects_tree" data-drilldown data-options="backButton:<li class='js-drilldown-back'><a>Назад</a></li>;">
+                    {% for building in buildings %}
                     <li>
-                        <input type="checkbox" id="life">
-                        <label for="life">Видимость</label>
-                    </li>                 
+                        <a href="#">{{building.dae_BuildingName}}</a>
+                        <ul class="vertical menu">
+                        {% for floor in floors %}
+                            {% if building.id == floor.Building_id %}
+                                <li>
+                                    <a href="#">{{floor.dae_FloorName}}</a>
+                                    <ul class="vertical menu">
+                                    {% for k in kabinet_n_outer %}
+                                        {% if k.Floor_id == floor.id %}
+                                        <li>
+                                            <a href="#">{{k.dae_Kabinet_n_OuterName}}</a>
+                                            <ul class="vertical menu">
+                                                {% for wall in walls %}
+                                                    {% if wall.Kabinet_n_Outer_id == k.id %}
+                                                    <li>
+                                                        <a href="#">{{wall.dae_WallName}}</a>    
+                                                    </li>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </ul>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        </ul>        
+                    </li>
+                    {% endfor %}                    
                 </ul>
-            </section>
+            </fieldset>
+            <br>
+            <br>
+            <br>
+            <fieldset class="large-12 small-12 columns">
+                <a href="#" class="secodary hollow button large button_style" style="font-size:100%;">Навести камеру</a>    
+            </fieldset>
+            <fieldset class="large-12 small-12 columns">
+                <h3 class="subheader">Видимость</h3>
+                <ul class="tabs" data-tabs id="example-tabs">
+                    <li class="tabs-title is-active"><a href="#panel1">Показать</a></li>
+                    <li class="tabs-title"><a href="#panel2">Скрыть</a></li>
+                </ul>
+            </fieldset>
+            <fieldset class="large-12 small-12 columns">
+                <h3 class="subheader">Прозрачность</h3>
+                <div class="slider" data-slider data-initial-start="1" data-start="0" data-end="1">
+                    <span class="slider-handle" data-slider-handle role="slider" tabindex="1"></span>
+                    <span class="slider-fill" data-slider-fill></span>
+                    <input type="hidden" id="building_opacity">
+                </div>
+            </fieldset>
         </div>
 		<!-- **********шейдеры ******-->
 		<!--************************-->
@@ -87,6 +133,7 @@
 <!--***********буфер**************-->
 		<!--************************-->
 	<script>
+    $.getScript("/static/js/additional/instrument_panel.js");
 	var unique = {};
 	var cubeGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
 	var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.8});
@@ -292,7 +339,7 @@
     /* add collada import */
     var loader = new THREE.ColladaLoader();
     /*loader.options.convertUpAxis = true;*/
-    loader.load( 'static/js/webgl/models/gls.dae', function ( collada ) {
+    loader.load( '/{{link}}', function ( collada ) {
 
         //функция поиска центра collada объекта на оси координат
         var getCenter = function(obj){
@@ -322,7 +369,7 @@
 
     	//gls.dae
     	var dae = collada.scene;
-    	dae.position.set(28.141,59.087,8.6);//x,z,y- if you think in blender dimensions ;)
+    	dae.position.set(28.141,59.087,8.6);
     	dae.scale.set(1,1,1);
     	dae.rotation.z = - (Math.PI/2);
     	dae.rotation.x = Math.PI;
@@ -427,7 +474,10 @@
             }
         });
 
-        $.getScript("/static/js/additional/defaultSceneLoaded.js");
+        //****************************
+        //**конец заполнения массива элементов сцены
+        //****************************
+
         /*console.log(colladaObjects);*/
         //** добавляем папку "Визуализация"
         /*datGUI = new dat.GUI();
@@ -448,10 +498,6 @@
             togleOpacity(buildingObject, value);
         });        
         datGUI.close();*/
-
-        //****************************
-        //**конец заполнения массива элементов сцены
-        //****************************
 
 
         //****************************
@@ -518,15 +564,10 @@
         //*************************************
         //**Загрузка данных в панель управления
         //*************************************
-        $.each(colladaObjects['landscape'][0].children, function(key, value){
-            if (value.name.indexOf('building') != -1) {
-                $('#buildings')
-                .append($("<option></option>")
-                .attr("value", key)
-                .text(value.name));
-            }
-        });
 
+        //*************************************
+        //**конец загрузки данных в панель управления
+        //***********************************
     });
 
     //изменить материал для обектов
@@ -565,29 +606,6 @@
         }
     }
 
-    /*adds spot light with starting parameters*/
-    /*spotLight = new THREE.SpotLight(0xffffff);
-    spotLight.castShadow = true;
-    spotLight.position.set (25, 55, -60);
-    spotLight.target.position.set(25, 55, 0);
-        this.lightX = 20;
-        this.lightY = 35;
-        this.lightZ = 40;
-        this.intensity = 5;
-        this.decay = 8.5;   
-        this.distance = 87;
-        this.angle = 0.54;
-        this.exponent = 0;
-        this.shadowCameraNear = 10;
-        this.shadowCameraFar = 100;
-        this.shadowCameraFov = 50;
-        this.shadowCameraVisible=false;
-        this.shadowMapWidth=1028;
-        this.shadowMapHeight=1028;
-        this.shadowBias=0;
-        this.shadowDarkness=0.5;
-    spotLight.target.updateMatrixWorld();
-    scene.add(spotLight);*/
               
 	/* позиция камеры по умолчанию */
     camera.position.set(69, 69, -50);
@@ -695,10 +713,22 @@
         camera.updateProjectionMatrix();
         renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
     });
+
 	</script>
-	<script src="{% static 'js/foundation.js' %}"></script>
+    <script src="{% static 'js/foundation.js' %}"></script>
+    <script src="{% static 'js/vendor/what-input.min.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.slider.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.tabs.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.keyboard.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.timerAndImageLoader.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.drilldown.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.motion.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.nest.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.mediaQuery.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.accordionMenu.js' %}"></script>
     <script>
-    $(document).foundation();
+        $(document).foundation();
+        $('.is-drilldown').css('max-height', '300px');
     </script>
 	</body>
 </html>

@@ -1,0 +1,24 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	<fieldset class="large-12 small-12 columns">
+	<legend>Загрузить сцену</legend>
+	<form action="/landscapeloadform/load" method="post" enctype="multipart/form-data" >
+		{% csrf_token %}
+		<input type="text" placeholder="Имя сцены" name="landscape_name" id="landscape_name" required>
+		<input type="text" placeholder="Идентификатор сцены" name="landscape_id" id="landscape_id" required>
+		<label for="file">
+			<input type="file" name="landscape_file" id="file" accept="*" id="landscape_file" required>
+		</label>
+		<input type="submit" value="Отправить" class="button">
+		{% if result == 'success' %}
+			<div class="success callout" data-closable="slide-out-right">
+				<p>Сцена успешно загружена</p>
+				<button class="close-button" aria-label="Dismiss alert" type="button" data-close>
+					<span aria-hidden="true">&times;</span>					
+				</button>
+			</div>
+		{% endif %}
+	</form>
+	</fieldset>
+{% endblock %}

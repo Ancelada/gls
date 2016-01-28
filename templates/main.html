@@ -7,20 +7,19 @@
   	<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
     <link rel="stylesheet" href="{% static 'css/foundation-icons/foundation-icons.css' %}">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  	<script src="{% static 'js/vendor/modernizr.js' %}"></script>
-    <script src="{% static 'js/gl-matrix.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
 </head>
 <body>
-
+  <div class="row">
   {% block content %}
 
   {% endblock %}
+  </div>
 
-
-  <script src="{% static 'js/vendor/jquery.js' %}"></script>
-  <script src="{% static 'js/foundation/foundation.js' %}"></script>
-  <script src="{% static 'js/foundation/foundation-datepicker.js' %}"></script>
-  <script src="{% static 'js/application.js' %}"></script>
+  <script src="{% static 'js/foundation.js' %}"></script>
+  <script src="{% static 'js/vendor/what-input.min.js' %}"></script>
   <script type="text/javascript">
+    $(document).foundation();
   </script>
 </body>

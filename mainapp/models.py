@@ -3,6 +3,8 @@
 from django.db import models
 from django.conf import settings
 
+def get_upload_file_name(instance, filename):
+	return 'uploaded_files/%s_%s' % (str(time).replace('.', '_'), filename)
 
 # Create your models here.
 
@@ -101,3 +103,45 @@ class LogsJournal(models.Model):
 ###################
 # КОНЕЦ ЖУРНАЛА ПЕРИОДИЧЕСКИХ ЗАДАНИЙ
 ###################
+
+
+###################
+#РАБОТА СО СЦЕНАМИ
+###################
+class LoadLandscape(models.Model):
+	class Meta():
+		db_table = 'LoadLandscape'
+	landscape_name = models.CharField(max_length=100)
+	landscape_id = models.CharField(primary_key=True, max_length=20)
+	landscape_source = models.FileField(upload_to='static/js/webgl/models/', blank=True, null=True)
+
+class Building(models.Model):
+	class Meta():
+		db_table = 'Building'
+	BuildingName = models.CharField(max_length=200, null=True)
+	dae_BuildingName = models.CharField(max_length=200)
+	LoadLandscape = models.ForeignKey(LoadLandscape)
+
+class Floor(models.Model):
+	class Meta():
+		db_table = 'Floor'
+	FloorName = models.CharField(max_length=200, null=True)
+	dae_FloorName = models.CharField(max_length=200)
+	Building = models.ForeignKey(Building)
+	LoadLandscape = models.ForeignKey(LoadLandscape)
+
+class Kabinet_n_Outer(models.Model):
+	class Meta():
+		db_table = 'Kabinet_n_Outer'
+	Kabinet_n_OuterName = models.CharField(max_length=200, null=True)
+	dae_Kabinet_n_OuterName = models.CharField(max_length=200)
+	Floor = models.ForeignKey(Floor)
+	LoadLandscape = models.ForeignKey(LoadLandscape)
+
+class Wall(models.Model):
+	class Meta():
+		db_table = 'Wall'
+	WallName = models.CharField(max_length=200, null=True)
+	dae_WallName = models.CharField(max_length=200)
+	Kabinet_n_Outer = models.ForeignKey(Kabinet_n_Outer)
+	LoadLandscape = models.ForeignKey(LoadLandscape)

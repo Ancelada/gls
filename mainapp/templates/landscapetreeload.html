@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Our WebGl</title>
+		{% load staticfiles %}
+
+		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/stats.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/helvetiker_regular.typeface.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
+
+
+  		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
+    	<link rel="stylesheet" href="{% static 'css/app.css' %}">
+
+
+		<style>
+			body{
+				margin:0;
+				overflow:hidden;
+			}
+		</style>
+	</head>
+	<body>
+		{% csrf_token %}
+		<!-- ***блок 3д изображения*** -->
+		<!--************************-->
+		<div id ="webGL-container"></div>
+    <!-- ***блок панель управления*** -->
+    <!--************************-->
+    <script>
+	    var colladaObjects = {};
+
+	    function init(){
+	    	/*сцена, камера */
+		    scene = new THREE.Scene();
+		    camera =  new THREE.PerspectiveCamera(85, window.innerWidth/window.innerHeight, .1, 1000);
+		    renderer = new THREE.WebGLRenderer({antialias:true});
+		    
+		    /*рендерер;*/
+		    renderer.setSize(window.innerWidth, window.innerHeight);
+		    renderer.shadowMapEnabled= true;
+		    renderer.shadowMapType = THREE.PCFSoftShadowMap;
+		    
+		    /*оси*/
+		    axis = new THREE.AxisHelper(30);
+		    scene.add(axis);
+
+		    /* сетка */
+		    grid = new THREE.GridHelper(100, 25);
+		    color = new THREE.Color("rgb(255, 0, 0)");
+		    grid.setColors(color, 0x000000);
+		    grid.rotation.x = -0.5* Math.PI
+		    /*scene.add(grid);*/
+
+		    /* add collada import */
+    		var loader = new THREE.ColladaLoader();
+    		/*loader.options.convertUpAxis = true;*/
+		    loader.load( '/static/js/webgl/models/gls.dae', function ( collada ) {
+
+		    	//gls.dae
+		    	var dae = collada.scene;
+		    	dae.position.set(28.141,59.087,8.6);//x,z,y- if you think in blender dimensions ;)
+		    	dae.scale.set(1,1,1);
+		    	dae.rotation.z = - (Math.PI/2);
+		    	dae.rotation.x = Math.PI;
+		    	scene.add(dae);
+
+
+		        //****************************
+		        //**заполняем массив элементов сцены
+		        //****************************
+
+		        //**дерево
+		        colladaObjects['landscape'] = [];
+
+		        //**наполняем landscape
+		        colladaObjects['landscape'].push(dae['children'][0]['children'][0]);
+		        colladaObjects['landscape'][0].name = colladaObjects['landscape'][0]['parent']['name'];
+		        colladaObjects['landscape'].push({'name':'{{landscape_id}}'}); 
+		        //**наполняем building
+		        var no = 0;
+		        $.each(colladaObjects['landscape'][0].parent.children, function(value){
+		            var landscape = colladaObjects['landscape'][0].parent.children[value];
+		            if (landscape.name.indexOf('building') != -1){
+		                colladaObjects['landscape'][0].children.push(landscape.children[0]);
+		                colladaObjects['landscape'][0]['children'][no]['name'] = colladaObjects['landscape'][0]['children'][no]['parent']['name'];
+		                building = colladaObjects['landscape'][0]['children'][no].parent.children;
+		                //**наполняем floor
+		                var noFloor = 0
+		                $.each(building, function(value){
+		                    if (building[value].name.indexOf('floor') != -1){
+		                        colladaObjects['landscape'][0].children[no].children.push(building[value].children[0]);
+		                        colladaObjects['landscape'][0].children[no].children[noFloor].name = building[value].name;
+		                        //** наполняем kabinet и outer
+		                        floor = colladaObjects['landscape'][0]['children'][no]['children'][noFloor].parent.children;
+		                        var noKabinet = 0;
+		                        $.each(floor, function(value){
+		                            if(floor[value].name.indexOf('kabinet') != -1){
+		                                colladaObjects['landscape'][0].children[no]['children'][noFloor].children.push(floor[value].children[0]);
+		                                colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].name = floor[value].name;
+		                                //** наполняем wall
+		                                kabinet = colladaObjects['landscape'][0]['children'][no]['children'][noFloor]['children'][noKabinet].parent.children;
+		                                var noWall = 0;
+		                                $.each(kabinet, function(value){
+		                                    if(kabinet[value].name.indexOf('wall') != -1){
+		                                        colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].children.push(kabinet[value].children[0]);
+		                                        colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].children[noWall].name = kabinet[value].name
+		                                        noWall += 1;
+		                                    }
+		                                });
+		                                noKabinet += 1;
+		                            }
+		                            if (floor[value].name.indexOf('outer') != -1){
+		                                colladaObjects['landscape'][0].children[no]['children'][noFloor].children.push(floor[value].children[0]);
+		                                colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].name = floor[value].name;
+		                                noKabinet += 1
+		                            }
+		                        });
+		                        noFloor += 1;
+		                    }
+		                });
+		                no += 1;
+		            }
+		            // наполняем light
+		            if (landscape.name.indexOf('light') != -1){
+		                colladaObjects['landscape'][0].children.push(landscape.children[0]);
+		                colladaObjects['landscape'][0]['children'][no]['name'] = colladaObjects['landscape'][0]['children'][no]['parent']['name'];
+		                var light = colladaObjects['landscape'][0]['children'][no];
+		                no += 1;
+		            }
+		        });
+					$.ajax({
+						type:"POST",
+						url:"/landscape_save",
+            data: JSON.stringify(colladaObjects),
+            contentType: "application/json; charset=utf-8",
+            dataType: 'json',
+          	async: false,
+          	success: function(data, textStatus, jqXHR){
+          		window.location = '/landscapeloadform/success';
+          	}
+					});
+		    });
+
+				/* позиция камеры по умолчанию */
+		    camera.position.set(69, 69, -50);
+		    /* вверх - это Z*/
+		    camera.up.set( 0, 0, -1 );
+		    scene.add(camera);
+
+
+		    /*камера. контроль за сменой позиции*/
+		    controls = new THREE.OrbitControls( camera, renderer.domElement );
+		    /* камера вращается вокруг данных координат*/
+		    controls.target.copy(new THREE.Vector3(34.141, 67.862, 8.6));
+		    //камера смотрит
+		    camera.lookAt(new THREE.Vector3(34.141, 67.862, 8.6));
+		    controls.addEventListener( 'change', render );
+		    hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
+		    scene.add(hemi);
+
+		    $("#webGL-container").append(renderer.domElement);
+
+		    /*статистика*/
+		    stats = new Stats();        
+		    stats.domElement.style.position = 'absolute';
+		    stats.domElement.style.left = '0px';
+		    stats.domElement.style.top = '0px';     
+		    $("#webGL-container").append( stats.domElement );
+	    }
+
+	    function render(){
+	    }
+
+	    function update(){
+    	}
+
+	    function animate(){
+        requestAnimationFrame(animate);
+        render();
+        update();
+        stats.update();     
+        renderer.render(scene, camera);
+	    }
+
+	    init();
+  	  animate();
+
+
+	    $(window).resize(function(){
+	        SCREEN_WIDTH = window.innerWidth;
+	        SCREEN_HEIGHT = window.innerHeight;
+	        camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+	        camera.updateProjectionMatrix();
+	        renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
+	    });
+		</script>
+		<script src="{% static 'js/foundation.js' %}"></script>
+    <script src="{% static 'js/vendor/what-input.min.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.slider.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.tabs.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.keyboard.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.timerAndImageLoader.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.drilldown.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.motion.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.nest.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.util.mediaQuery.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.accordionMenu.js' %}"></script>
+    <script>
+      $(document).foundation();
+    </script>
+	</body>
+</html>
