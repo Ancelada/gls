@@ -8,6 +8,7 @@
 
 		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/attrchange.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
@@ -44,23 +45,24 @@
                 <h3 class="subheader">Объекты</h3>
                 <ul class="vertical menu objects_tree" data-drilldown data-options="backButton:<li class='js-drilldown-back'><a>Назад</a></li>;">
                     {% for building in buildings %}
-                    <li>
-                        <a href="#">{{building.dae_BuildingName}}</a>
+                    <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
+                        <a href="#" data-dae="{{building.dae_BuildingName}}">{{building.dae_BuildingName}}</a>
                         <ul class="vertical menu">
                         {% for floor in floors %}
                             {% if building.id == floor.Building_id %}
-                                <li>
-                                    <a href="#">{{floor.dae_FloorName}}</a>
+                                <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
+                                    <a href="#" data-dae="{{floor.dae_FloorName}}">{{floor.dae_FloorName}}</a>
                                     <ul class="vertical menu">
                                     {% for k in kabinet_n_outer %}
                                         {% if k.Floor_id == floor.id %}
-                                        <li>
-                                            <a href="#">{{k.dae_Kabinet_n_OuterName}}</a>
+                                        <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
+                                            <a href="#" data-dae="{{k.dae_Kabinet_n_OuterName}}">{{k.dae_Kabinet_n_OuterName}}</a>
                                             <ul class="vertical menu">
                                                 {% for wall in walls %}
                                                     {% if wall.Kabinet_n_Outer_id == k.id %}
-                                                    <li>
-                                                        <a href="#">{{wall.dae_WallName}}</a>    
+                                                    <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
+                                                        <a href="#" data-dae="{{wall.dae_WallName}}">{{wall.dae_WallName}}</a>
+                                                        <ul class="vertical menu"></ul>
                                                     </li>
                                                     {% endif %}
                                                 {% endfor %}
@@ -77,17 +79,19 @@
                     {% endfor %}                    
                 </ul>
             </fieldset>
-            <br>
-            <br>
-            <br>
+            <fieldset class="large-12 small-12 columns cursor_box">
+                <h2 class="subheader">Выбран</h2>
+                <span class="label"></span>
+                <br>
+            </fieldset>
             <fieldset class="large-12 small-12 columns">
-                <a href="#" class="secodary hollow button large button_style" style="font-size:100%;">Навести камеру</a>    
+                <a href="#" class="secodary hollow button large button_style camera" style="font-size:100%;">Навести камеру</a>    
             </fieldset>
             <fieldset class="large-12 small-12 columns">
                 <h3 class="subheader">Видимость</h3>
                 <ul class="tabs" data-tabs id="example-tabs">
-                    <li class="tabs-title is-active"><a href="#panel1">Показать</a></li>
-                    <li class="tabs-title"><a href="#panel2">Скрыть</a></li>
+                    <li class="tabs-title is-active" id="turn_on"><a href="#panel1">Показать</a></li>
+                    <li class="tabs-title" id="turn_off"><a href="#panel2">Скрыть</a></li>
                 </ul>
             </fieldset>
             <fieldset class="large-12 small-12 columns">
@@ -561,13 +565,107 @@
                 scene.add(spotLight);
             }
         });
-        //*************************************
-        //**Загрузка данных в панель управления
-        //*************************************
 
-        //*************************************
-        //**конец загрузки данных в панель управления
-        //***********************************
+        //***********************
+        //** фунции управления элементами
+        //*******************
+        
+        //видимость
+        $('#turn_off').on('click', function(){
+            var dae_elem = $('.cursor_box span').text();
+            togleVisibleOff(colladaObjects['landscape'][0], dae_elem);
+        });
+
+        $('#turn_on').on('click', function(){
+            var dae_elem = $('.cursor_box span').text();
+            togleVisibleOn(colladaObjects['landscape'][0], dae_elem);
+        });
+
+        var togleVisibleOn = function(node, dae_elem){
+            defaultToggle(node);
+            if (node.children){
+                for (var i = 0; i < node.children.length; i++){
+                    if (node.children[i].name == dae_elem){
+                        togleVisible(node.children[i], true);
+                    }
+                    togleVisibleOn(node.children[i], dae_elem);
+                }
+            }
+        }
+
+        var togleVisibleOff = function(node, dae_elem){
+            if (node.children){
+                for (var i = 0; i < node.children.length; i++){
+                    if (node.children[i].name == dae_elem){
+                        togleVisible(node.children[i], false);
+                    }
+                    togleVisibleOff(node.children[i], dae_elem);
+                }
+            }
+        }
+
+        //скрыть видимость элементов по умолчанию невидимых
+        var defaultToggle = function(node){
+            if (node.name.indexOf('building') != -1 ){
+                node.visible = false;
+            }
+            if (node.name.indexOf('kabinet') != -1){
+                node.visible = false;
+            }
+            for (var i = 0; i < node.children.length; i++){
+                if (node.children[i].name.indexOf('kabinet') != -1){
+                    node.children[i].visible = false;
+                }
+                defaultToggle(node.children[i]); 
+            }
+        }
+
+        //прозрачность
+        $('#building_opacity').attrchange({
+            trackValues: false,
+            callback: function(event){
+                var dae_elem = $('.cursor_box span').text();
+                opacityFinder(colladaObjects['landscape'][0], dae_elem, $(this).attr('value'));
+            }
+        });
+
+        var opacityFinder = function(node, dae_elem, value){
+            if (node.children){
+                for(var i=0; i < node.children.length; i++){
+                    if(node.children[i].name == dae_elem){
+                        togleOpacity(node.children[i], value);
+                    }
+                    opacityFinder(node.children[i], dae_elem, value);
+                }
+            }
+        }
+
+        //изменение позиции камеры
+        $('.camera').on('click', function(){
+            var dae_elem = $('.cursor_box span').text();
+            camTargetLook(colladaObjects['landscape'][0], dae_elem);
+        });
+
+        var camTargetLook = function(node, dae_elem){
+            if (node.children){
+                for(var i=0; i < node.children.length; i++){
+                    if(node.children[i].name == dae_elem){
+                        x = node.children[i].Center.x;
+                        y = node.children[i].Center.y;
+                        z = node.children[i].Center.z;
+                        cameraToggle(node.children[i], x, y, z);
+                        return 'ok'
+                    }
+                    camTargetLook(node.children[i], dae_elem);
+                }
+            }
+        }
+
+        var cameraToggle = function(elem, x, y, z){
+                camera.position.set(x+20, y, z-20);
+                controls.target.copy(new THREE.Vector3(x, y, z));
+                camera.lookAt(new THREE.Vector3(x, y, z));             
+        }
     });
 
     //изменить материал для обектов
@@ -599,9 +697,9 @@
     var togleOpacity = function(node, floatVal){
         node.material.opacity = floatVal;
         node.material.transparent = true;
-        if (node.parent.children) {
-            for (var i = 0; i < node.parent.children.length; i++) {
-                togleOpacity(node, floatVal);
+        if (node.children) {
+            for (var i = 0; i < node.children.length; i++) {
+                togleOpacity(node.children[i], floatVal);
             }
         }
     }
