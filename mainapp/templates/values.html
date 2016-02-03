@@ -6,7 +6,7 @@
 		<title>Our WebGl</title>
 		{% load staticfiles %}
 
-		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/vendor/jquery-2.2.0.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/attrchange.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
@@ -15,7 +15,7 @@
 		<script type="text/javascript" src="{% static 'js/stats.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/helvetiker_regular.typeface.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
-
+        <script type="text/javascript" src="{% static 'js/sockjs.min.js' %}"></script>
 
   		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
     	<link rel="stylesheet" href="{% static 'css/app.css' %}">
@@ -30,6 +30,7 @@
 	</head>
 	<body>
 		{% csrf_token %}
+        {% if username %}
 		<!-- ***блок 3д изображения*** -->
 		<!--************************-->
 		<div id ="webGL-container"></div>
@@ -80,8 +81,8 @@
                 </ul>
             </fieldset>
             <fieldset class="large-12 small-12 columns cursor_box">
-                <h2 class="subheader">Выбран</h2>
-                <span class="label"></span>
+                <h3 class="subheader large-8 small-12 columns" style="display:block;padding-left:0;padding-right:0;">Выбран</h3>
+                <span class="label large-4 small-12 columns" style="margin-top:15px;"></span>
                 <br>
             </fieldset>
             <fieldset class="large-12 small-12 columns">
@@ -137,6 +138,7 @@
 <!--***********буфер**************-->
 		<!--************************-->
 	<script>
+    //панель инструментов
     $.getScript("/static/js/additional/instrument_panel.js");
 	var unique = {};
 	var cubeGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
@@ -150,116 +152,121 @@
 		var marks;
 		var unum = 0;
 		var cron = 0;
-		function getVal(){
-			var csrf_token = $("input[name='csrfmiddlewaretoken']").val();
-	        $.ajax({
-	            type: 'POST',
-	            url: '/getmarksvalues',
-	            data: JSON.stringify(csrf_token),
-              contentType: "application/json; charset=utf-8",
-            	dataType: 'json',
-            	async: false,
-	            success: function(data, textStatus, jqXHR){
-	            	if (marks){
-	            		//проверка на повторение пачки
-	            		function verify(){
-	            			var doubled = 0;
-		            		$.each(data, function(index){
-		            			tag_id_new = data[index][0]['tag_id'];
-		            			zone_new = data[index][0]['zone'];
-		            			$.each(marks, function(index){
-		            				tag_id_old = marks[index][0]['tag_id'];
-		            				zone_old = marks[index][0]['zone'];
-		            				if(tag_id_old == tag_id_new && zone_old == zone_new){
-		            					doubled = 1;
-		            					return false;
-		            				}
-		            			});
-		            		});
-		            		return doubled;
-	            		}
-	            		var result = verify();
-            			//если пачка не повторяется записываем в буфер
-	            		if(result == 0){
-		            		$.each(data, function(index){
-		            			//первая запись в буфере
-		            			if(unique[0] == undefined){
-		            					unique[0] = data[index][0];
-		            					unum += 1;
-            					} else {
-            						//проверка на уникальность id в буфере
-		            				//если нет, записать в массив
-	            					tag_id_new = data[index][0]['tag_id'];
-	            					doubled = 0;
-	            					$.each(unique, function(index){
-	            						tag_id_unique = unique[index]['tag_id'];
-	            						if (tag_id_new == tag_id_unique){
-	            							doubled = 1;
-	            							return false;
-	            						}
-	            					});
-	            					if (doubled==0){
-	            						unique[unum] = data[index][0];
-	            						unum += 1;
-	            					}
-            					}
-		            		});
-	            			//таймер, для отслеживания времения между посылками
-	            			//переменная cron
-	            			function timer(clear){
-	            				var milisec = 0;
-	            				timer = setInterval(function(){
-	            					milisec += 10;
-	            					cron = milisec;
-	            					if (clear){
-	            						milisec += 0;
-	            					}
-	            				}, 10);
-	            			}
-										timer(1);
-										//запись в буфер позиций метки
-										//в том числе повторяющихся
-										//меток с разными позициями
-										$.each(data, function(index){
-											tag_id_new = data[index][0]['tag_id'];
-											var ind = index;
-											$.each(unique, function(index){
-												tag_id_unique = unique[index]['tag_id'];
-												if (tag_id_new == tag_id_unique){
-													//при совпадении задаем список
-													//записываем все повторяющиеся значения 
-													unique[index]['data'] = [];
-													uind = index;
-													no=0;
-													$.each(data, function(index){
-														if (unique[uind]['tag_id'] == data[index][0]['tag_id']){
-															unique[uind]['data'][no] = data[index][0];
-															//количество позиций в пачке
-															unique[uind]['count'] = no;
-															//количество миллисекунд до обновления позиции
-															unique[uind]['cron'] = cron;
-															no+=1;	
-														}
-													});
-													return false;
-												}
-											});
-										});
+        //socket connection
+        $(window).on('beforeunload', function(){
+            socket.close();     
+        });
 
-										//передача буфера в рендер
-										/*console.log(unique);*/
-	            		}
-	            		marks = data;//не удалять
+        socket_connect();
 
-	            	} else {
-		            	marks = data;
-	            	}
-	            },
-	        });
+        function socket_connect(){
+            socket = new SockJS('http://192.168.1.78:8989/orders');
+
+            socket.onmessage = function(msg){
+                var channel = msg.data.type;
+                var data = msg.data.data['data'];
+                if (marks){
+                    //проверка на повторение пачки
+                    function verify(){
+                        var doubled = 0;
+                        $.each(data, function(index){
+                            tag_id_new = data[index]['tag_id'];
+                            zone_new = data[index]['zone'];
+                            $.each(marks, function(index){
+                                tag_id_old = marks[index]['tag_id'];
+                                zone_old = marks[index]['zone'];
+                                if(tag_id_old == tag_id_new && zone_old == zone_new){
+                                    doubled = 1;
+                                    return false;
+                                }
+                            });
+                        });
+                        return doubled;
+                    }
+                    result = verify();
+                    //если пачка не повторяется записываем в буфер
+                    if(result == 0){
+                        $.each(data, function(index){
+                            //первая запись в буфере
+                            if(unique[0] == undefined){
+                                    unique[0] = data[index];
+                                    unum += 1;
+                            } else {
+                                //проверка на уникальность id в буфере
+                                //если нет, записать в массив
+                                tag_id_new = data[index]['tag_id'];
+                                doubled = 0;
+                                $.each(unique, function(index){
+                                    tag_id_unique = unique[index]['tag_id'];
+                                    if (tag_id_new == tag_id_unique){
+                                        doubled = 1;
+                                        return false;
+                                    }
+                                });
+                                if (doubled==0){
+                                    unique[unum] = data[index];
+                                    unum += 1;
+                                }
+                            }
+                        });
+                        //таймер, для отслеживания времения между посылками
+                        //переменная cron
+                        var timer = function(clear){
+                            var milisec = 0;
+                            timer = setInterval(function(){
+                                milisec += 10;
+                                cron = milisec;
+                                if (clear){
+                                    milisec += 0;
+                                }
+                            }, 10);
+                        }
+                                    timer(1);
+                                    //запись в буфер позиций метки
+                                    //в том числе повторяющихся
+                                    //меток с разными позициями
+                                    $.each(data, function(index){
+                                        tag_id_new = data[index]['tag_id'];
+                                        var ind = index;
+                                        $.each(unique, function(index){
+                                            tag_id_unique = unique[index]['tag_id'];
+                                            if (tag_id_new == tag_id_unique){
+                                                //при совпадении задаем список
+                                                //записываем все повторяющиеся значения 
+                                                unique[index]['data'] = [];
+                                                uind = index;
+                                                no=0;
+                                                $.each(data, function(index){
+                                                    if (unique[uind]['tag_id'] == data[index]['tag_id']){
+                                                        unique[uind]['data'][no] = data[index];
+                                                        //количество позиций в пачке
+                                                        unique[uind]['count'] = no;
+                                                        //количество миллисекунд до обновления позиции
+                                                        unique[uind]['cron'] = cron;
+                                                        no+=1;  
+                                                    }
+                                                });
+                                                return false;
+                                            }
+                                        });
+                                    });
+
+                                    //передача буфера в рендер
+                                    /*console.log(unique);*/
+                    }
+                    marks = data;//не удалять
+                } else {
+                    marks = data;
+                }
+                /*console.log(unique);*/
+            }
+
+            socket.onclose = function(e){
+                setTimeout(socket_connect, 5000);
+            }
         }
-
-        setInterval(getVal, 1000);
 	});
+
 	//************************
 	//************************
 	//сцена, фон, сетка, камера
@@ -329,11 +336,11 @@
     scene.add(marker6004);
 
     this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
-    marker6045.position.set(30.141, 76.426, 8.7);
+    marker6045.position.set(30.141, 76.462, 8.7);
     scene.add(marker6045);
 
     this.marker6003 = new THREE.Mesh(markGeom, markMaterial);
-    marker6003.position.set(39.8109, 59.531, 7.6);
+    marker6003.position.set(39.811, 59.531, 7.595);
     scene.add(marker6003);
 
     this.marker6012 = new THREE.Mesh(markGeom, markMaterial);
@@ -343,7 +350,7 @@
     /* add collada import */
     var loader = new THREE.ColladaLoader();
     /*loader.options.convertUpAxis = true;*/
-    loader.load( '/{{link}}', function ( collada ) {
+    loader.load( '/static/js/webgl/models/{{link}}', function ( collada ) {
 
         //функция поиска центра collada объекта на оси координат
         var getCenter = function(obj){
@@ -394,7 +401,6 @@
             // ищем центр landscape
             lndscp = dae;
             var bbox = new THREE.Box3().setFromObject(lndscp);
-            
             landscape = colladaObjects['landscape'][0];
             a = getCenter(bbox);
             landscape.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
@@ -408,6 +414,8 @@
                     // ищем центр building
                     bld = colladaObjects['landscape'][0].children[no];
                     var bbox = new THREE.Box3().setFromObject(bld);
+                    bld.BoxMin = bbox['min'];
+                    bld.BoxMax = bbox['max'];
                     a = getCenter(bbox);
                     bld.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                 building = colladaObjects['landscape'][0]['children'][no].parent.children;
@@ -420,6 +428,8 @@
                             // ищем центр floor
                             flr = colladaObjects['landscape'][0].children[no].children[noFloor];
                             var bbox = new THREE.Box3().setFromObject(flr);
+                            flr.BoxMin = bbox['min'];
+                            flr.BoxMax = bbox['max'];
                             a = getCenter(bbox);
                             flr.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                         //** наполняем kabinet и outer
@@ -432,6 +442,8 @@
                                     // ищем центр kabinet
                                     kbnt = colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet];
                                     var bbox = new THREE.Box3().setFromObject(kbnt);
+                                    kbnt.BoxMin = bbox['min'];
+                                    kbnt.BoxMax = bbox['max'];
                                     a = getCenter(bbox);
                                     kbnt.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                                 //** наполняем wall
@@ -454,6 +466,29 @@
                                     // ищем центр outer
                                     outr = colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet];
                                     var bbox = new THREE.Box3().setFromObject(outr);
+                                    outr.BoxMin = bbox['min'];
+                                    outr.BoxMax = bbox['max'];
+                                    //upscale building bounding box
+                                    if(bld.BoxMin['x'] > outr.BoxMin['x']){
+                                        bld.BoxMin['x'] = outr.BoxMin['x'];
+                                    }
+                                    if(bld.BoxMin['y'] > outr.BoxMin['y']){
+                                        bld.BoxMin['y'] = outr.BoxMin['y'];
+                                    }
+                                    if(bld.BoxMin['z'] > outr.BoxMin['z']){
+                                        bld.BoxMin['z'] = outr.BoxMin['z'];
+                                    }
+                                    if (bld.BoxMax['x'] < outr.BoxMax['x']){
+                                        bld.BoxMax['x'] = outr.BoxMax['x'];
+                                    }
+                                    if (bld.BoxMax['y'] < outr.BoxMax['y']){
+                                        bld.BoxMax['y'] = outr.BoxMax['y'];
+                                    }
+                                    if (bld.BoxMax['z'] < outr.BoxMax['z']){
+                                        bld.BoxMax['z'] = bld.BoxMax['z'];
+                                    }
+                                    //upscale floor bounding box
+
                                     a = getCenter(bbox);
                                     outr.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                                 noKabinet += 1
@@ -479,37 +514,12 @@
         });
 
         //****************************
-        //**конец заполнения массива элементов сцены
-        //****************************
-
-        /*console.log(colladaObjects);*/
-        //** добавляем папку "Визуализация"
-        /*datGUI = new dat.GUI();
-        var bfolder = datGUI.addFolder('Визулизация');
-        guiControls = new function(){
-            //свойство "Видимость"
-            this.видимость = true;
-            //свойство "Прозрачность"
-            this.прозрачность = 0.5;
-        }
-        var buildingObject = colladaObjects['landscape'][0].children[no];
-        //обработчик "Видимость"
-        bfolder.add(guiControls, 'видимость').onChange(function(value){
-            togleVisible(buildingObject.parent, value);
-        });
-        //обработчик "Прозрачность"
-        bfolder.add(guiControls, 'прозрачность', 0, 1).onChange(function(value){
-            togleOpacity(buildingObject, value);
-        });        
-        datGUI.close();*/
-
-
-        //****************************
         //**настройки сцены по умолчанию
         //****************************
 
     	//landscape 
     	plane = colladaObjects['landscape'][0];
+        plane.receiveShadow = true;
     	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131 }));
     	//building
         $.each(colladaObjects['landscape'][0].children, function(value){
@@ -520,10 +530,12 @@
                     //floor
                     floor = building.children[value];
                     setMaterialObject(floor, new THREE.MeshPhongMaterial({color: 0x008080, transparent:true}));
+                    floor.receiveShadow = true;
                     //kabinet n outer
                     $.each(floor.children, function(value){
                         if (floor.children[value].name.indexOf('outer') != -1){
                             outer = floor.children[value];
+                            outer.castShadow = true
                             setMaterialObject(outer, new THREE.MeshPhongMaterial({color: 0x6b002b, transparent:true}));
                         } else if (floor.children[value].name.indexOf('kabinet') != -1){
                             kabinet = floor.children[value];
@@ -531,6 +543,7 @@
                             //wall
                             $.each(kabinet.children, function(value){
                                 wall = kabinet.children[value];
+                                wall.castShadow = true;
                                 setMaterialObject(wall, new THREE.MeshPhongMaterial({color: 0x193434, transparent:true}));
                             });
                         }
@@ -654,7 +667,20 @@
                         y = node.children[i].Center.y;
                         z = node.children[i].Center.z;
                         cameraToggle(node.children[i], x, y, z);
-                        return 'ok'
+                        var min = node.children[i].BoxMin;
+                        var max = node.children[i].BoxMax;
+                        //записать min и max в сессию
+                        $.ajax({
+                            type: "POST",
+                            url: "/minmaxtosession",
+                            data: JSON.stringify({'username': '{{username}}', 'landscape_id': '{{landscape_id}}', 'min':min, 'max':max}),
+                            contentType: "application/json; charset=utf-8",
+                            dataType: 'json',
+                            async: true,
+                            success: function(data, textStatus, jqXHR){
+                            }
+                        });
+                        return 'ok';
                     }
                     camTargetLook(node.children[i], dae_elem);
                 }
@@ -662,9 +688,9 @@
         }
 
         var cameraToggle = function(elem, x, y, z){
-                camera.position.set(x+20, y, z-20);
-                controls.target.copy(new THREE.Vector3(x, y, z));
-                camera.lookAt(new THREE.Vector3(x, y, z));             
+            camera.position.set(x+20, y, z-20);
+            controls.target.copy(new THREE.Vector3(x, y, z));
+            camera.lookAt(new THREE.Vector3(x, y, z));             
         }
     });
 
@@ -766,21 +792,18 @@
 							unique[ind]['data'] = jQuery.grep(unique[ind]['data'], function(value){
 								return value != unique[ind]['data'][index];
 							});
-
-							//проверить, если давно не поступает сигнал удалить из буфера
-							/*delay = 20000;
-							var a = unique[index]['cron'];
-								if (a > delay){
-									unique[index]['removed'] = 1;
-									scene.remove(unique[index]['mesh']);
-								}
-								//если сигнал посупил, снова добавить
-							if (a < delay && unique[index]['removed'] == 1){
-									unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
-									scene.add(unique[index]['mesh']);
-									unique[index]['removed'] = 0;
-							}*/
 						}
+                        //проверить, если давно не поступает сделать невидимым
+                        if (unique[index]['cron'] > 300000) {
+                            cron = 0;
+                            console.log(unique[index]['cron']);
+                            unique[index]['mesh'].visible = false;
+                            unique[index]['cron'] = 0;
+                        } else {
+                            if (unique[index]['mesh'].visible == false){
+                                unique[index]['mesh'].visible = true;
+                            }
+                        }
 					});
 					//oчищаем count
 					unique[ind]['count'] = 0;
@@ -828,5 +851,10 @@
         $(document).foundation();
         $('.is-drilldown').css('max-height', '300px');
     </script>
+    {% else %}
+        <div class="row">
+            <h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+        </div>
+    {% endif %}
 	</body>
 </html>

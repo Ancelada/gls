@@ -62,7 +62,7 @@
 		    /* add collada import */
     		var loader = new THREE.ColladaLoader();
     		/*loader.options.convertUpAxis = true;*/
-		    loader.load( '/static/js/webgl/models/gls.dae', function ( collada ) {
+		    loader.load( '/static/js/webgl/models/{{source}}', function ( collada ) {
 
 		    	//gls.dae
 		    	var dae = collada.scene;

@@ -4,7 +4,7 @@ from django.db import models
 from django.conf import settings
 
 def get_upload_file_name(instance, filename):
-	return 'uploaded_files/%s_%s' % (str(time).replace('.', '_'), filename)
+	return '%s_%s' % (str(time).replace('.', '_'), filename)
 
 # Create your models here.
 
@@ -113,7 +113,7 @@ class LoadLandscape(models.Model):
 		db_table = 'LoadLandscape'
 	landscape_name = models.CharField(max_length=100)
 	landscape_id = models.CharField(primary_key=True, max_length=20)
-	landscape_source = models.FileField(upload_to='static/js/webgl/models/', blank=True, null=True)
+	landscape_source = models.FileField(upload_to='static/js/webgl/models/%s' % get_upload_file_name, blank=True, null=True)
 
 class Building(models.Model):
 	class Meta():
@@ -145,3 +145,48 @@ class Wall(models.Model):
 	dae_WallName = models.CharField(max_length=200)
 	Kabinet_n_Outer = models.ForeignKey(Kabinet_n_Outer)
 	LoadLandscape = models.ForeignKey(LoadLandscape)
+
+####################
+##SockJs
+####################
+import redis
+from django.conf import settings
+try:
+	from django.utils import simplejson
+except:
+	import simplejson
+
+ORDERS_FREE_LOCK_TIME = getattr(settings, 'ORDERS_FREE_LOCK_TIME', 0)
+ORDERS_REDIS_HOST = getattr(settings, 'ORDERS_REDIS_HOST', 'localhost')
+ORDERS_REDIS_PORT = getattr(settings, 'ORDERS_REDIS_PORT', 6379)
+ORDERS_REDIS_PASSWORD = getattr(settings, 'ORDERS_REDIS_PASSWORD', None)
+ORDERS_REDIS_DB = getattr(settings, 'ORDERS_REDIS_DB', 0)
+
+service_queue = redis.StrictRedis(
+	host=ORDERS_REDIS_HOST,
+	port=ORDERS_REDIS_PORT,
+	db=ORDERS_REDIS_DB,
+	password=ORDERS_REDIS_PASSWORD
+).publish
+json = simplejson.dumps
+
+class Order(models.Model):
+	class Meta():
+		db_table = 'Order'
+	OrderName = models.CharField(max_length=200, null=True)
+
+	def lock(self):
+		print "added"
+		if self.OrderName != '':
+			service_queue('order_lock', json({
+				'user': self.client.pk,
+				'order': self.pk,	
+			}))
+
+	def done(self):
+		print "added"
+		if self.OrderName != '':
+			service_queue('order_done', json({
+				'user': self.client.pk,
+				'order': self.pk,	
+			}))

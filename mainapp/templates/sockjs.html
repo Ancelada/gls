@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<title>SockJsTesting</title>
+	{% load staticfiles %}
+	<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'js/sockjs.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'js/client.js' %}"></script>
+	<style>
+		.order_added{
+			background-color:blue;
+			color:white;
+		}
+
+		.order_locked{
+			background-color:red;
+		}
+
+		.order_hidden{
+			display:none;
+		}
+	</style>
+</head>
+<body>
+	{% csrf_token %}
+	<a href="#">Добавить заказ</a>	
+
+	<span class="order_added">Order_added</span>
+	<span class="order_else">Order_else</span>
+	<a href="/logout">Выйти ({{username}})</a><br>
+	<a href="/setproperty">Добавить свойство</a>
+	<p>{{session}}</p>
+	<p>{{username}}</p>
+	<p>{{id}}</p>
+	<script>
+	$('a').on('click', function(){
+		var csrf_token = $("input[name='csrfmiddlewaretoken']").val();
+		$.ajax({
+			type: 'POST',
+			url: '/orderadd',
+			data: JSON.stringify(csrf_token),
+			contentType: "application/json; charset=utf-8",
+			dataType: 'json',
+			async: true,
+			success: function(data, textStatus, jqXHR){
+				console.log(data);
+			}
+		});
+	});
+	$(window).on('beforeunload', function(){
+		socket.close(); 	
+	});
+	</script>
+</body>
+</html>

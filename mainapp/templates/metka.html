@@ -3,5 +3,19 @@
 {% block content %}
 	{% csrf_token %}
 	<a href="/send_json_request" class="button">Отправить JSON</a>
-	<a href="/send_simple_location_message" class="button">Отправить SLMP</a>
+	<a href="#" class="button" id="slmp">Отправить SLMP</a>
+	<textarea id="text" name="text" rows="10"></textarea>
+	<script>
+		$('a#slmp').on('click', function(){
+			var a = $('#text').val();
+			$.ajax({
+				type: 'POST',
+				url: '/send_simple_location_message',
+				data: JSON.stringify({'value': a}),
+				contentType: "application/json; charset=utf-8",
+				dataType: 'json',
+				async: true,
+			})
+		});
+	</script>
 {% endblock %}

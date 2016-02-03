@@ -25,6 +25,7 @@ urlpatterns = patterns('',
 
 	#get ajax marks count
 	url(r'getmarksvalues', 'mainapp.views.getmarksvalues'),
+	url(r'getmarks', 'mainapp.views.getmarks'),
 
 	#scene view
 	url(ur'values/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.values'),
@@ -36,5 +37,15 @@ urlpatterns = patterns('',
 	url(ur'landscapetreeload/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.landscapetreeload'),
 	url(r'landscape_save$', 'mainapp.views.landscape_save'),
 	
+	#min max interval to session
+	url(r'minmaxtosession$', 'mainapp.views.minmaxtosession'),
+
 	#testing sockjs
+	url(r'sockjs$', 'mainapp.views.sockjs'),
+	url(r'orderadd$', 'mainapp.views.orderadd'),
+	url(r'getsessions$', 'mainapp.views.getsessions'),
+	url(r'setproperty$', 'mainapp.views.setproperty'),
+
+	#testing
+	url(r'testing$', 'mainapp.views.testing'),
 )

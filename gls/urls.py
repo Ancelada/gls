@@ -7,4 +7,5 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^img/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
     url(r'^', include('mainapp.urls')),
+    url(r'^', include('login.urls')),
 ]

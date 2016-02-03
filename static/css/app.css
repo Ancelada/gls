@@ -40,3 +40,7 @@ li.tabs-title a{
 	overflow-y:auto;
 	height:50%;
 }
+
+.button_style{
+	width:100%;
+}
