@@ -37,9 +37,15 @@
         <!-- ***блок панель управления*** -->
         <!--************************-->
         <button class="button show_hide_button">Панель инструментов</button>
-        <div class="instrument_block large-3 small-5 columns" style="right:-100%;">
+        <div class="large-3 small-3 columns popup" style="padding-left:0px;padding-right:0px;">
+            <ul class="tabs vertical" id="example-vert-tabs" data-tabs>
+
+
+            </ul>
+        </div>
+        <div class="instrument_block large-3 small-12 columns" style="right:-100%;">
           
-            <fieldset class="large-12 small-12 columns">
+            <fieldset class="large-12 small-4 columns">
                 <button class="close-button close_panel" aria-label="Close menu" type="button">
                     <span aria-hidden="true">x</span>
                 </button>
@@ -80,23 +86,23 @@
                     {% endfor %}                    
                 </ul>
             </fieldset>
-            <fieldset class="large-12 small-12 columns cursor_box">
-                <h3 class="subheader large-8 small-12 columns" style="display:block;padding-left:0;padding-right:0;">Выбран</h3>
-                <span class="label large-4 small-12 columns" style="margin-top:15px;"></span>
+            <fieldset class="large-12 small-4 columns cursor_box">
+                <span class="label large-12 small-12 columns" style="margin-top:15px;"></span>
                 <br>
             </fieldset>
-            <fieldset class="large-12 small-12 columns">
-                <a href="#" class="secodary hollow button large button_style camera" style="font-size:100%;">Навести камеру</a>    
+            <fieldset class="large-12 small-4 columns">
+                <a href="#" class="secondary hollow button large button_style select_object" style="font-size:100%;">Выбрать</a>
+                <a href="#" class="secondary hollow button large button_style camera" style="font-size:100%;">Навести камеру</a>    
             </fieldset>
-            <fieldset class="large-12 small-12 columns">
-                <h3 class="subheader">Видимость</h3>
+            <fieldset class="large-12 small-4 columns">
+                <!-- <h3 class="subheader">Видимость</h3> -->
                 <ul class="tabs" data-tabs id="example-tabs">
                     <li class="tabs-title is-active" id="turn_on"><a href="#panel1">Показать</a></li>
                     <li class="tabs-title" id="turn_off"><a href="#panel2">Скрыть</a></li>
                 </ul>
             </fieldset>
-            <fieldset class="large-12 small-12 columns">
-                <h3 class="subheader">Прозрачность</h3>
+            <fieldset class="large-12 small-4 columns">
+                <h3 class="subheader">Видимость</h3>
                 <div class="slider" data-slider data-initial-start="1" data-start="0" data-end="1">
                     <span class="slider-handle" data-slider-handle role="slider" tabindex="1"></span>
                     <span class="slider-fill" data-slider-fill></span>
@@ -141,8 +147,14 @@
     //панель инструментов
     $.getScript("/static/js/additional/instrument_panel.js");
 	var unique = {};
+    //геометрия метки
 	var cubeGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
-	var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, transparent: true, opacity:0.8});
+	var cubeMaterial = new THREE.MeshBasicMaterial({color: 0x0000ff, transparent: false, opacity:0.8});
+    //геометрия окружности
+    var radius = 2;
+    var segments = 24
+    var circleGeom = new THREE.CircleGeometry(radius, segments);
+    var circleMaterial = new THREE.MeshBasicMaterial({color: 0xfadc4a, transparent: true, opacity:0.7});
 	var guiControls, datGUI;
     //массив объектов
     var colladaObjects = {}
@@ -151,7 +163,6 @@
 	$(document).ready(function(){
 		var marks;
 		var unum = 0;
-		var cron = 0;
         //socket connection
         $(window).on('beforeunload', function(){
             socket.close();     
@@ -189,8 +200,9 @@
                         $.each(data, function(index){
                             //первая запись в буфере
                             if(unique[0] == undefined){
-                                    unique[0] = data[index];
-                                    unum += 1;
+                                unique[0] = data[index];
+                                unique[0]['cron'] = 0;
+                                unum += 1;
                             } else {
                                 //проверка на уникальность id в буфере
                                 //если нет, записать в массив
@@ -205,55 +217,49 @@
                                 });
                                 if (doubled==0){
                                     unique[unum] = data[index];
+                                    unique[unum]['cron'] = 0;
                                     unum += 1;
                                 }
                             }
                         });
-                        //таймер, для отслеживания времения между посылками
-                        //переменная cron
-                        var timer = function(clear){
-                            var milisec = 0;
-                            timer = setInterval(function(){
-                                milisec += 10;
-                                cron = milisec;
-                                if (clear){
-                                    milisec += 0;
-                                }
-                            }, 10);
-                        }
-                                    timer(1);
-                                    //запись в буфер позиций метки
-                                    //в том числе повторяющихся
-                                    //меток с разными позициями
+                        //запись в буфер позиций метки
+                        //в том числе повторяющихся
+                        //меток с разными позициями
+                        $.each(data, function(index){
+                            tag_id_new = data[index]['tag_id'];
+                            var ind = index;
+                            $.each(unique, function(index){
+                                tag_id_unique = unique[index]['tag_id'];
+                                if (tag_id_new == tag_id_unique){
+                                    //при совпадении создаем таймер
+                                    unique[index]['cron'] = 0;
+                                    unique[index]['timerid'] = setInterval(function(){
+                                        if (unique[index] && unique[index]['cron'] != undefined){
+                                            unique[index]['cron'] += 1000;    
+                                        }
+                                    }, 1000);
+                                    //при совпадении задаем список
+                                    //записываем все повторяющиеся значения 
+                                    unique[index]['data'] = [];
+                                    uind = index;
+                                    no=0;
                                     $.each(data, function(index){
-                                        tag_id_new = data[index]['tag_id'];
-                                        var ind = index;
-                                        $.each(unique, function(index){
-                                            tag_id_unique = unique[index]['tag_id'];
-                                            if (tag_id_new == tag_id_unique){
-                                                //при совпадении задаем список
-                                                //записываем все повторяющиеся значения 
-                                                unique[index]['data'] = [];
-                                                uind = index;
-                                                no=0;
-                                                $.each(data, function(index){
-                                                    if (unique[uind]['tag_id'] == data[index]['tag_id']){
-                                                        unique[uind]['data'][no] = data[index];
-                                                        //количество позиций в пачке
-                                                        unique[uind]['count'] = no;
-                                                        //количество миллисекунд до обновления позиции
-                                                        unique[uind]['cron'] = cron;
-                                                        no+=1;  
-                                                    }
-                                                });
-                                                return false;
-                                            }
-                                        });
+                                        if (unique[uind]['tag_id'] == data[index]['tag_id']){
+                                            unique[uind]['data'][no] = data[index];
+                                            //количество позиций в пачке
+                                            unique[uind]['count'] = no;
+                                            no+=1;  
+                                        }
                                     });
-
-                                    //передача буфера в рендер
-                                    /*console.log(unique);*/
+                                    return false;
+                                }
+                            });
+                        });
+                        
+                        //передача буфера в рендер
+                        /*console.log(unique);*/
                     }
+
                     marks = data;//не удалять
                 } else {
                     marks = data;
@@ -284,7 +290,6 @@
 	var cameraTarget;
 	var renderer;
 	var scene;
-
 	// глобальный объект
 	var center;
 
@@ -351,6 +356,45 @@
     var loader = new THREE.ColladaLoader();
     /*loader.options.convertUpAxis = true;*/
     loader.load( '/static/js/webgl/models/{{link}}', function ( collada ) {
+        //расширение bounding box по размерам внутренних элементов
+        var getBoundingBox = function(node, dae_elem, indae_elem){
+            if (indae_elem == 1){
+                if(node.parent.children){
+                    for (var i = 0; i < node.parent.children.length; i++){
+                        inner_elem = node.parent.children[i]
+                        var bbox = new THREE.Box3().setFromObject(inner_elem);
+                        inner_elem.BoxMin = bbox['min'];
+                        inner_elem.BoxMax = bbox['max'];
+                        if(dae_elem.BoxMin['x'] > inner_elem.BoxMin['x']){
+                            dae_elem.BoxMin['x'] = inner_elem.BoxMin['x'];
+                        }
+                        if(dae_elem.BoxMin['y'] > inner_elem.BoxMin['y']){
+                            dae_elem.BoxMin['y'] = inner_elem.BoxMin['y'];
+                        }
+                        if(dae_elem.BoxMin['z'] > inner_elem.BoxMin['z']){
+                            dae_elem.BoxMin['z'] = inner_elem.BoxMin['z'];
+                        }
+                        if (dae_elem.BoxMax['x'] < inner_elem.BoxMax['x']){
+                            dae_elem.BoxMax['x'] = inner_elem.BoxMax['x'];
+                        }
+                        if (dae_elem.BoxMax['y'] < inner_elem.BoxMax['y']){
+                            dae_elem.BoxMax['y'] = inner_elem.BoxMax['y'];
+                        }
+                        if (dae_elem.BoxMax['z'] < inner_elem.BoxMax['z']){
+                            dae_elem.BoxMax['z'] = inner_elem.BoxMax['z'];
+                        }
+                    } 
+                }
+            }
+            if (node.children){
+                for (var i = 0; i < node.children.length; i++){
+                    if (node.children[i].name == dae_elem.name) {
+                        getBoundingBox(node.children[i], dae_elem, 1);
+                    }
+                    getBoundingBox(node.children[i], dae_elem, 0);
+                }
+            }
+        }
 
         //функция поиска центра collada объекта на оси координат
         var getCenter = function(obj){
@@ -389,7 +433,6 @@
 
         //****************************
         //**заполняем массив элементов сцены
-        //**для передачи в панель управления dat.gui
         //****************************
 
         //**дерево
@@ -416,6 +459,7 @@
                     var bbox = new THREE.Box3().setFromObject(bld);
                     bld.BoxMin = bbox['min'];
                     bld.BoxMax = bbox['max'];
+                    getBoundingBox(colladaObjects['landscape'][0], bld, 0);
                     a = getCenter(bbox);
                     bld.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                 building = colladaObjects['landscape'][0]['children'][no].parent.children;
@@ -430,6 +474,7 @@
                             var bbox = new THREE.Box3().setFromObject(flr);
                             flr.BoxMin = bbox['min'];
                             flr.BoxMax = bbox['max'];
+                            getBoundingBox(colladaObjects['landscape'][0], flr, 0);
                             a = getCenter(bbox);
                             flr.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                         //** наполняем kabinet и outer
@@ -444,6 +489,7 @@
                                     var bbox = new THREE.Box3().setFromObject(kbnt);
                                     kbnt.BoxMin = bbox['min'];
                                     kbnt.BoxMax = bbox['max'];
+                                    getBoundingBox(colladaObjects['landscape'][0], kbnt,0);
                                     a = getCenter(bbox);
                                     kbnt.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                                 //** наполняем wall
@@ -454,7 +500,12 @@
                                         colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].children.push(kabinet[value].children[0]);
                                         colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].children[noWall].name = kabinet[value].name
                                             // ищем центр wall
-                                            // пока оставим пустым, возможно не потребуется
+                                            wall = colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].children[noWall]
+                                            var bbox = new THREE.Box3().setFromObject(wall);
+                                            wall.BoxMin = bbox['min'];
+                                            wall.BoxMax = bbox['max'];
+                                            a = getCenter(bbox);
+                                            wall.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                                         noWall += 1;
                                     }
                                 });
@@ -468,27 +519,6 @@
                                     var bbox = new THREE.Box3().setFromObject(outr);
                                     outr.BoxMin = bbox['min'];
                                     outr.BoxMax = bbox['max'];
-                                    //upscale building bounding box
-                                    if(bld.BoxMin['x'] > outr.BoxMin['x']){
-                                        bld.BoxMin['x'] = outr.BoxMin['x'];
-                                    }
-                                    if(bld.BoxMin['y'] > outr.BoxMin['y']){
-                                        bld.BoxMin['y'] = outr.BoxMin['y'];
-                                    }
-                                    if(bld.BoxMin['z'] > outr.BoxMin['z']){
-                                        bld.BoxMin['z'] = outr.BoxMin['z'];
-                                    }
-                                    if (bld.BoxMax['x'] < outr.BoxMax['x']){
-                                        bld.BoxMax['x'] = outr.BoxMax['x'];
-                                    }
-                                    if (bld.BoxMax['y'] < outr.BoxMax['y']){
-                                        bld.BoxMax['y'] = outr.BoxMax['y'];
-                                    }
-                                    if (bld.BoxMax['z'] < outr.BoxMax['z']){
-                                        bld.BoxMax['z'] = bld.BoxMax['z'];
-                                    }
-                                    //upscale floor bounding box
-
                                     a = getCenter(bbox);
                                     outr.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
                                 noKabinet += 1
@@ -519,32 +549,33 @@
 
     	//landscape 
     	plane = colladaObjects['landscape'][0];
-        plane.receiveShadow = true;
+        /*plane.receiveShadow = true;*/
     	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131 }));
     	//building
         $.each(colladaObjects['landscape'][0].children, function(value){
             if (colladaObjects['landscape'][0].children[value].name.indexOf('building') != -1){
                 building = colladaObjects['landscape'][0].children[value];
-                building.visible = false;
+                /*building.visible = false;*/
                 $.each(building.children, function(value){
                     //floor
                     floor = building.children[value];
                     setMaterialObject(floor, new THREE.MeshPhongMaterial({color: 0x008080, transparent:true}));
-                    floor.receiveShadow = true;
+                    /*floor.receiveShadow = true;*/
+                    /*floor.castShadow = true;*/
                     //kabinet n outer
                     $.each(floor.children, function(value){
                         if (floor.children[value].name.indexOf('outer') != -1){
                             outer = floor.children[value];
-                            outer.castShadow = true
-                            setMaterialObject(outer, new THREE.MeshPhongMaterial({color: 0x6b002b, transparent:true}));
+                            /*outer.castShadow = true;*/
+                            setMaterialObject(outer, new THREE.MeshLambertMaterial({color: 0x6b002b, transparent:true}));
                         } else if (floor.children[value].name.indexOf('kabinet') != -1){
                             kabinet = floor.children[value];
                             kabinet.visible = false;
                             //wall
                             $.each(kabinet.children, function(value){
                                 wall = kabinet.children[value];
-                                wall.castShadow = true;
-                                setMaterialObject(wall, new THREE.MeshPhongMaterial({color: 0x193434, transparent:true}));
+                                /*wall.castShadow = true;*/
+                                setMaterialObject(wall, new THREE.MeshLambertMaterial({color: 0x193434, transparent:true}));
                             });
                         }
                     });
@@ -583,6 +614,150 @@
         //** фунции управления элементами
         //*******************
         
+        //add raycaster and mouse as 2D vector
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+
+        //add event listener for mouse and calls function when activated
+        document.addEventListener('dblclick', onDocumentMouseDown, false);
+        document.addEventListener('touchstart', onDocumentTouchStart, false);
+
+        function onDocumentTouchStart(event){
+            event.preventDefault();
+            event.clientX = event.touches[0].clientX;
+            event.clientY = event.touches[0].clientY;
+            onDocumentMouseDown(event);
+        }
+
+        var selectedFloor;
+        function onDocumentMouseDown(event){
+            var floor = {};
+            var building = {};
+            var kabinet = {};
+            
+
+            event.preventDefault();
+            mouse.x = (event.clientX/ renderer.domElement.width) * 2 - 1;
+            mouse.y = -(event.clientY/ renderer.domElement.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            //ищем building по floor
+            ElemLookUp(colladaObjects['landscape'][0], 'building', building, 0);
+            
+            nofloor = 0;
+            $.each(building, function(index){
+                ElemLookUp(building[index], 'floor', floor, nofloor);
+                $.each(floor, function(){
+                    nofloor += 1;
+                });
+            });
+
+            //передаем floor перехватчику
+            var intersects = {};
+            no = 0;
+            $.each(floor, function(index){
+                intersects[no] = raycaster.intersectObject(floor[index]);
+                no += 1;
+            });
+
+            //наполняем popup floor            
+            $('.popup').empty();
+
+            $.each(intersects, function(index){
+                if (intersects[index].length > 0) {
+                    dae_elem = intersects[index][0].object.parent.parent.name;
+                    selectTarget(colladaObjects['landscape'][0], dae_elem);
+                    lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+                    lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+                    lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
+                    cameraToggle(colladaObjects['landscape'][0], dae_elem);
+                    flr = intersects[index][0].object.parent.parent
+                    $('.popup').empty();
+                    $.each(flr.children, function(index){
+                        if (flr.children[index].name.indexOf('floor') != -1){
+                            $('.popup').append('<li class="tabs-title" style="width:100%;"><a href="#panel2v">'+ flr.children[index].name +'</a></li>');    
+                        }
+                    });
+                }
+            });
+
+            //событие нажатие переключение к floor
+            $('.popup a').on('click', function(){
+                dae_elem = $(this).text();
+                selectedFloor = dae_elem;
+                selectTarget(colladaObjects['landscape'][0], dae_elem);
+                lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+                lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+                lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
+                cameraToggle(colladaObjects['landscape'][0], dae_elem);                
+            });
+
+            nokabinet = 0;
+            //ищем kabinet по floor
+            $.each(floor, function(index){
+                if (floor[index].name == selectedFloor){
+                    ElemLookUp(floor[index], 'kabinet', kabinet, nokabinet);
+                    nokabinet += 1;
+                }
+            });
+
+
+            //передаем kabinet перехватчику
+            var intersectsKab = {};
+            no = 0;
+            $.each(kabinet, function(index){
+                intersectsKab[no] = raycaster.intersectObject(kabinet[index]);
+                no += 1;
+            });
+
+            no = 0;
+            //наполняем popup kabinet
+            $.each(intersectsKab, function(index){
+                if (intersectsKab[index].length > 0) {
+                    if (selectedFloor == kabinet[index].parent.parent.name){
+                        dae_elem = intersectsKab[index][0].object.name;
+                        selectTarget(colladaObjects['landscape'][0], dae_elem);
+                        lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+                        lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+                        lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
+                        cameraToggle(colladaObjects['landscape'][0], dae_elem);
+                        $('.popup').empty();
+                        $.each(kabinet, function(index){
+                            $('.popup').append('<li class="tabs-title" style="width:100%;"><a href="#panel2v">'+ kabinet[index].name +'</a></li>');    
+                        });
+                    }
+                }
+            });
+        }
+        //событие нажатие переключение kabinet
+        $('.popup').delegate('a', 'click', function(){
+            dae_elem = $(this).text();
+            selectedFloor = dae_elem;
+            selectTarget(colladaObjects['landscape'][0], dae_elem);
+            lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+            lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+            lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
+            cameraToggle(colladaObjects['landscape'][0], dae_elem);
+        });
+
+        function ElemLookUp(node, text, object, no){
+            if (node.children){
+                for(var i = 0; i < node.children.length; i++){
+                    if(node.children[i].name.indexOf(text) != -1){
+                        object[no] = node.children[i];
+                        no += 1;
+                    }
+                    ElemLookUp(node.children[i], text, object, no);
+                }
+            }
+        }
+
+
+
+
+
+
         //видимость
         $('#turn_off').on('click', function(){
             var dae_elem = $('.cursor_box span').text();
@@ -652,21 +827,126 @@
                 }
             }
         }
-
-        //изменение позиции камеры
+        //кнопка "камера"
         $('.camera').on('click', function(){
             var dae_elem = $('.cursor_box span').text();
-            camTargetLook(colladaObjects['landscape'][0], dae_elem);
+            cameraToggle(colladaObjects['landscape'][0], dae_elem);
         });
 
-        var camTargetLook = function(node, dae_elem){
+        //кнопка "выбрать"
+        $('.select_object').on('click', function(){
+            var dae_elem = $('.cursor_box span').text();
+            selectTarget(colladaObjects['landscape'][0], dae_elem);
+            lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+            lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+            lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
+            cameraToggle(colladaObjects['landscape'][0], dae_elem);
+        });
+
+        //поиск зданий
+        var lookUpBuilding = function(node, dae_elem){
+            if (node.children){
+                for (var i=0; i < node.children.length; i++){
+                    if (node.children[i].name.indexOf('building') != -1){
+                        building = node.children[i].name;
+                        if (building == dae_elem){
+                            opacityFinder(colladaObjects['landscape'][0], dae_elem, 0.3);
+                            //показываем скрытые объекты
+                            togleVisibleOn(colladaObjects['landscape'][0], building);
+                        }
+                    }
+                    lookUpBuilding(node.children[i], dae_elem);
+                }   
+            }
+        }
+
+        //поиск этажей
+        var lookUpFloor = function(node, dae_elem, floors){
+            defaultToggle(node);
+            if (node.children){
+                for (var i=0; i < node.children.length; i++){
+                    if(node.children[i].name.indexOf('floor') != -1){
+                        if(node.children[i].name == dae_elem){
+                            name = dae_elem.split('_');
+                            cur = {}
+                            cur['curNum'] = parseInt(name[1].substring(0, 3));
+                            cur['curName'] = node.children[i].name;
+                            //ищем outer
+                            for (var q=0; q < node.children[i].children.length; q++){
+                                name = node.children[i].children[q].name
+                                if(name.indexOf('outer') != -1){cur['outrName'] = name}
+                            }
+                            for (var j=0; j < node.children.length; j++){
+                                var name = node.children[j].name;
+                                if(name.indexOf('floor') != -1) {
+                                    name = name.split('_');
+                                    number = parseInt(name[1].substring(0, 3));
+                                    floors[node.children[j].name] = number;
+                                }
+                            }
+                            $.each(floors, function(value){
+                                //скрываем этажи, выше текущего
+                                if (floors[value] > cur['curNum']) {
+                                    togleVisibleOff(colladaObjects['landscape'][0], value);
+                                }
+                                //уменьшаем прозрачность этажей, ниже текущего
+                                if (floors[value] < cur['curNum']) {
+                                    opacityFinder(colladaObjects['landscape'][0], value, 0.1);
+                                }
+                                //скрываем outer текущего этажа
+                                if (floors[value] == cur['curNum']){
+                                    togleVisibleOn(colladaObjects['landscape'][0], cur['curName']);
+                                    //скрываем outer
+                                    togleVisibleOff(colladaObjects['landscape'][0], cur['outrName']);
+                                    //устанавливаем прозрачность текущего этажа
+                                    opacityFinder(colladaObjects['landscape'][0], cur['curName'], 1);
+                                }
+                            })
+                            max = Math.max.apply(Math, floors);
+                            min = Math.min.apply(Math, floors);
+                        }
+                    }
+                    lookUpFloor(node.children[i], dae_elem, floors);
+                }
+            }
+        }
+        //поиск кабинетов
+        var lookUpKabinet = function(node, dae_elem, kabinets){
+            defaultToggle(node);
+            if (node.children){
+                for(var i = 0; i < node.children.length; i++){
+                    if (node.children[i].name.indexOf('kabinet') != -1){
+                        if(node.children[i].name == dae_elem){
+                            //включаем поиск этажей
+                            lookUpFloor(colladaObjects['landscape'][0], node.parent.name, {});
+                            curName = node.children[i].name;
+                            for (var j = 0; j < node.children.length; j++){
+                                var name = node.children[j].name;
+                                if(name.indexOf('kabinet') != -1) {
+                                    name = name.split('_');
+                                    kabinets[node.children[j].name] = node.children[j].name;
+                                }
+                            }
+                            $.each(kabinets, function(value){
+                                if (kabinets[value] != curName){
+                                    //уменьшаем прозрачность других кабинетов
+                                    togleVisibleOff(colladaObjects['landscape'][0], value);
+                                }
+                                //устанавливаем прозрачность текущего кабинета
+                                opacityFinder(colladaObjects['landscape'][0], curName, 0.8);
+                            });
+                        }
+                    }
+                    lookUpKabinet(node.children[i], dae_elem, kabinets);
+                }
+            }
+        }
+
+
+        var selectTarget = function(node, dae_elem){
             if (node.children){
                 for(var i=0; i < node.children.length; i++){
                     if(node.children[i].name == dae_elem){
-                        x = node.children[i].Center.x;
-                        y = node.children[i].Center.y;
-                        z = node.children[i].Center.z;
-                        cameraToggle(node.children[i], x, y, z);
                         var min = node.children[i].BoxMin;
                         var max = node.children[i].BoxMax;
                         //записать min и max в сессию
@@ -678,20 +958,39 @@
                             dataType: 'json',
                             async: true,
                             success: function(data, textStatus, jqXHR){
+                                //очищаем метки, которые ранее отображались
+                                $.each(unique, function(index){
+                                    scene.remove(unique[index]['mesh']);
+                                });
+                                unique = {};
+                                first = 1;
                             }
                         });
                         return 'ok';
                     }
-                    camTargetLook(node.children[i], dae_elem);
+                    selectTarget(node.children[i], dae_elem);
                 }
             }
         }
 
-        var cameraToggle = function(elem, x, y, z){
-            camera.position.set(x+20, y, z-20);
-            controls.target.copy(new THREE.Vector3(x, y, z));
-            camera.lookAt(new THREE.Vector3(x, y, z));             
+        var cameraToggle = function(node, dae_elem){
+            if(node.children){
+                for (var i = 0; i < node.children.length; i++){
+                    if (node.children[i].name == dae_elem){
+                        x = node.children[i].Center.x;
+                        y = node.children[i].Center.y;
+                        z = node.children[i].Center.z;
+                        /*camera.position.set(x+40, y, z-40);*/
+                        /*controls.target.copy(new THREE.Vector3(x, y, z));*/
+                        camera.LookAtNew = new THREE.Vector3(x, y, z);
+                        /*camera.PozNew = new THREE.Vector3(x, y, z);*/
+                        controls.TarNew = new THREE.Vector3(x, y, z);
+                    }
+                    cameraToggle(node.children[i], dae_elem);
+                }
+            }
         }
+
     });
 
     //изменить материал для обектов
@@ -733,6 +1032,7 @@
               
 	/* позиция камеры по умолчанию */
     camera.position.set(69, 69, -50);
+    camera.PozOld = new THREE.Vector3(69, 69, -50);
     /* вверх - это Z*/
     camera.up.set( 0, 0, -1 );
     scene.add(camera);
@@ -742,8 +1042,10 @@
     controls = new THREE.OrbitControls( camera, renderer.domElement );
     /* камера вращается вокруг данных координат*/
     controls.target.copy(new THREE.Vector3(34.141, 67.862, 8.6));
+    controls.TarOld = new THREE.Vector3(34.141, 67.862, 8.6)
     //камера смотрит
     camera.lookAt(new THREE.Vector3(34.141, 67.862, 8.6));
+    camera.LookAt = new THREE.Vector3(34.141, 67.862, 8.6);
     controls.addEventListener( 'change', render );
     hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
     scene.add(hemi);
@@ -758,59 +1060,400 @@
     $("#webGL-container").append( stats.domElement );       
 	  }
 
+    var first = 1;
+    var uniqueCount = 0;
+    var circleStep = 0;
     function render(){
-
     	if ($.isEmptyObject(unique)==false){
-				//проверка наличия элемента на сцене
-				$.each(unique, function(index){
-					if (unique[index]['mesh']==undefined){
-						//добавление элемента на сцену
-						unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
-						scene.add(unique[index]['mesh']);
-					}
-				});
-
-				$.each(unique, function(index){
-					var timeOut = 5000;
-					ind = index;
-					//прохождение позиций координат
-					$.each(unique[ind]['data'], function(index){
-						if (unique[ind]['data'][index] != undefined){
+			//проверка наличия элемента на сцене, если новый добавить
+            noUnq = 0;
+			$.each(unique, function(index){
+				if (unique[index]['mesh']==undefined){
+					//добавление элемента на сцену
+					unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
+					scene.add(unique[index]['mesh']);
+                    unique[index]['circle'] = new THREE.Mesh(circleGeom, circleMaterial);
+                    unique[index]['circle'].rotation.x = -1* Math.PI
+                    scene.add(unique[index]['circle']);
+                    unique[index]['mesh'].add(unique[index]['circle']);
+				}
+                noUnq += 1;
+			});
+            if (noUnq != uniqueCount) {
+                first = 1;
+                uniqueCount = noUnq;
+            }
+			$.each(unique, function(index){
+				var timeOut = 5000;
+				ind = index;
+				//прохождение позиций координат
+				$.each(unique[ind]['data'], function(index){
+					if (unique[ind]['data'][index] != undefined){
+                        //новый элемент на сцене
+                        if (first == 1) {
+                            $.each(unique, function(i){
+                                if (unique[i]['data'][0]){
+                                    x = unique[i]['data'][0]['x'];
+                                    y = unique[i]['data'][0]['y'];
+                                    z = unique[i]['data'][0]['z'];
+                                    unique[i]['mesh'].position.set(parseFloat(x), parseFloat(y), parseFloat(z));
+                                    unique[i]['circle'].position = unique[i]['mesh'].position;
+                                    //поднять cylinder
+                                    upCircle(colladaObjects['landscape'][0], 'wall', unique[i]['mesh'].children[0], unique[i]['mesh']);
+                                    //откорректировать cilinder по z
+                                    unique[i]['circle'].position.z -= circleStep;
+                                    circleStep += 0.01;
+                                }
+                            })
+                            first = 0;
+                        } else {
+                            //плавные перемещения
 							x = unique[ind]['data'][index]['x'];
 							y = unique[ind]['data'][index]['y'];
 							z = unique[ind]['data'][index]['z'];
-							//отрисовка перемещений
-							//установка временного интервала
-							if (unique[ind]['count'] != 0){
-								timeOut = timeOut/unique[ind]['count'];
-							}
 
-							unique[ind]['mesh'].position.set(x,y,z);
+                            unique[ind].xnew = x;
+                            unique[ind].ynew = y;
+                            unique[ind].znew = z;
 
-							timeOut += timeOut;
-							//удаление пройденных координат из буфера
-							unique[ind]['data'] = jQuery.grep(unique[ind]['data'], function(value){
-								return value != unique[ind]['data'][index];
-							});
-						}
-                        //проверить, если давно не поступает сделать невидимым
-                        if (unique[index]['cron'] > 300000) {
-                            cron = 0;
-                            console.log(unique[index]['cron']);
-                            unique[index]['mesh'].visible = false;
-                            unique[index]['cron'] = 0;
-                        } else {
-                            if (unique[index]['mesh'].visible == false){
-                                unique[index]['mesh'].visible = true;
+                            xCur = parseFloat(unique[ind].x);
+                            yCur = parseFloat(unique[ind].y);
+                            zCur = parseFloat(unique[ind].z);
+
+                            xNew = parseFloat(unique[ind].xnew);
+                            yNew = parseFloat(unique[ind].ynew);
+                            zNew = parseFloat(unique[ind].znew);
+
+                                //для радиуса окружности
+                                vecCur = new THREE.Vector2(xCur, yCur);
+                                vecNew = new THREE.Vector2(xNew, yNew);
+                                var radiusNew = vecCur.distanceTo(vecNew);
+                                var radiusOld = unique[ind]['mesh'].children[0].geometry.boundingSphere.radius
+                                //плавное изменение окружности
+                                var step = 0.3;
+                                if(radiusOld < radiusNew){
+                                    unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
+                                }
+                                if(radiusOld > radiusNew){
+                                    unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
+                                }
+                            var step = 0.3;
+                            if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                                unique[ind]['mesh'].position.x += step;
+                                unique[ind].x = unique[ind]['mesh'].position.x;
+                            }
+
+                            if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                                unique[ind]['mesh'].position.y += step;
+                                unique[ind].y = unique[ind]['mesh'].position.y;
+                            }
+
+                            if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                                unique[ind]['mesh'].position.z += step;
+                                unique[ind].z = unique[ind]['mesh'].position.z;
+                            }
+
+
+                            if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                                unique[ind]['mesh'].position.x -= step;
+                                unique[ind].x = unique[ind]['mesh'].position.x;
+                            }
+
+                            if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                                unique[ind]['mesh'].position.y -= step;
+                                unique[ind].y = unique[ind]['mesh'].position.y;
+                            }
+
+                            if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                                unique[ind]['mesh'].position.z -= step;
+                                unique[ind].z = unique[ind]['mesh'].position.z;
                             }
                         }
-					});
-					//oчищаем count
-					unique[ind]['count'] = 0;
-				});
-    	}
 
+						timeOut += timeOut;
+						//удаление пройденных координат из буфера
+						unique[ind]['data'] = jQuery.grep(unique[ind]['data'], function(value){
+							return value != unique[ind]['data'][index];
+						});
+					}
+				});
+				//oчищаем count
+				unique[ind]['count'] = 0;
+			});
+            //скрываем видимость тех, от кого нет сигнала за обозначенное время
+            $.each(unique, function(index){
+                if (unique[index]['cron'] > 600000){
+                    unique[index]['mesh'].visible = false;
+                    unique[index]['invisible'] = 1;
+                    clearInterval(unique[index]['timerid']);
+                }
+                if ((unique[index]['invisible'] == 1) && (unique[index]['cron'] < 600000)){
+                    unique[index]['mesh'].visible = true;
+                    unique[index]['invisible'] = 0;
+                    clearInterval(unique[index]['timerid']);
+                }
+            });
+            //плавное перемещение между посылками
+            $.each(unique, function(index){
+                xCur = parseFloat(unique[index].x);
+                yCur = parseFloat(unique[index].y);
+                zCur = parseFloat(unique[index].z);
+
+                xNew = parseFloat(unique[index].xnew);
+                yNew = parseFloat(unique[index].ynew);
+                zNew = parseFloat(unique[index].znew);
+                    //для радиуса окружности
+                    vecCur = new THREE.Vector2(xCur, yCur);
+                    vecNew = new THREE.Vector2(xNew, yNew);
+                    var radiusNew = vecCur.distanceTo(vecNew);
+                    var radiusOld = unique[index]['mesh'].children[0].geometry.boundingSphere.radius
+                    //плавное изменение окружности
+                    var step = 0.07;
+                    if(radiusOld < radiusNew){
+                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
+                    }
+                    if(radiusOld > radiusNew){
+                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
+                    }
+                var step = 0.07;
+                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                    unique[index]['mesh'].position.x += step;
+                    unique[index].x = unique[index]['mesh'].position.x;
+                }
+
+                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                    unique[index]['mesh'].position.y += step;
+                    unique[index].y = unique[index]['mesh'].position.y;
+                }
+
+                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                    unique[index]['mesh'].position.z += step;
+                    unique[index].z = unique[index]['mesh'].position.z;
+                }
+
+
+                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                    unique[index]['mesh'].position.x -= step;
+                    unique[index].x = unique[index]['mesh'].position.x;
+                }
+
+                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                    unique[index]['mesh'].position.y -= step;
+                    unique[index].y = unique[index]['mesh'].position.y;
+                }
+
+                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                    unique[index]['mesh'].position.z -= step;
+                    unique[index].z = unique[index]['mesh'].position.z;
+                }
+            });
+    	}
+        //плавное перемещение camera target
+        if (camera.LookAtNew){
+            oldCam = camera.LookAt;
+            newCam = camera.LookAtNew;
+            if (oldCam != newCam){
+                var step = 0.52;
+
+                xCur = oldCam.x;
+                yCur = oldCam.y;
+                zCur = oldCam.z;
+
+                xNew = newCam.x;
+                yNew = newCam.y;
+                zNew = newCam.z;
+
+                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                    camera.lookAt(new THREE.Vector3(xCur += step, yCur, zCur));
+                    oldCam.x = xCur += step;
+                }
+
+                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                    camera.lookAt(new THREE.Vector3(xCur, yCur += step, zCur));
+                    oldCam.y = yCur += step;
+                }
+
+                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                    camera.lookAt(new THREE.Vector3(xCur, yCur, zCur += step));
+                    oldCam.z = zCur += step;
+                }
+
+
+                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                    camera.lookAt(new THREE.Vector3(xCur -= step, yCur, zCur));
+                    oldCam.x = xCur -= step;
+                }
+
+                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                    camera.lookAt(new THREE.Vector3(xCur, yCur -= step, zCur));
+                    oldCam.y = yCur -= step;
+                }
+
+                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                    camera.lookAt(new THREE.Vector3(xCur, yCur, zCur -= step));
+                    oldCam.z = zCur -= step
+                }    
+            }
+        }
+        //плавное перемещение camera position
+        /*if (camera.PozNew){
+            oldCam = camera.PozOld;
+            newCam = camera.PozNew;
+            if (oldCam != newCam){
+                xCur = oldCam.x;
+                yCur = oldCam.y;
+                zCur = oldCam.z;
+
+                xNew = newCam.x - 20;
+                yNew = newCam.y;
+                zNew = newCam.z - 20;
+
+                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                    camera.position.x = xCur += step;
+                    oldCam.x = xCur += step;
+                }
+
+                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                    camera.position.y = yCur += step;
+                    oldCam.y = yCur += step;
+                }
+
+                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                    camera.position.z = zCur += step;
+                    oldCam.z = zCur += step;
+                }
+
+
+                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                    camera.position.x = xCur -= step;
+                    oldCam.x = xCur -= step;
+                }
+
+                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                    camera.position.y = yCur -= step;
+                    oldCam.y = yCur -= step;
+                }
+
+                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                    camera.position.z = zCur -= step;
+                    oldCam.z = zCur -= step;
+                }    
+            }
+        }*/
+        //плавное перемещение target position
+        if (controls.TarNew){
+            oldCam = controls.TarOld;
+            newCam = controls.TarNew;
+            if (oldCam != newCam){
+                var step = 0.52;
+
+                xCur = oldCam.x;
+                yCur = oldCam.y;
+                zCur = oldCam.z;
+
+                xNew = newCam.x;
+                yNew = newCam.y;
+                zNew = newCam.z;
+
+                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                    controls.target.copy(new THREE.Vector3(xCur += step, yCur, zCur));
+                    oldCam.x = xCur += step;
+                }
+
+                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                    controls.target.copy(new THREE.Vector3(xCur, yCur += step, zCur));
+                    oldCam.y = yCur += step;
+                }
+
+                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                    controls.target.copy(new THREE.Vector3(xCur, yCur, zCur += step));
+                    oldCam.z = zCur += step;
+                }
+
+
+                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                    controls.target.copy(new THREE.Vector3(xCur -= step, yCur, zCur));
+                    oldCam.x = xCur -= step;
+                }
+
+                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                    controls.target.copy(new THREE.Vector3(xCur, yCur -= step, zCur));
+                    oldCam.y = yCur -= step;
+                }
+
+                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                    controls.target.copy(new THREE.Vector3(xCur, yCur, zCur -= step));
+                    oldCam.z = zCur -= step
+                }    
+            }
+        }
     }
+
+    //подымаем circle
+    function upCircle(node, text, circle, unique){
+        if(node.children){
+            for (var i = 0; i < node.children.length; i++ ){
+                if (node.children[i].name.indexOf(text) != -1) {
+                    getWallHeight(colladaObjects['landscape'][0], unique, circle);
+                }
+                upCircle(node.children[i], text, circle, unique);
+            }
+        }
+    }
+
+    function getWallHeight(node, unique, circle){
+        if(node.children){
+            for (var i = 0; i < node.children.length; i++){
+                if(node.children[i].name.indexOf('floor') != -1){
+                    if (getFloorOfUnique(node.children[i], unique)){
+                        object = node.children[i];
+                        xMin = object.BoxMin.x;
+                        yMin = object.BoxMin.y;
+                        zMin = object.BoxMin.z;
+
+                        xMax = object.BoxMax.x;
+                        yMax = object.BoxMax.y;
+                        zMax = object.BoxMax.z;
+
+                        zStep = Math.abs((zMax - zMin)/2);
+                        if (Math.abs(circle.position.z) < zStep){
+                            circle.position.z -= zStep;
+                        }
+                    }
+                }
+                getWallHeight(node.children[i], unique, circle);
+            }
+        }
+    }
+
+    function getFloorOfUnique(floor, unique){
+        xMin = floor.BoxMin.x;
+        yMin = floor.BoxMin.y;
+        zMin = floor.BoxMin.z;
+
+        xMax = floor.BoxMax.x;
+        yMax = floor.BoxMax.y;
+        zMax = floor.BoxMax.z;
+
+        x = unique.position.x;
+        y = unique.position.y;
+        z = unique.position.z;
+
+        if (inInterval(x, xMin, xMax) && inInterval(y, yMin, yMax) && inInterval(z, zMin, zMax)){
+            return true;
+        }
+    }
+
+
+    function inInterval(i, imin, imax){
+        if (i >= imin && i <= imax){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
 
     function update(){
     }

@@ -44,3 +44,10 @@ li.tabs-title a{
 .button_style{
 	width:100%;
 }
+
+.popup{
+	background-color:#fff;
+	bottom:0;
+	left:0;
+	position:fixed;
+}

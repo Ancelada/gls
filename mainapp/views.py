@@ -19,7 +19,6 @@ from django.contrib import auth
 from django.conf import settings
 
 # Глобальный словарь с метками
-# massive = {}
 marks = {}
 # global user massive 
 active_users = []
@@ -42,7 +41,7 @@ def recieve_json(request):
 
 def send_simple_location_message(request):
 # 	slmp = """LabR,Std0,0000,00000a5,21.681625,55.457092,10.803710,7,2016-01-12T13:52:31:239+1,2,0038,0000
-# 	LabR,Std0,0000,00000a6,29.681625,49.457092,13.503710,7,2016-01-12T13:52:31:239+1,2,0038,0000
+# 	LabR,Std0,0000,00000a6,29.681625,49.457092,13.503710,7,2016-01-12T13:52:31:239+1,2,0038,00000a6
 # 	LabR,Std0,0000,00000a7,25.681625,25.457092,25.803710,7,2016-01-12T13:52:31:239+1,2,0038,0000
 # 	LabR,Std0,0000,00000a8,35.681625,35.457092,35.803710,7,2016-01-12T13:52:31:239+1,2,0038,0000
 # 	LabR,Std0,0000,00000a9,45.681625,45.457092,45.803710,7,2016-01-12T13:52:31:239+1,2,0038,0000
@@ -69,7 +68,7 @@ def receive_slmp(request):
 			line = line.split(',')
 			for i in line:
 				spisok = []
-				dictionary = {'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':line[8], 'zone_id': line[11]}
+				dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
 				spisok.append(dictionary)
 				getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
 				marks[num] = spisok
@@ -79,7 +78,7 @@ def receive_slmp(request):
 				try:
 					line = i.split(',')
 					spisok = []
-					dictionary = {'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':line[8], 'zone_id': line[11]}
+					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
 					spisok.append(dictionary)
 					getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
 					marks[num] = spisok
@@ -89,8 +88,9 @@ def receive_slmp(request):
 		#send coordinates to usersession
 		for i in active_users:
 			try:
-				service_queue('order_lock', json({'user': i['id'],'data': i['data']}))
-				i['data'] = []
+				if len(i['data']) > 0:
+					service_queue('order_lock', json({'user': i['id'],'data': i['data']}))
+					i['data'] = []
 			except:
 				pass	
 		return HttpResponse('ok')
@@ -221,7 +221,7 @@ def getmarksvalues(request):
 			line = line.split(',')
 			for i in line:
 				spisok = []
-				spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':[8]})
+				spisok.append({'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':[8]})
 				marks[num] = spisok
 			return JsonResponse(marks)
 		else:
@@ -230,7 +230,7 @@ def getmarksvalues(request):
 				try:
 					line = i.split(',')
 					spisok = []
-					spisok.append({'tag_id':line[3], 'x': line[4], 'y': line[5], 'z': line[6], 'zone':line[8]})
+					spisok.append({'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8]})
 					marks[num] = spisok
 					num +=1
 				except:
@@ -397,3 +397,6 @@ def minmaxtosession(request):
 				i['landscape_id'] = landscape_id
 				i['data'] = []
 		return JsonResponse({'properties': active_users})
+
+def sendcoordsform(request):
+	return render(request, 'sendcoordsform.html')

@@ -48,4 +48,7 @@ urlpatterns = patterns('',
 
 	#testing
 	url(r'testing$', 'mainapp.views.testing'),
+
+	#send coordinates
+	url(r'sendcoordsform', 'mainapp.views.sendcoordsform'),
 )

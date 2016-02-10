@@ -1,0 +1,91 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="large-12 small-12 columns">
+	<label for="mark1">Метка 1
+		<input type="text" id="mark1" placeholder="id">
+	</label>
+	<label for="x-position">
+		<input type="text" id="x-position" placeholder="x-position">
+	</label>
+	<label for="y-position">
+		<input type="text" id="y-position" placeholder="y-position">
+	</label>
+	<label for="z-position">
+		<input type="text" id="z-position" placeholder="z-position">
+	</label>
+	<a href="#" class="button secondary" id="start">Начать посылку</a>
+	<a href="#" class="button secondary" id="stop">Остановить</a>
+	<br>
+	<label for="mark2">Метка 2
+		<input type="text" id="mark2" placeholder="id">
+	</label>
+	<label for="x-position2">
+		<input type="text" id="x-position2" placeholder="x-position">
+	</label>
+	<label for="y-position2">
+		<input type="text" id="y-position2" placeholder="y-position">
+	</label>
+	<label for="z-position2">
+		<input type="text" id="z-position2" placeholder="z-position">
+	</label>
+	<a href="#" class="button secondary" id="start2">Начать посылку</a>
+	<a href="#" class="button secondary" id="stop2">Остановить</a>
+</div>
+<script>
+	var timer;
+	var timer2;
+	$('#start').on('click', function(){
+		timer = setInterval(function(){
+			step = 9;
+			var mark1 = $('#mark1').val();
+			var x = parseFloat($('#x-position').val()) + Math.floor(Math.random() * -step) +step;
+			var y = parseFloat($('#y-position').val()) + Math.floor(Math.random() * -step) +step;
+			var z = parseFloat($('#z-position').val());
+			id = $('#mark1').val();
+			var value = "LabR,Std0,0000," + mark1 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038,0000"
+			$.ajax({
+				type: "POST",
+				url: "/receive_slmp",
+				contentType: "application/json; charset=utf-8",
+				data: value,
+	            dataType: 'text',
+	            async: true,
+	            success: function(data, textStatus, jqXHR){
+            	}
+			});
+		}, 1000);
+	});
+
+	$('#stop').on('click', function(){
+		clearInterval(timer);
+	});
+
+
+	$('#start2').on('click', function(){
+		timer2 = setInterval(function(){
+			step = 9;
+			var mark2 = $('#mark2').val();
+			var x = parseFloat($('#x-position2').val()) + Math.floor(Math.random() * -step) +step;
+			var y = parseFloat($('#y-position2').val()) + Math.floor(Math.random() * -step) +step;
+			var z = parseFloat($('#z-position2').val());
+			id = $('#mark2').val();
+			var value2 = "LabR,Std0,0000,"+ mark2 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038,0000"
+			$.ajax({
+				type: "POST",
+				url: "/receive_slmp",
+				contentType: "application/json; charset=utf-8",
+				data: value2,
+	            dataType: 'text',
+	            async: true,
+	            success: function(data, textStatus, jqXHR){
+            	}
+			});
+		}, 1000);
+	});
+
+	$('#stop2').on('click', function(){
+		clearInterval(timer2);
+	});
+</script>
+{% endblock%}
