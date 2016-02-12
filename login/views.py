@@ -15,7 +15,7 @@ def login(request):
 		user = auth.authenticate(username=username, password=password)
 		if user is not None:
 			auth.login(request, user)
-			return redirect('/sockjs')
+			return redirect('/')
 		else:
 			args['login_error'] = 'Пользователь не найден или некорректный пароль'
 			return render(request, 'login.html', args)

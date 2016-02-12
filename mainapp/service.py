@@ -47,7 +47,8 @@ class Connection(SockJSConnection):
 		self.redis_client.connect()
 
 		yield tornado.gen.Task(self.redis_client.subscribe, [
-			'order_lock',
+			'coords_lock',
+			'coords_server_lock',
 			'order_done'
 		])
 		self.redis_client.listen(self.on_redis_queue)
@@ -61,9 +62,6 @@ class Connection(SockJSConnection):
 	def on_open(self, info):
 		self.django_session = get_session(info.get_cookie('sessionid').value)
 		self.user = get_user(self.django_session)
-		self.is_client = self.user.has_perm('order.lock')
-		self.is_model = self.user.has_perm('order.delete')
-		print self.is_model
 
 	def on_message(self):
 		pass
@@ -71,16 +69,20 @@ class Connection(SockJSConnection):
 	def on_redis_queue(self, message):
 		if message.kind == 'message':
 			message_body =  unjson(message.body)
-			if message.channel == 'order_lock':
+			if message.channel == 'coords_lock':
 				self.on_lock(message_body)
-
+			if message.channel == 'coords_server_lock':
+				self.on_server_lock(message_body)
 			if message.channel == 'order_done':
 				self.on_done(message_body)
 
 	def on_lock(self, message):
-		print "lock_message"
 		if message['user'] == self.user.pk:
 			self.send('lock', message)
+
+	def on_server_lock(self, message):
+		if message['user'] == self.user.pk:
+			self.send('server_lock', message)
 
 	def on_done(self, message):
 		if message['user'] != self.user.pk:
@@ -93,6 +95,7 @@ class Connection(SockJSConnection):
 	def on_close(self):
 		self.redis_client.unsubscribe([
 			'order_lock',
+			'coords_server_lock',
 			'order_done'
 		])
 		self.redis_client.disconnect()

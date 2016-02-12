@@ -24,8 +24,8 @@ urlpatterns = patterns('',
 	url(r'loadcollada$', 'mainapp.views.loadcollada'),
 
 	#get ajax marks count
-	url(r'getmarksvalues', 'mainapp.views.getmarksvalues'),
-	url(r'getmarks', 'mainapp.views.getmarks'),
+	# url(r'getmarksvalues', 'mainapp.views.getmarksvalues'),
+	# url(r'getmarks', 'mainapp.views.getmarks'),
 
 	#scene view
 	url(ur'values/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.values'),
@@ -51,4 +51,9 @@ urlpatterns = patterns('',
 
 	#send coordinates
 	url(r'sendcoordsform', 'mainapp.views.sendcoordsform'),
+
+	#unique
+	url(r'clearunique', 'mainapp.views.clearUnique'),
+	url(r'getuniquevalues', 'mainapp.views.getuniquevalues'),
+	url(ur'values_server/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.values_server'),
 )

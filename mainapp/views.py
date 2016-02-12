@@ -20,6 +20,11 @@ from django.conf import settings
 
 # Глобальный словарь с метками
 marks = {}
+
+# Глобальный словарь усредненный
+unique = []
+tumbler = []
+
 # global user massive 
 active_users = []
 
@@ -54,7 +59,82 @@ def send_simple_location_message(request):
 		return JsonResponse({'value': value})
 
 def getmarks(request):
-	return JsonResponse(marks)
+	return HttpResponse(marks)
+
+#unique корректировка
+def clearUnique(request):
+	unique = []
+	return HttpResponse('unique dictionary cleared')
+def getuniquevalues(request):
+	return HttpResponse(unique)
+
+# функция setInterval
+import threading
+def set_interval(func, sec):
+    def func_wrapper():
+        set_interval(func, sec)
+        func()
+    t = threading.Timer(sec, func_wrapper)
+    t.start()
+    return t
+
+def correctF():
+	for i in unique:
+		xCur = i['x']
+		yCur = i['y']
+		zCur = i['z']
+
+		xNew = i['xNew']
+		yNew = i['yNew']
+		zNew = i['zNew']
+
+		step = 0.1
+		if (xCur < xNew + step) and ((xNew - xCur) > 0):
+			i['x'] += step
+	        if (yCur < yNew + step) and ((yNew - yCur) > 0):
+	        	i['y'] += step
+	        if (zCur < zNew + step) and ((zNew - zCur) > 0):
+	        	i['z'] += step
+	        if (xCur > xNew + step) and ((xNew - xCur) < 0):
+	            i['x'] -= step
+	        if (yCur > yNew + step) and ((yNew - yCur) < 0):
+	        	i['y'] -= step
+	        if (zCur > zNew + step) and ((zNew - zCur) < 0):
+	        	i['z'] -= step
+    	if (yCur < yNew + step) and ((yNew - yCur) > 0):
+        	i['y'] += step
+        	if (xCur < xNew + step) and ((xNew - xCur) > 0):
+				i['x'] += step
+        	if (zCur < zNew + step) and ((zNew - zCur) > 0):
+	        	i['z'] += step
+	        if (xCur > xNew + step) and ((xNew - xCur) < 0):
+	            i['x'] -= step
+	        if (yCur > yNew + step) and ((yNew - yCur) < 0):
+	        	i['y'] -= step
+	        if (zCur > zNew + step) and ((zNew - zCur) < 0):
+	        	i['z'] -= step
+    	#send coordinates to usersession
+	for i in active_users:
+		try:
+			service_queue('coords_server_lock', json({'user': i['id'],'data': unique}))
+		except:
+			pass
+
+def correctUniqueInMilisec():
+	if tumbler[0]:
+		set_interval(correctF, 0.1)
+
+def values_server(request, landscape_id='0000'):
+	args = {}
+	landscape_id = landscape_id
+	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
+	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id)
+	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id)
+	args['kabinet_n_outer'] = Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id)
+	args['walls'] = Wall.objects.filter(LoadLandscape_id=landscape_id)
+	args['username'] = auth.get_user(request).id
+	args['landscape_id'] = landscape_id
+	return render(request, 'values_server.html', args)
 
 #receive coordinates
 def receive_slmp(request):
@@ -62,34 +142,44 @@ def receive_slmp(request):
 		update_active_users()
 		line = request.body.decode('utf-8')
 		line = line.split('Zone')
-		num = 0
+		# first line
 		if (len(line) > 1):
 			line = line[2]
 			line = line.split(',')
 			for i in line:
-				spisok = []
 				dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
 				spisok.append(dictionary)
 				getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
-				marks[num] = spisok
+		# second and other lines
 		else:
 			line = line[0].split('\r\n')
 			for i in line:
-				try:
-					line = i.split(',')
-					spisok = []
+				line = i.split(',')
+				if len(line) > 0:
 					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
-					spisok.append(dictionary)
 					getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
-					marks[num] = spisok
-					num +=1
-				except:
-					pass
+					#наполняем unique
+					doubled = 0
+					for i in unique:
+						if i['tag_id'] == line[3]:
+							i['xNew'] = dictionary['x']
+							i['yNew'] = dictionary['y']
+							i['zNew'] = dictionary['z']
+							i['time'] = dictionary['zone']
+							i['zone_id'] = dictionary['zone_id']
+							doubled = 1
+					if not(doubled):
+						unique.append(dictionary)
+					# getUnique(line[3], float(line[4]), float(line[5]), float(line[6]), line[11], line[8])
+		# включаем функцию корректировки по милисекундам
+		if len(tumbler) == 0:
+			tumbler.append(1)
+			correctUniqueInMilisec()
 		#send coordinates to usersession
 		for i in active_users:
 			try:
 				if len(i['data']) > 0:
-					service_queue('order_lock', json({'user': i['id'],'data': i['data']}))
+					service_queue('coords_lock', json({'user': i['id'],'data': i['data']}))
 					i['data'] = []
 			except:
 				pass	
@@ -112,18 +202,21 @@ def inInterval(i, imin, imax):
 
 def getMarksByInterval(x, y, z, zone, dictionary):
 	for i in active_users:
-		if i['max']:
-			xmax = i['max'].get('x')
-			ymax = i['max'].get('y')
-			zmax = i['max'].get('z')
+		try:
+			if i['max']:
+				xmax = i['max'].get('x')
+				ymax = i['max'].get('y')
+				zmax = i['max'].get('z')
 
-			xmin = i['min'].get('x')
-			ymin = i['min'].get('y')
-			zmin = i['min'].get('z')
+				xmin = i['min'].get('x')
+				ymin = i['min'].get('y')
+				zmin = i['min'].get('z')
 
-			landscape_id = i['landscape_id']
-			if (inInterval(float(x), xmin, xmax) and inInterval(float(y), ymin, ymax) and inInterval(float(z), zmin, zmax) and zone ==landscape_id):
-				i['data'].append(dictionary)
+				landscape_id = i['landscape_id']
+				if (inInterval(float(x), xmin, xmax) and inInterval(float(y), ymin, ymax) and inInterval(float(z), zmin, zmax) and zone ==landscape_id):
+					i['data'].append(dictionary)
+		except:
+			pass
 
 def save_slmp(request):
 	if request.method == 'POST':
@@ -210,32 +303,32 @@ def values(request, landscape_id='0000'):
 	args['landscape_id'] = landscape_id
 	return render(request, 'values.html', args)
 
-def getmarksvalues(request):
-	if request.method == 'POST':
-		marks = {}
-		line = massive['data']
-		line = line.split('Zone')
-		num = 0
-		if (len(line) > 1):
-			line = line[2]
-			line = line.split(',')
-			for i in line:
-				spisok = []
-				spisok.append({'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':[8]})
-				marks[num] = spisok
-			return JsonResponse(marks)
-		else:
-			line = line[0].split('\n')
-			for i in line:
-				try:
-					line = i.split(',')
-					spisok = []
-					spisok.append({'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8]})
-					marks[num] = spisok
-					num +=1
-				except:
-					pass
-			return JsonResponse(marks)
+# def getmarksvalues(request):
+# 	if request.method == 'POST':
+# 		marks = {}
+# 		line = massive['data']
+# 		line = line.split('Zone')
+# 		num = 0
+# 		if (len(line) > 1):
+# 			line = line[2]
+# 			line = line.split(',')
+# 			for i in line:
+# 				spisok = []
+# 				spisok.append({'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':[8]})
+# 				marks[num] = spisok
+# 			return JsonResponse(marks)
+# 		else:
+# 			line = line[0].split('\n')
+# 			for i in line:
+# 				try:
+# 					line = i.split(',')
+# 					spisok = []
+# 					spisok.append({'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8]})
+# 					marks[num] = spisok
+# 					num +=1
+# 				except:
+# 					pass
+# 			return JsonResponse(marks)
 
 # форма загрузки сцены
 def landscapeloadform(request, result='error'):
