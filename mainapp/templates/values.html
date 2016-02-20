@@ -234,11 +234,6 @@
                                     if (tag_id_new == tag_id_unique){
                                         //при совпадении создаем таймер
                                         unique[index]['cron'] = 0;
-                                        unique[index]['timerid'] = setInterval(function(){
-                                            if (unique[index] && unique[index]['cron'] != undefined){
-                                                unique[index]['cron'] += 1000;    
-                                            }
-                                        }, 1000);
                                         //при совпадении задаем список
                                         //записываем все повторяющиеся значения 
                                         unique[index]['data'] = [];
@@ -955,7 +950,7 @@
                         $.ajax({
                             type: "POST",
                             url: "/minmaxtosession",
-                            data: JSON.stringify({'username': '{{username}}', 'landscape_id': '{{landscape_id}}', 'min':min, 'max':max}),
+                            data: JSON.stringify({'username': '{{username}}', 'landscape_id': '{{landscape_id}}', 'min':min, 'max':max, 'dae_elem': dae_elem}),
                             contentType: "application/json; charset=utf-8",
                             dataType: 'json',
                             async: true,
@@ -992,7 +987,6 @@
                 }
             }
         }
-
     });
 
     //изменить материал для обектов
@@ -1179,17 +1173,19 @@
 						});
 					}
 				});
+                //наполняем таймер cron
+                unique[ind]['cron'] += 1;
 				//oчищаем count
 				unique[ind]['count'] = 0;
 			});
             //скрываем видимость тех, от кого нет сигнала за обозначенное время
             $.each(unique, function(index){
-                if (unique[index]['cron'] > 600000){
+                if (unique[index]['cron'] > 300){
                     unique[index]['mesh'].visible = false;
                     unique[index]['invisible'] = 1;
                     clearInterval(unique[index]['timerid']);
                 }
-                if ((unique[index]['invisible'] == 1) && (unique[index]['cron'] < 600000)){
+                if ((unique[index]['invisible'] == 1) && (unique[index]['cron'] < 300)){
                     unique[index]['mesh'].visible = true;
                     unique[index]['invisible'] = 0;
                     clearInterval(unique[index]['timerid']);
@@ -1297,51 +1293,6 @@
                 }    
             }
         }
-        //плавное перемещение camera position
-        /*if (camera.PozNew){
-            oldCam = camera.PozOld;
-            newCam = camera.PozNew;
-            if (oldCam != newCam){
-                xCur = oldCam.x;
-                yCur = oldCam.y;
-                zCur = oldCam.z;
-
-                xNew = newCam.x - 20;
-                yNew = newCam.y;
-                zNew = newCam.z - 20;
-
-                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
-                    camera.position.x = xCur += step;
-                    oldCam.x = xCur += step;
-                }
-
-                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
-                    camera.position.y = yCur += step;
-                    oldCam.y = yCur += step;
-                }
-
-                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
-                    camera.position.z = zCur += step;
-                    oldCam.z = zCur += step;
-                }
-
-
-                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
-                    camera.position.x = xCur -= step;
-                    oldCam.x = xCur -= step;
-                }
-
-                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
-                    camera.position.y = yCur -= step;
-                    oldCam.y = yCur -= step;
-                }
-
-                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
-                    camera.position.z = zCur -= step;
-                    oldCam.z = zCur -= step;
-                }    
-            }
-        }*/
         //плавное перемещение target position
         if (controls.TarNew){
             oldCam = controls.TarOld;

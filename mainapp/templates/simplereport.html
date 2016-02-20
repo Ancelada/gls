@@ -1,0 +1,105 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	<form action="/simplereport/0" method="POST">
+	<div class="large-12 small-12 columns">
+		<label for="unique"><h2>Метка</h2>
+			<br>
+			<span class="large-2 small-3 columns" style="float:left;padding-left:0;">
+				<input type="text" placeholder="номер метки" id="unique" value="{{unique}}" name="unique">
+				{% for e in error %}
+					{% if e.empty_unique %}
+						<span class="alert label">Пустое поле Номер метки</span>
+					{% elif e.incorrect_id %}
+						<span class="alert label">Некорректный номер метки</span>
+					{% endif %}
+				{% endfor %}
+			</span>
+		</label>
+		<button class="button secondary">Получить инофрмацию</button>
+	</div>
+	</form>
+	<div class="large-12 small-12 columns">
+		<h3>Перемещения между строениями</h3>
+		<table>
+			<thead>
+				<th width="150">Тип метки</th>
+				<th width="150">Группа</th>
+				<th width="150">Имя метки</th>
+				<th width="200">Строение</th>
+				<th>Время</th>
+			</thead>
+			<tbody>
+				{% for bc in bldchange %}
+					<tr>
+						<td>{{bc.Tag__TagType}}</td>
+						<td>{{bc.Tag__Group}}</td>
+						<td>{{bc.Tag__Name}}</td>
+						<td>{{bc.BldNew__dae_BuildingName}}</td>
+						<td>{{bc.ChangeTime}}</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<div class="large-12 small-12 columns">
+		<h3>Перемещения между этажами</h3>
+		<table>
+			<thead>
+				<th width="150">Тип метки</th>
+				<th width="150">Группа</th>
+				<th width="150">Имя метки</th>
+				<th width="200">Этаж</th>
+				<th>Время</th>
+			</thead>
+			<tbody>
+				{% for fc in flrchange %}
+					<tr>
+						<td>{{fc.Tag__TagType}}</td>
+						<td>{{fc.Tag__Group}}</td>
+						<td>{{fc.Tag__Name}}</td>
+						<td>{{fc.FlrNew__dae_FloorName}}</td>
+						<td>{{fc.ChangeTime}}</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<div class="large-12 small-12 columns">
+		<h3>Перемещения между кабинетами</h3>
+		<table>
+			<thead>
+				<th width="150">Тип метки</th>
+				<th width="150">Группа</th>
+				<th width="150">Имя метки</th>
+				<th width="200">Кабинет</th>
+				<th>Время</th>
+			</thead>
+			<tbody>
+				{% for kc in kbntchange %}
+					<tr>
+						<td>{{kc.Tag__TagType}}</td>
+						<td>{{kc.Tag__Group}}</td>
+						<td>{{kc.Tag__Name}}</td>
+						<td>{{kc.KbntNew__dae_Kabinet_n_OuterName}}</td>
+						<td>{{kc.ChangeTime}}</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<form action="/simplereport/1" method="POST">
+		<div class="large-12 small-12 columns">
+			<label for=""><h3>Очистить информацию о всех перемещениях метки</h3>
+				<input class="hide" type="text" placeholder="номер метки" id="unique" value="{{unique}}" name="unique">
+				<br>
+				<button class="button secondary large-3 small-3 columns float-left" id="clear" name="clear">Произвести</button>
+			</label>
+		</div>
+	</form>
+	<script>
+		$('#clear').on('click', function(){
+			console.log('cleared');
+		});
+	</script>
+{% endblock %}

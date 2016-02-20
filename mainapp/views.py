@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
-from mainapp.models import Metka, Std0, LoadLandscape, Building, Floor, Kabinet_n_Outer, Wall, Order
+from mainapp.models import *
 from django.db.models import Q
 import json
 import requests
@@ -17,6 +17,11 @@ import ssl
 import datetime
 from django.contrib import auth
 from django.conf import settings
+from shapely.geometry import *
+import math
+# глобальный словарь static статичные объекты
+static = []
+static_tumbler = []
 
 # Глобальный словарь с метками
 marks = {}
@@ -58,13 +63,61 @@ def send_simple_location_message(request):
 		r = requests.post(url, data=value)
 		return JsonResponse({'value': value})
 
-def getmarks(request):
-	return HttpResponse(marks)
+# def getmarks(request):
+# 	return HttpResponse(marks)
 
-#unique корректировка
+#static получить
+def getstatic(request):
+	return HttpResponse(static)
+#переключить тумблер
+def turnoff_tumbler(request):
+	del static_tumbler[:]
+	return HttpResponse('static_tumbler reseted')
+#static очистить
+def clearstatic(request):
+	del static[:]
+	return HttpResponse('static list cleared')
+# наполняем статику
+def fillStatic():
+	landscape = LoadLandscape.objects.all()
+	bno = 0
+	fno = 0
+	for l in landscape:
+		static.append({'landscape_id': l.landscape_id, 'objects': []})
+		for i in static:
+			if i['landscape_id'] == l.landscape_id:
+				#building
+				building = Building.objects.filter(LoadLandscape_id=l.landscape_id)
+				for b in building:
+					i['objects'].append({'name': b.dae_BuildingName, 'vertices': [], 'maxz': b.maxz, 'minz': b.minz})
+					#add building vertices
+					verticesBuilding = VerticesBuilding.objects.filter(Building_id=b.id)
+					for v in verticesBuilding:
+						i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+					bno += 1
+					#floor
+					floor = Floor.objects.filter(Building_id=b.id)
+					for f in floor:
+						i['objects'].append({'name': f.dae_FloorName, 'vertices': [], 'maxz': f.maxz, 'minz': f.minz})
+						verticesFloor = VerticesFloor.objects.filter(Floor_id=f.id)
+						for v in verticesFloor:
+							i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+						bno += 1
+						#kabinet
+						kabinet  = Kabinet_n_Outer.objects.filter(Floor_id=f.id)
+						for k in kabinet:
+							i['objects'].append({'name': k.dae_Kabinet_n_OuterName, 'vertices': [], 'maxz': k.maxz, 'minz': k.minz})
+							verticesKabinet_n_Outer = VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=k.id)
+							for v in verticesKabinet_n_Outer:
+								i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+							bno += 1
+				# bno = 0
+
+#unique очистить
 def clearUnique(request):
-	unique = []
+	del unique[:]
 	return HttpResponse('unique dictionary cleared')
+# получить unique
 def getuniquevalues(request):
 	return HttpResponse(unique)
 
@@ -77,7 +130,32 @@ def set_interval(func, sec):
     t = threading.Timer(sec, func_wrapper)
     t.start()
     return t
+#быстрая unique корректировка
+def correctFast(i):
+	xCur = i['x']
+	yCur = i['y']
+	zCur = i['z']
 
+	xNew = i['xNew']
+	yNew = i['yNew']
+	zNew = i['zNew']
+	step = 0.3
+	for j in unique:
+		if j == i:
+		    if (xCur < xNew + step) and ((xNew - xCur) > 0):
+		        j['x'] += step
+		    if (yCur < yNew + step) and ((yNew - yCur) > 0):
+		        j['y'] += step
+		    if (zCur < zNew + step) and ((zNew - zCur) > 0):
+		        j['z'] += step
+		    if (xCur > xNew + step) and ((xNew - xCur) < 0):
+		        j['x'] -= step
+		    if (yCur > yNew + step) and ((yNew - yCur) < 0):
+		        j['y'] -= step
+		    if (zCur > zNew + step) and ((zNew - zCur) < 0):
+		        j['z'] -= step
+
+#плавная unique корректировка
 def correctF():
 	for i in unique:
 		xCur = i['x']
@@ -88,9 +166,10 @@ def correctF():
 		yNew = i['yNew']
 		zNew = i['zNew']
 
-		step = 0.1
-		if (xCur < xNew + step) and ((xNew - xCur) > 0):
-			i['x'] += step
+		step = 0.07
+		if (xCur != xNew or yCur != yNew or zCur != zNew):
+			if (xCur < xNew + step) and ((xNew - xCur) > 0):
+				i['x'] += step
 	        if (yCur < yNew + step) and ((yNew - yCur) > 0):
 	        	i['y'] += step
 	        if (zCur < zNew + step) and ((zNew - zCur) > 0):
@@ -101,29 +180,106 @@ def correctF():
 	        	i['y'] -= step
 	        if (zCur > zNew + step) and ((zNew - zCur) < 0):
 	        	i['z'] -= step
-    	if (yCur < yNew + step) and ((yNew - yCur) > 0):
-        	i['y'] += step
-        	if (xCur < xNew + step) and ((xNew - xCur) > 0):
-				i['x'] += step
-        	if (zCur < zNew + step) and ((zNew - zCur) > 0):
-	        	i['z'] += step
-	        if (xCur > xNew + step) and ((xNew - xCur) < 0):
-	            i['x'] -= step
-	        if (yCur > yNew + step) and ((yNew - yCur) < 0):
-	        	i['y'] -= step
-	        if (zCur > zNew + step) and ((zNew - zCur) < 0):
-	        	i['z'] -= step
-    	#send coordinates to usersession
+	#send coordinates to usersession
 	for i in active_users:
 		try:
 			service_queue('coords_server_lock', json({'user': i['id'],'data': unique}))
 		except:
 			pass
 
+# определение принадлежности метки объекту сцены
+def UniqueToStatic():
+	for i in unique:
+		# наполняем building
+		if not('building' in i):
+			for s in static:
+				if s['landscape_id'] ==  i['zone_id']:
+					name = findMatchingStatic(i, i['zone_id'], 'building')
+					if name:
+						i['building'] = name
+						return False
+		#при изменении building
+		else:
+			for s in static:
+				if s['landscape_id'] == i['zone_id']:
+					name = findMatchingStatic(i, i['zone_id'], 'building')
+					if i['building'] and name and name != i['building']:
+						#запись в базу изменения building
+						building = Building.objects.get(dae_BuildingName=name, LoadLandscape_id=s['landscape_id'])
+						tag = Tag.objects.get(TagId=i['tag_id'])
+						bldchange = BldChange(ChangeTime=datetime.datetime.now(), BldNew_id=building.id, Tag_id=tag.TagId)
+						bldchange.save()
+						i['building'] = name
+						return False
+		#наполняем floor
+		if not('floor' in i):
+			for s in static:
+				if s['landscape_id'] == i['zone_id']:
+					name = findMatchingStatic(i, i['zone_id'], 'floor')
+					if name:
+						i['floor'] = name
+						return False
+		# при изменении floor
+		else:
+			for s in static:
+				if s['landscape_id'] == i['zone_id']:
+					name = findMatchingStatic(i, i['zone_id'], 'floor')
+					if i['floor'] and name and name != i['floor']:
+						# запись в базу изменений floor
+						floor = Floor.objects.get(dae_FloorName=name, LoadLandscape_id=s['landscape_id'])
+						tag = Tag.objects.get(TagId=i['tag_id'])
+						flrchange = FlrChange(ChangeTime=datetime.datetime.now(), FlrNew_id=floor.id, Tag_id=tag.TagId)
+						flrchange.save()
+						i['floor'] = name
+						return False
+		# наполняем kabinet
+		if not('kabinet' in i):
+			for s in static:
+				if s['landscape_id'] == i['zone_id']:
+					name = findMatchingStatic(i, i['zone_id'], 'kabinet')
+					if name:
+						i['kabinet'] = name
+						return False
+		# при изменении kabinet
+		else:
+			for s in static:
+				if s['landscape_id'] == i['zone_id']:
+					name = findMatchingStatic(i, i['zone_id'], 'kabinet')
+					if i['kabinet'] and name and name != i['kabinet']:
+						# запись в базу изменений kabinet
+						kabinet = Kabinet_n_Outer.objects.get(dae_Kabinet_n_OuterName=name, LoadLandscape_id=s['landscape_id'])
+						tag = Tag.objects.get(TagId=i['tag_id'])
+						kbntchange = KbntChange(ChangeTime=datetime.datetime.now(), KbntNew_id=kabinet.id, Tag_id=tag.TagId)
+						kbntchange.save()
+						i['kabinet'] = name
+						return False
+
+# найти подходящий под вектор объект, типы искомых объектов в obj_type
+def findMatchingStatic(obj, landscape_id, obj_type):
+	x = obj['x']
+	y = obj['y']
+	z = obj['z']
+	for s in static:
+		if s['landscape_id'] == landscape_id:
+			for elem in s['objects']:
+				if obj_type in elem['name']:
+					obj_typeVertices = elem['vertices']
+					uniqueVector = [(float(x), float(y))]
+					minz = elem['minz']
+					maxz = elem['maxz']
+					match = inPolygon(obj_typeVertices, uniqueVector)
+					if elem['name'] == 'floor_003':
+						print match
+					if (match and inInterval(float(z), minz, maxz)):
+						return elem['name']
+
+# функция сервера с шагом
 def correctUniqueInMilisec():
 	if tumbler[0]:
 		set_interval(correctF, 0.1)
+		set_interval(UniqueToStatic, 1)
 
+# look to smooth node movement
 def values_server(request, landscape_id='0000'):
 	args = {}
 	landscape_id = landscape_id
@@ -155,26 +311,31 @@ def receive_slmp(request):
 			line = line[0].split('\r\n')
 			for i in line:
 				line = i.split(',')
-				if len(line) > 0:
+				if len(line) > 0 and len(line) > 4:
 					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
 					getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
 					#наполняем unique
 					doubled = 0
 					for i in unique:
 						if i['tag_id'] == line[3]:
-							i['xNew'] = dictionary['x']
-							i['yNew'] = dictionary['y']
-							i['zNew'] = dictionary['z']
+							i['xNew'] = float(dictionary['x'])
+							i['yNew'] = float(dictionary['y'])
+							i['zNew'] = float(dictionary['z'])
 							i['time'] = dictionary['zone']
 							i['zone_id'] = dictionary['zone_id']
+							#быстрая корректировка
+							correctFast(i)
 							doubled = 1
 					if not(doubled):
 						unique.append(dictionary)
-					# getUnique(line[3], float(line[4]), float(line[5]), float(line[6]), line[11], line[8])
 		# включаем функцию корректировки по милисекундам
 		if len(tumbler) == 0:
 			tumbler.append(1)
 			correctUniqueInMilisec()
+		# static включаем фунцию наполнения
+		if len(static_tumbler) == 0:
+			static_tumbler.append(1)
+			fillStatic()
 		#send coordinates to usersession
 		for i in active_users:
 			try:
@@ -195,61 +356,35 @@ def testing(request):
 	return JsonResponse({'active_users': active_users})
 
 def inInterval(i, imin, imax):
-	if (i >= imin and i <= imax):
+	if (float(i) >= float(imin) and float(i) <= float(imax)):
 		return True
 	else:
 		return False
+
+def inPolygon(vertices, vector):
+	poly = Polygon(vertices)
+	point = MultiPoint(vector).convex_hull
+	return point.within(poly)
 
 def getMarksByInterval(x, y, z, zone, dictionary):
 	for i in active_users:
 		try:
 			if i['max']:
 				xmax = i['max'].get('x')
-				ymax = i['max'].get('y')
-				zmax = i['max'].get('z')
-
 				xmin = i['min'].get('x')
+
+				ymax = i['max'].get('y')
 				ymin = i['min'].get('y')
+
+				zmax = i['max'].get('z')
 				zmin = i['min'].get('z')
 
 				landscape_id = i['landscape_id']
-				if (inInterval(float(x), xmin, xmax) and inInterval(float(y), ymin, ymax) and inInterval(float(z), zmin, zmax) and zone ==landscape_id):
-					i['data'].append(dictionary)
+				if len(i['vertices']) > 0:
+					if (inInterval(x, xmin, xmax) and inInterval(y, ymin, ymax) and inInterval(z, zmin, zmax) and zone ==landscape_id):
+						i['data'].append(dictionary)
 		except:
 			pass
-
-def save_slmp(request):
-	if request.method == 'POST':
-		queryset = list(Std0.objects.raw("""
-			select *, max(DateImport) as Date from Metka
-			where readed is null"""))
-		try:
-			line = queryset[0].text.decode('utf-8')
-		except:
-			return HttpResponse('Nothing to parse')
-		line = line.split('Zone')
-		if (len(line) > 1):
-			Metka(text=line[2].replace('\n', '')).save()
-			line = line[2]
-			line = line.split(',')
-			Std0(LabD=line[0], Std0=line[1], Tag_ID_Format=line[2], Tag_ID=line[3], X=line[4], Y=line[5], Z=line[6], Zone=line[7], DateImport=datetime.datetime.now()).save()
-
-			#отметка что данная пачка распарсена
-			mrk = queryset[0].DateImport
-			a = Metka.objects.filter(DateImport=mrk).update(readed=True)
-			return HttpResponse('received')
-		else:
-			line = line[0].split('\n')
-			for i in line:
-				try:
-					line = i.split(',')
-					Std0(LabD=line[0], Std0=line[1], Tag_ID_Format=line[2], Tag_ID=line[3], X=line[4], Y=line[5], Z=line[6], Zone=line[7], Timestamp=line[8], DateImport=datetime.datetime.now()).save()
-					#отметка что данная пачка распарсена
-					mrk = queryset[0].DateImport
-					a = Metka.objects.filter(DateImport=mrk).update(readed=True)
-				except:
-					return HttpResponse('received')
-		return HttpResponse('received')
 
 def landscape(request):
 	return render(request, 'landscape.html')
@@ -337,13 +472,14 @@ def landscapeloadform(request, result='error'):
 		if request.POST:
 			landscape_name = request.POST['landscape_name']
 			landscape_id = request.POST['landscape_id']
+			l_id = request.POST['landscape_id']
 			landscape_source = request.FILES['landscape_file']
 			try:
 				obj = LoadLandscape.objects.get(landscape_id=landscape_id)
 				LoadLandscape.objects.filter(landscape_id=landscape_id).update(landscape_name=landscape_name, landscape_id=landscape_id, landscape_source=landscape_source)
 			except:
-				data = LoadLandscape(landscape_name=landscape_name, landscape_id=landscape_id, landscape_source=landscape_source).save()
-			return redirect('/landscapetreeload/%s' %landscape_id)
+				data = LoadLandscape(landscape_name=landscape_name, landscape_id=l_id, landscape_source=landscape_source).save()
+			return redirect('/landscapetreeload/%s' %l_id)
 		return render(request, 'landscapeloadform.html', args)
 	elif result == 'success':
 		args['result'] = 'success'
@@ -359,35 +495,85 @@ def landscapetreeload(request, landscape_id='0000', source=''):
 def landscape_save(request):
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
-		landscape = string['landscape'][0]
-		landscape_id = string['landscape'][1]['name']
+		landscape = string['colladaObjects']['landscape'][0]
+		landscape_id = string['landscape_id']
+		vertices = string['verticesDict']
 
 		Wall.objects.filter(LoadLandscape_id=landscape_id).delete()
 		Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id).delete()
 		Floor.objects.filter(LoadLandscape_id=landscape_id).delete()
 		Building.objects.filter(LoadLandscape_id=landscape_id).delete()
+		VerticesBuilding.objects.filter(LoadLandscape_id=landscape_id).delete()
+		VerticesFloor.objects.filter(LoadLandscape_id=landscape_id).delete()
+		VerticesKabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id).delete()
 
 		for i in landscape['object']['children']:
 			if 'building' in i['name']:
 				dae_BuildingName = i['name']
 				landscape_id = landscape_id
-				building = Building(dae_BuildingName=dae_BuildingName, LoadLandscape_id=landscape_id)
+				#наполняем BoxMin, BoxMax
+				for v in vertices['element']:
+					if v['name'] == dae_BuildingName:
+						maxx = v['BoxMax']['x']
+						maxy = v['BoxMax']['y']
+						maxz = v['BoxMax']['z']
+
+						minx = v['BoxMin']['x']
+						miny = v['BoxMin']['y']
+						minz = v['BoxMin']['z']
+				building = Building(dae_BuildingName=dae_BuildingName, LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
 				building.save()
+				#наполняем вершины building
+				for v in vertices['element']:
+					if v['name'] == dae_BuildingName:
+						for vert in v['vertices']:
+							VerticesBuilding(x=vert['x'], y=vert['y'], Building_id=building.id, LoadLandscape_id=landscape_id).save()
 				for j in i['children']:
 					if 'floor' in j['name']:
 						dae_FloorName = j['name']
-						floor = Floor(dae_FloorName=dae_FloorName, Building_id=building.id, LoadLandscape_id=landscape_id)
+						#наполняем BoxMin, BoxMax
+						for v in vertices['element']:
+							if v['name'] == dae_FloorName:
+								maxx = v['BoxMax']['x']
+								maxy = v['BoxMax']['y']
+								maxz = v['BoxMax']['z']
+
+								minx = v['BoxMin']['x']
+								miny = v['BoxMin']['y']
+								minz = v['BoxMin']['z']
+						floor = Floor(dae_FloorName=dae_FloorName, Building_id=building.id, LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
 						floor.save()
+						# наполняем вершины floor
+						for v in vertices['element']:
+							if v['name'] == dae_FloorName:
+								for vert in v['vertices']:
+									VerticesFloor(x=vert['x'], y=vert['y'], Floor_id=floor.id, LoadLandscape_id=landscape_id).save()
 						for x in j['children']:
 							dae_Kabinet_n_OuterName = x['name']
-							kabinet_n_outer = Kabinet_n_Outer(dae_Kabinet_n_OuterName=dae_Kabinet_n_OuterName, Floor_id=floor.id, LoadLandscape_id=landscape_id)
+							# наполняем BoxMin, BoxMax
+							for v in vertices['element']:
+								if v['name'] == dae_Kabinet_n_OuterName:
+									maxx = v['BoxMax']['x']
+									maxy = v['BoxMax']['y']
+									maxz = v['BoxMax']['z']
+
+									minx = v['BoxMin']['x']
+									miny = v['BoxMin']['y']
+									minz = v['BoxMin']['z']
+							kabinet_n_outer = Kabinet_n_Outer(dae_Kabinet_n_OuterName=dae_Kabinet_n_OuterName, Floor_id=floor.id, LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
 							kabinet_n_outer.save()
+							# наполняем вершины kabinet
+							for v in vertices['element']:
+								if v['name'] == dae_Kabinet_n_OuterName:
+									for vert in v['vertices']:
+										VerticesKabinet_n_Outer(x=vert['x'], y=vert['y'], Kabinet_n_Outer_id=kabinet_n_outer.id, LoadLandscape_id=landscape_id).save()
 							if 'kabinet' in x['name']:
 								for y in x['children']:
 									dae_WallName = y['name']
 									wall = Wall(dae_WallName=dae_WallName, Kabinet_n_Outer_id=kabinet_n_outer.id, LoadLandscape_id=landscape_id)
 									wall.save()
-		return JsonResponse({'name': landscape['object']['children']})
+
+		return JsonResponse({'string': string})
 
 # sockjs manipulations
 import redis
@@ -481,6 +667,7 @@ def minmaxtosession(request):
 		string = unjson(request.body)
 		strmax = string['max']
 		strmin = string['min']
+		dae_elem = string['dae_elem']
 		username = int(string['username'])
 		landscape_id = string['landscape_id']
 		for i in active_users:
@@ -488,8 +675,129 @@ def minmaxtosession(request):
 				i['max'] = strmax
 				i['min'] = strmin
 				i['landscape_id'] = landscape_id
+				i['dae_elem'] = dae_elem
 				i['data'] = []
+				i['vertices'] = []
+				# наполняем вершинами x, y
+				for s in static:
+					if s['landscape_id'] == landscape_id:
+						for obj in s['objects']:
+							if obj['name'] == dae_elem:
+								for v in obj['vertices']:
+									i['vertices'].append(v)
+									# i['vertices'].append([float(v['x']), float(v['y'])])
 		return JsonResponse({'properties': active_users})
 
 def sendcoordsform(request):
 	return render(request, 'sendcoordsform.html')
+
+# reports
+def simplereport(request, parameters=0):
+	if request.POST:
+		args = {}
+		args['error'] = []
+		if parameters == '1':
+			if request.POST['unique']:
+				unique = request.POST['unique']
+				tag = Tag.objects.filter(TagId=unique)
+				if len(tag) == 0:
+					args['error'].append({'incorrect_id': True})
+				else:
+					BldChange.objects.filter(Tag_id=unique).delete()
+					FlrChange.objects.filter(Tag_id=unique).delete()
+					KbntChange.objects.filter(Tag_id=unique).delete()
+				return redirect('/simplereport/0')
+		if request.POST['unique']:
+			unique = request.POST['unique']
+			args['unique'] = unique
+			tag = Tag.objects.filter(TagId=unique)
+			if len(tag) == 0:
+				args['error'].append({'incorrect_id': True})
+			else:
+				# строения
+				bldchange = BldChange.objects.filter(Tag_id=unique). \
+				values('Tag__TagType', 'Tag__Group', 'Tag__Name', 'ChangeTime', \
+				 'BldNew__dae_BuildingName').order_by('-ChangeTime')
+				args['bldchange'] = bldchange
+				# этажи
+				flrchange = FlrChange.objects.filter(Tag_id=unique). \
+				values('Tag__TagType', 'Tag__Group', 'Tag__Name', 'ChangeTime', \
+				 'FlrNew__dae_FloorName').order_by('-ChangeTime')
+				args['flrchange'] = flrchange
+				# кабинеты
+				kbntchange = KbntChange.objects.filter(Tag_id=unique). \
+				values('Tag__TagType', 'Tag__Group', 'Tag__Name', 'ChangeTime', \
+				 'KbntNew__dae_Kabinet_n_OuterName').order_by('-ChangeTime')
+				args['kbntchange'] = kbntchange
+		else:
+			args['error'].append({'empty_unique': True})
+		return render(request, 'simplereport.html', args)
+	return render(request, 'simplereport.html')
+# Нормальная матрица
+def matrix(request):
+	m = [-0.00018728063150774688, \
+	-0.00006872335507068783, \
+	-0.000014250318599806633, \
+	-0.00007018526957836002, \
+	0.00018337969959247857, \
+	0.000038025180401746184, \
+	6.856382572806297e-9, \
+	0.2030385285615921, \
+	-0.9791707396507263
+	]
+	return HttpResponse(getAngleAxis(m))
+
+
+def getAngleAxis(m):
+    xx = m[0]
+    yy = m[4]
+    zz = m[8]
+ 
+    # Сумма элементов главной диагонали
+    traceR = xx + yy + zz
+ 
+    # Угол поворота
+    theta = math.acos((traceR - 1) * 0.5)
+ 
+    # Упростим вычисление каждого элемента вектора
+    omegaPreCalc = 1.0 / (2 * math.sin(theta))
+ 
+    # Вычисляем вектор
+    w = {}
+    w['x'] = omegaPreCalc * (m[7] - m[5])
+    w['y'] = omegaPreCalc * (m[2] - m[6])
+    w['z'] = omegaPreCalc * (m[3] - m[1])
+ 
+    # Получаем угол поворота и ось, 
+    # относительно которой был поворот
+    return (theta*(180/math.pi), w)
+
+def rotate(A, B, C):
+	return (B[0]-A[0]) * (C[1]-B[1]) - (B[1] - A[1]) * (C[0] - B[0])
+
+def intersect(A, B, C, D):
+	return rotate(A, B, C) * rotate(A, B, D) <= 0 and rotate (C, D, A) * rotate(C, D, B) < 0
+
+def pointloc(P, A):
+	n = len(P)
+	if rotate(P[0], P[1], A) < 0 or rotate(P[0], P[n-1], A)>0:
+		return False
+	p, r = 1, n - 1
+	while r - p > 1:
+		q = (p + r)/2
+		if rotate(P[0], P[q], A)<0:
+			r = q
+		else:
+			p = q
+	return not intersect(P[0], A, P[p], P[r])
+
+def match(request):
+	# obj_typeVertices = [[10.2411702602139, 77.2020180078125], [40.0918277492793, 77.2020180078125], [10.2411702602139, 37.2824776785943], [22.2700845101335, 29.1969969911337], [22.313131222691, 32.2875236674882], [17.9645475438023, 37.2824776785943], [40.0918277492793, 32.1710069062937], [32.1380708538545, 29.1969969911337], [32.1251458030088, 32.3618649137633]]
+	# false
+	# uniqueVector = [(28.49, 56.51)]
+	# true
+	# uniqueVector = [(25.49, 58.49)]
+	obj_typeVertices = [[10.2411702602139, 77.2020180078125], [40.0918277492793, 77.2020180078125], [10.2411702602139, 37.2824776785943], [22.2700845101335, 29.1969969911337], [22.313131222691, 32.2875236674882], [17.9645475438023, 37.2824776785943], [40.0918277492793, 32.1710069062937], [32.1380708538545, 29.1969969911337], [32.1251458030088, 32.3618649137633]]
+	uniqueVector = [[25.49, 58.49]]
+	match = pointloc(obj_typeVertices, uniqueVector)
+	return HttpResponse(match)

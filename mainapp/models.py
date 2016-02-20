@@ -113,80 +113,129 @@ class LoadLandscape(models.Model):
 		db_table = 'LoadLandscape'
 	landscape_name = models.CharField(max_length=100)
 	landscape_id = models.CharField(primary_key=True, max_length=20)
-	landscape_source = models.FileField(upload_to='static/js/webgl/models/%s' % get_upload_file_name, blank=True, null=True)
+	landscape_source = models.FileField(upload_to='static/js/webgl/models/', blank=True, null=True)
+	# landscape_source = models.FileField(upload_to='static/js/webgl/models/%s' % get_upload_file_name, blank=True, null=True)
 
 class Building(models.Model):
 	class Meta():
 		db_table = 'Building'
 	BuildingName = models.CharField(max_length=200, null=True)
 	dae_BuildingName = models.CharField(max_length=200)
+	minx = models.FloatField(null=True)
+	miny = models.FloatField(null=True)
+	minz = models.FloatField(null=True)
+	maxx = models.FloatField(null=True)
+	maxy = models.FloatField(null=True)
+	maxz = models.FloatField(null=True)
 	LoadLandscape = models.ForeignKey(LoadLandscape)
+
+class VerticesBuilding(models.Model):
+	class Meta():
+		db_table = 'VerticesBuilding'
+	x = models.FloatField(null=True)
+	y = models.FloatField(null=True)
+	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE, null=True)
 
 class Floor(models.Model):
 	class Meta():
 		db_table = 'Floor'
 	FloorName = models.CharField(max_length=200, null=True)
 	dae_FloorName = models.CharField(max_length=200)
+	minx = models.FloatField(null=True)
+	miny = models.FloatField(null=True)
+	minz = models.FloatField(null=True)
+	maxx = models.FloatField(null=True)
+	maxy = models.FloatField(null=True)
+	maxz = models.FloatField(null=True)
 	Building = models.ForeignKey(Building)
-	LoadLandscape = models.ForeignKey(LoadLandscape)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+
+class VerticesFloor(models.Model):
+	class Meta():
+		db_table = 'VerticesFloor'
+	x = models.FloatField(null=True)
+	y = models.FloatField(null=True)
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE, null=True)
 
 class Kabinet_n_Outer(models.Model):
 	class Meta():
 		db_table = 'Kabinet_n_Outer'
 	Kabinet_n_OuterName = models.CharField(max_length=200, null=True)
 	dae_Kabinet_n_OuterName = models.CharField(max_length=200)
+	minx = models.FloatField(null=True)
+	miny = models.FloatField(null=True)
+	minz = models.FloatField(null=True)
+	maxx = models.FloatField(null=True)
+	maxy = models.FloatField(null=True)
+	maxz = models.FloatField(null=True)
 	Floor = models.ForeignKey(Floor)
-	LoadLandscape = models.ForeignKey(LoadLandscape)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+
+class VerticesKabinet_n_Outer(models.Model):
+	class Meta():
+		db_table = 'VerticesKabinet_n_Outer'
+	x = models.FloatField(null=True)
+	y = models.FloatField(null=True)
+	Kabinet_n_Outer = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE, null=True)
 
 class Wall(models.Model):
 	class Meta():
 		db_table = 'Wall'
 	WallName = models.CharField(max_length=200, null=True)
 	dae_WallName = models.CharField(max_length=200)
-	Kabinet_n_Outer = models.ForeignKey(Kabinet_n_Outer)
-	LoadLandscape = models.ForeignKey(LoadLandscape)
+	minx = models.FloatField(null=True)
+	miny = models.FloatField(null=True)
+	minz = models.FloatField(null=True)
+	maxx = models.FloatField(null=True)
+	maxy = models.FloatField(null=True)
+	maxz = models.FloatField(null=True)
+	Kabinet_n_Outer = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
-####################
-##SockJs
-####################
-import redis
-from django.conf import settings
-try:
-	from django.utils import simplejson
-except:
-	import simplejson
+######################
+### Метки
+######################
 
-ORDERS_FREE_LOCK_TIME = getattr(settings, 'ORDERS_FREE_LOCK_TIME', 0)
-ORDERS_REDIS_HOST = getattr(settings, 'ORDERS_REDIS_HOST', 'localhost')
-ORDERS_REDIS_PORT = getattr(settings, 'ORDERS_REDIS_PORT', 6379)
-ORDERS_REDIS_PASSWORD = getattr(settings, 'ORDERS_REDIS_PASSWORD', None)
-ORDERS_REDIS_DB = getattr(settings, 'ORDERS_REDIS_DB', 0)
-
-service_queue = redis.StrictRedis(
-	host=ORDERS_REDIS_HOST,
-	port=ORDERS_REDIS_PORT,
-	db=ORDERS_REDIS_DB,
-	password=ORDERS_REDIS_PASSWORD
-).publish
-json = simplejson.dumps
-
-class Order(models.Model):
+class Tag(models.Model):
 	class Meta():
-		db_table = 'Order'
-	OrderName = models.CharField(max_length=200, null=True)
+		db_table = 'Tag'
+	TagId = models.CharField(primary_key=True, max_length=20)
+	TagType = models.CharField(max_length=20, null=True)
+	Group = models.CharField(max_length=20, null=True)
+	Name = models.CharField(max_length=200, null=True)
 
-	def lock(self):
-		print "added"
-		if self.OrderName != '':
-			service_queue('order_lock', json({
-				'user': self.client.pk,
-				'order': self.pk,	
-			}))
+######################
+### События
+######################
 
-	def done(self):
-		print "added"
-		if self.OrderName != '':
-			service_queue('order_done', json({
-				'user': self.client.pk,
-				'order': self.pk,	
-			}))
+class ZoneChange(models.Model):
+	class Meta():
+		db_table = 'ZoneChange'
+	Tag = models.ForeignKey(Tag)
+	ZoneNew = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+	ChangeTime = models.DateTimeField(null=True)
+
+
+class BldChange(models.Model):
+	class Meta():
+		db_table = 'BldChange'
+	Tag = models.ForeignKey(Tag)
+	BldNew = models.ForeignKey(Building, on_delete=models.CASCADE)
+	ChangeTime = models.DateTimeField(null=True)
+
+class FlrChange(models.Model):
+	class Meta():
+		db_table = 'FlrChange'
+	Tag = models.ForeignKey(Tag)
+	FlrNew = models.ForeignKey(Floor, on_delete=models.CASCADE)
+	ChangeTime = models.DateTimeField(null=True)
+
+class KbntChange(models.Model):
+	class Meta():
+		db_table = 'KbntChange'
+	Tag = models.ForeignKey(Tag)
+	KbntNew = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+	ChangeTime = models.DateTimeField(null=True)

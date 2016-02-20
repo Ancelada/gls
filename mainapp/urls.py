@@ -12,7 +12,6 @@ urlpatterns = patterns('',
 	#receive slmp
 	url(r'^send_simple_location_message$', 'mainapp.views.send_simple_location_message'),
 	url(r'^receive_slmp$', 'mainapp.views.receive_slmp'),
-	url(r'^save_slmp$', 'mainapp.views.save_slmp'),
 
 	#get location
 	url(r'getxyzvalues$', 'mainapp.views.getxyzvalues'),
@@ -56,4 +55,18 @@ urlpatterns = patterns('',
 	url(r'clearunique', 'mainapp.views.clearUnique'),
 	url(r'getuniquevalues', 'mainapp.views.getuniquevalues'),
 	url(ur'values_server/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.values_server'),
+
+	#static
+	url(r'getstatic', 'mainapp.views.getstatic'),
+	url(r'turnoff_tumbler', 'mainapp.views.turnoff_tumbler'),
+	url(r'clearstatic', 'mainapp.views.clearstatic'),
+
+	#reports
+	url(r'simplereport/(?P<parameters>[0-1]+)', 'mainapp.views.simplereport'),
+
+	#matrix
+	url(r'matrix', 'mainapp.views.matrix'),
+
+	#testing match
+	url(r'match', 'mainapp.views.match'),
 )
