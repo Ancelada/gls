@@ -429,6 +429,7 @@ def loadcollada(request):
 def values(request, landscape_id='0000'):
 	args = {}
 	landscape_id = landscape_id
+	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
 	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id)
 	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id)
@@ -498,6 +499,25 @@ def landscape_save(request):
 		landscape = string['colladaObjects']['landscape'][0]
 		landscape_id = string['landscape_id']
 		vertices = string['verticesDict']
+		# записываем SceneOptions параметры в таблицу LoadLandscape
+		sceneoptions = string['sceneOptions'] 
+		p = LoadLandscape.objects.get(landscape_id=landscape_id)
+		p.camera_position_x = string['sceneOptions']['CameraPosition']['x']
+		p.camera_position_y = string['sceneOptions']['CameraPosition']['y']
+		p.camera_position_z = string['sceneOptions']['CameraPosition']['z']
+		p.camera_up_x = string['sceneOptions']['CameraUp']['x']
+		p.camera_up_y = string['sceneOptions']['CameraUp']['y']
+		p.camera_up_z = string['sceneOptions']['CameraUp']['z']
+		p.dae_rotation_x = string['sceneOptions']['DaeRotation']['x']
+		p.dae_rotation_y = string['sceneOptions']['DaeRotation']['y']
+		p.dae_rotation_z = string['sceneOptions']['DaeRotation']['z']
+		p.dae_position_x = string['sceneOptions']['DaePosition']['x']
+		p.dae_position_y = string['sceneOptions']['DaePosition']['y']
+		p.dae_position_z = string['sceneOptions']['DaePosition']['z']
+		p.circle_step_symbol = string['sceneOptions']['CircleStepSymbol']
+		p.get_wall_height_symbol = string['sceneOptions']['GetWallHeightSymbol']
+		p.light_target_symbol = string['sceneOptions']['LightTargetSymbol']
+		p.save()
 
 		Wall.objects.filter(LoadLandscape_id=landscape_id).delete()
 		Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id).delete()
@@ -771,25 +791,6 @@ def getAngleAxis(m):
     # Получаем угол поворота и ось, 
     # относительно которой был поворот
     return (theta*(180/math.pi), w)
-
-def rotate(A, B, C):
-	return (B[0]-A[0]) * (C[1]-B[1]) - (B[1] - A[1]) * (C[0] - B[0])
-
-def intersect(A, B, C, D):
-	return rotate(A, B, C) * rotate(A, B, D) <= 0 and rotate (C, D, A) * rotate(C, D, B) < 0
-
-def pointloc(P, A):
-	n = len(P)
-	if rotate(P[0], P[1], A) < 0 or rotate(P[0], P[n-1], A)>0:
-		return False
-	p, r = 1, n - 1
-	while r - p > 1:
-		q = (p + r)/2
-		if rotate(P[0], P[q], A)<0:
-			r = q
-		else:
-			p = q
-	return not intersect(P[0], A, P[p], P[r])
 
 def match(request):
 	# obj_typeVertices = [[10.2411702602139, 77.2020180078125], [40.0918277492793, 77.2020180078125], [10.2411702602139, 37.2824776785943], [22.2700845101335, 29.1969969911337], [22.313131222691, 32.2875236674882], [17.9645475438023, 37.2824776785943], [40.0918277492793, 32.1710069062937], [32.1380708538545, 29.1969969911337], [32.1251458030088, 32.3618649137633]]

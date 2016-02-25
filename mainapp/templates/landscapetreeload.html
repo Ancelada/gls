@@ -62,47 +62,31 @@
 		    /* add collada import */
     		var loader = new THREE.ColladaLoader();
     		/*loader.options.convertUpAxis = true;*/
+
+        	//**словарь настроек сцены (Camera up value, Camera position value, dae rotation z, x, y, light target position positive/negative, Cylinder positiven negative)
+	        sceneOptions = {};
+
+	        //маркеры калибровки
+		    var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
+		    var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
+		    this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
+		    marker6004.position.set(39.682, 7.6, 76.457);
+		    scene.add(marker6004);
+
+		    this.marker6042 = new THREE.Mesh(markGeom, markMaterial);
+		    marker6042.position.set(39.850, 7.6, 67.725);
+		    scene.add(marker6042);
+
+		    this.marker6003 = new THREE.Mesh(markGeom, markMaterial);
+		    marker6003.position.set(39.811, 7.6, 59.531);
+		    scene.add(marker6003);
+
+		    this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
+		    marker6045.position.set(30.141, 8.7, 76.426);
+		    scene.add(marker6045);
+
 		    loader.load( '/static/js/webgl/models/{{source}}', function ( collada ) {
 				loader.options.convertUpAxis = true;
-		    	//расширение bounding box по размерам внутренних элементов
-		        var getBoundingBox = function(node, dae_elem, indae_elem){
-		            if (indae_elem == 1){
-		                if(node.parent.children){
-		                    for (var i = 0; i < node.parent.children.length; i++){
-		                        inner_elem = node.parent.children[i]
-		                        var bbox = new THREE.Box3().setFromObject(inner_elem);
-		                        inner_elem.BoxMin = bbox['min'];
-		                        inner_elem.BoxMax = bbox['max'];
-		                        if(dae_elem.BoxMin['x'] > inner_elem.BoxMin['x']){
-		                            dae_elem.BoxMin['x'] = inner_elem.BoxMin['x'];
-		                        }
-		                        if(dae_elem.BoxMin['y'] > inner_elem.BoxMin['y']){
-		                            dae_elem.BoxMin['y'] = inner_elem.BoxMin['y'];
-		                        }
-		                        if(dae_elem.BoxMin['z'] > inner_elem.BoxMin['z']){
-		                            dae_elem.BoxMin['z'] = inner_elem.BoxMin['z'];
-		                        }
-		                        if (dae_elem.BoxMax['x'] < inner_elem.BoxMax['x']){
-		                            dae_elem.BoxMax['x'] = inner_elem.BoxMax['x'];
-		                        }
-		                        if (dae_elem.BoxMax['y'] < inner_elem.BoxMax['y']){
-		                            dae_elem.BoxMax['y'] = inner_elem.BoxMax['y'];
-		                        }
-		                        if (dae_elem.BoxMax['z'] < inner_elem.BoxMax['z']){
-		                            dae_elem.BoxMax['z'] = inner_elem.BoxMax['z'];
-		                        }
-		                    } 
-		                }
-		            }
-		            if (node.children){
-		                for (var i = 0; i < node.children.length; i++){
-		                    if (node.children[i].name == dae_elem.name) {
-		                        getBoundingBox(node.children[i], dae_elem, 1);
-		                    }
-		                    getBoundingBox(node.children[i], dae_elem, 0);
-		                }
-		            }
-		        }
 
 		        //функция поиска центра collada объекта на оси координат
 		        var getCenter = function(obj){
@@ -130,12 +114,45 @@
 		            return a;
 		        }
 
+		        //функция поиска угла поворота building по оси Z объекта
+		       	function setZangle(dae, object){
+		       		if (dae.children){
+		       			for (var i = 0; i < dae.children.length; i ++){
+		       				if(dae.children[i].colladaId == object.name){
+		       					z = dae.children[i].rotation.z;
+		       					object.Zangle = z;
+		       					return false;
+		       				} 
+		       				setZangle(dae.children[i], object);
+		       			}
+		       		}
+		       	}
+
+		       	//функция обнуления Z у building
+		       	function clearZ(dae, object, Zangle){
+		       		if (dae.children){
+		       			for (var i = 0; i < dae.children.length; i++){
+		       				if(dae.children[i].colladaId == object.name){
+		       					dae.children[i].rotation.z = 0 - Zangle;
+		       					return false;
+		       				}
+		       				clearZ(dae.children[i], object, Zangle);
+		       			}
+		       		}
+		       	}
+
 		    	//gls.dae
 		    	var dae = collada.scene;
-		    	dae.position.set(28.141,59.087,8.6);
+		    	/*dae.position.set(28.141,59.087,8.6);*/
+		    	x = 31;
+		    	y = 6;
+		    	z = 50;
+		    	dae.position.set(x, y, z);
+		    	sceneOptions['DaePosition'] = {};
+		    	sceneOptions['DaePosition'].x = x;
+		    	sceneOptions['DaePosition'].y = y;
+		    	sceneOptions['DaePosition'].z = z;
 		    	dae.scale.set(1,1,1);
-		    	dae.rotation.z = - (Math.PI/2);
-		    	dae.rotation.x = Math.PI;
 		    	scene.add(dae);
 
 
@@ -159,6 +176,8 @@
 		            landscape = colladaObjects['landscape'][0];
 		            a = getCenter(bbox);
 		            landscape.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		            //добавляем свойство Z angle
+		            setZangle(dae, landscape);
 		        //**наполняем building
 		        var no = 0;
 		        $.each(colladaObjects['landscape'][0].parent.children, function(value){
@@ -166,18 +185,21 @@
 		            if (landscape.name.indexOf('building') != -1){
 		                colladaObjects['landscape'][0].children.push(landscape.children[0]);
 		                colladaObjects['landscape'][0]['children'][no]['name'] = colladaObjects['landscape'][0]['children'][no]['parent']['name'];
+		                	bld = colladaObjects['landscape'][0].children[no];
+		                    //добавляем свойство Z angle
+		                    setZangle(dae, bld);
+		                    //обнуляем Z
+		                    clearZ(dae, bld, colladaObjects['landscape'][0]['Zangle']);
 		                    // ищем центр building
-		                    bld = colladaObjects['landscape'][0].children[no];
-		                    var bbox = new THREE.Box3().setFromObject(bld);
+		                    var bbox = new THREE.Box3().setFromObject(bld.parent);
 		                    bld.BoxMin = bbox['min'];
 		                    bld.BoxMax = bbox['max'];
-		                    getBoundingBox(colladaObjects['landscape'][0], bld, 0);
 		                    a = getCenter(bbox);
 		                    bld.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
 		                    //преобразуем вершины
 		                    verticesTransition(bld);
 		                    //наполняем vertices
-		                    verticesDict['element'].push({'name': bld.name, 'vertices': bld.Geometry, 'BoxMin': bld.BoxMin, 'BoxMax': bld.BoxMax});
+		                    /*verticesDict['element'].push({'name': bld.name, 'vertices': bld.Geometry, 'BoxMin': bld.BoxMin, 'BoxMax': bld.BoxMax});*/
 		                building = colladaObjects['landscape'][0]['children'][no].parent.children;
 		                //**наполняем floor
 		                var noFloor = 0
@@ -187,16 +209,15 @@
 		                        colladaObjects['landscape'][0].children[no].children[noFloor].name = building[value].name;
 		                            // ищем центр floor
 		                            flr = colladaObjects['landscape'][0].children[no].children[noFloor];
-		                            var bbox = new THREE.Box3().setFromObject(flr);
+		                            var bbox = new THREE.Box3().setFromObject(flr.parent);
 		                            flr.BoxMin = bbox['min'];
 		                            flr.BoxMax = bbox['max'];
-		                            getBoundingBox(colladaObjects['landscape'][0], flr, 0);
 		                            a = getCenter(bbox);
 		                            flr.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
 		                            // преобразуем вершины
 		                            verticesTransition(flr);
 		                            // наполняем vertices
-		                            verticesDict['element'].push({'name':flr.name, 'vertices': flr.Geometry, 'BoxMin': flr.BoxMin, 'BoxMax': flr.BoxMax});
+		                            /*verticesDict['element'].push({'name':flr.name, 'vertices': flr.Geometry, 'BoxMin': flr.BoxMin, 'BoxMax': flr.BoxMax});*/
 		                        //** наполняем kabinet и outer
 		                        floor = colladaObjects['landscape'][0]['children'][no]['children'][noFloor].parent.children;
 		                        var noKabinet = 0;
@@ -206,16 +227,15 @@
 		                                colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].name = floor[value].name;
 		                                    // ищем центр kabinet
 		                                    kbnt = colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet];
-		                                    var bbox = new THREE.Box3().setFromObject(kbnt);
+		                                    var bbox = new THREE.Box3().setFromObject(kbnt.parent);
 		                                    kbnt.BoxMin = bbox['min'];
 		                                    kbnt.BoxMax = bbox['max'];
-		                                    getBoundingBox(colladaObjects['landscape'][0], kbnt,0);
 		                                    a = getCenter(bbox);
 		                                    kbnt.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
 		                                    // преобразуем вершины
 		                                    verticesTransition(kbnt);
 		                                    // наполняем vertices
-		                                    verticesDict['element'].push({'name':kbnt.name, 'vertices': kbnt.Geometry, 'BoxMin': kbnt.BoxMin, 'BoxMax': kbnt.BoxMax});
+		                                    /*verticesDict['element'].push({'name':kbnt.name, 'vertices': kbnt.Geometry, 'BoxMin': kbnt.BoxMin, 'BoxMax': kbnt.BoxMax});*/
 		                                //** наполняем wall
 		                                kabinet = colladaObjects['landscape'][0]['children'][no]['children'][noFloor]['children'][noKabinet].parent.children;
 		                                var noWall = 0;
@@ -266,22 +286,368 @@
 		                no += 1;
 		            }
 		        });
+
+				//разворот сцены dae
+				z = 0;
+				x = -Math.PI/2;
+				y = 0;
+
+		    	dae.rotation.z = z;
+		    	dae.rotation.x = x;
+		    	dae.rotation.y = y;
+
+		    	sceneOptions['DaeRotation'] = {};
+		    	sceneOptions['DaeRotation'].x = x;
+		    	sceneOptions['DaeRotation'].y = y;
+		    	sceneOptions['DaeRotation'].z = z;
+
+
+		    	var angleZ = dae.rotation.z;
+		    	var angleX = dae.rotation.x;
+		    	var angleY = dae.rotation.y;
+
+		    	var bbox = new THREE.Box3().setFromObject(dae);
+
+		    	//получаем новый центр объектов
+		    	//building
+		    	newCenter(dae.children[0], 'building');
+		    	//floor
+		    	newCenter(dae.children[0], 'floor');
+		    	//kabinet
+		    	newCenter(dae.children[0], 'kabinet');
+
+		    	//bbox helper func
+		    	function helper(object){
+		    		var bbox = new THREE.Box3().setFromObject(object);
+		    		var hex = 0xff0000;
+                    var bbox = new THREE.BoundingBoxHelper(object, hex);
+                    bbox.update();
+                    scene.add(bbox);
+		    	}
+		    	//bbox object and adding property CenterNew
+		    	function newCenter(dae, text){
+		    		if(dae.children){
+		    			for (var i = 1; i < dae.children.length; i++){
+		    				if(dae.children[i].name.indexOf(text) != -1){
+		    					object = dae.children[i].children[0];
+		    					bbox = new THREE.Box3().setFromObject(object.parent);
+	                            a = getCenter(bbox);
+			                    object.CenterNew = new THREE.Vector3(a['x'], a['y'], a['z']);
+			                    object.BoxMin = bbox['min'];
+                                object.BoxMax = bbox['max'];
+			                    /*helper(object.parent);*/
+		    				}
+		    				newCenter(dae.children[i], text);
+		    			}
+		    		}
+		    	}
+
+		    	// rotate all vertices at dae position
+		    	toDaePosition(dae.children[0], 'building', angleZ, angleX, angleY);
+
+		    	toDaePosition(dae.children[0], 'floor', angleZ, angleX, angleY);
+
+		    	toDaePosition(dae.children[0], 'kabinet', angleZ, angleX, angleY);
+
+		    	function toDaePosition(dae, text, angleZ, angleX, angleY){
+		    		if(dae.children){
+		    			for (var i=1; i < dae.children.length; i++){
+		    				if(dae.children[i].name.indexOf(text)!= -1){
+		    					object = dae.children[i].children[0];
+		    					//разворачиваем все vertices
+		    					$.each(object.Geometry, function(index){
+									//z
+		    						x = object.Geometry[index]['x'];
+		    						y = object.Geometry[index]['y'];
+									x2 = r(x, y, angleZ, 'x');
+									y2 = r(x, y, angleZ, 'y');
+									//x
+									x2 = rz(x2, 0, angleX, 'x');
+									//y
+									y2 = rz2(y2, 0, angleY, 'y');
+		    						object.Geometry[index]['x'] = x2;
+		    						object.Geometry[index]['y'] = y2;
+		    					});
+		    				}
+		    				toDaePosition(dae.children[i], text, angleZ, angleX, angleY);
+		    			}
+		    		}
+		    	}
+
+		    	// rotate all vertices at zAngle if building have zAngle property
+		    	rotateAsBuilding(dae.children[0], angleX, angleY);
+		    	function rotateAsBuilding(dae){
+		    		if (dae.children){
+		    			for (var i=1; i < dae.children.length; i++){
+		    				if (dae.children[i].name.indexOf('building')!= -1 && dae.children[i].Zangle != 0){
+		    					Zangle = dae.children[i].children[0].Zangle + colladaObjects['landscape'][0]['Zangle'];
+		    					if ((angleX == Math.PI && angleY == Math.PI) || (angleX == -Math.PI && angleY == -Math.PI) || (angleX == 0 && angleY == 0)){
+		    						rotateChild(dae.children[i], -Zangle);	
+		    					} else {
+		    						rotateChild(dae.children[i], Zangle);	
+		    					}
+		    				}
+		    				rotateAsBuilding(dae.children[i]);
+		    			}
+		    		}
+		    	}
+
+		    	function rotateChild(node, Zangle){
+		    		if (node.name.indexOf('building') != -1){
+		    			//ищем центр building, для этого создаем plane
+		    			var planeGeometry = new THREE.Geometry();		
+		    			$.each(node.children[0].Geometry, function(index){
+		    				//z
+    						x = node.children[0].Geometry[index]['x'];
+    						y = node.children[0].Geometry[index]['y'];
+							x2 = r(x, y, Zangle, 'x');
+							y2 = r(x, y, Zangle, 'y');
+							node.children[0].Geometry[index]['x'] = x2;
+							node.children[0].Geometry[index]['y'] = y2;
+
+							planeGeometry.vertices.push(
+								new THREE.Vector3(x2, y2)
+							)
+		    			});
+		    			$.each(node.children[0].geometry.faces, function(index){
+	    					a = node.children[0].geometry.faces[index].a;
+	    					b = node.children[0].geometry.faces[index].b;
+	    					c = node.children[0].geometry.faces[index].c;
+		    				planeGeometry.faces.push(
+		    					new THREE.Face3(a, b, c)			
+		    				)
+		    			});
+
+		    			planeGeometry.computeBoundingSphere();
+		    			var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
+						var p = new THREE.Mesh(planeGeometry, planeMaterial);
+						var bbox = new THREE.Box3().setFromObject(p);
+						a = getCenter(bbox);
+                        node.children[0].Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+						scene.add(p);
+						scene.remove(p);
+		    		}
+		    		if (node.children){
+		    			for (var i=1; i < node.children.length; i++){
+		    				if (node.children[i].children[0].Geometry){
+		    					//ищем центр floor, kabinet, для этого создаем plane
+		    					var planeGeometry = new THREE.Geometry();
+		    					object = node.children[i].children[0];
+		    					$.each(object.Geometry, function(index){
+		    						//z
+		    						x = object.Geometry[index]['x'];
+		    						y = object.Geometry[index]['y'];
+									x2 = r(x, y, Zangle, 'x');
+									y2 = r(x, y, Zangle, 'y');
+									object.Geometry[index]['x'] = x2;
+									object.Geometry[index]['y'] = y2;
+
+									planeGeometry.vertices.push(
+										new THREE.Vector3(x2, y2)
+									)
+		    					});
+				    			$.each(object.geometry.faces, function(index){
+									a = object.geometry.faces[index].a;
+	    							b = object.geometry.faces[index].b;
+	    							c = object.geometry.faces[index].c;
+				    				planeGeometry.faces.push(
+				    					new THREE.Face3(a, b, c)			
+				    				)
+		    					});
+
+		    					planeGeometry.computeBoundingSphere();
+		    					var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
+								var p = new THREE.Mesh(planeGeometry, planeMaterial);
+								var bbox = new THREE.Box3().setFromObject(p);
+								a = getCenter(bbox);
+                        		object.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+								scene.add(p);
+								scene.remove(p);
+		    				}
+		    				rotateChild(node.children[i], Zangle);
+		    			}
+		    		}
+		    	}
+
+		    	//Найти offset между Center и CenterNew
+		    	offset(dae.children[0]);
+		    	function offset(dae){
+		    		if (dae.children){
+		    			for(var i=0; i < dae.children.length; i++){
+		    				if (dae.children[i].Center != undefined && dae.children[i].CenterNew != undefined){
+		    					Center = dae.children[i].Center;
+		    					CenterNew = dae.children[i].CenterNew;
+		    					dae.children[i].Offset = {};
+		    					//ищем offset в абсолютной величине
+		    					dae.children[i].Offset['x'] = Math.abs(Center['x'] - CenterNew['x']);
+		    					dae.children[i].Offset['y'] = Math.abs(Center['y'] - CenterNew['y']);
+		    					Offset = dae.children[i].Offset;
+		    					//определяем знак для offset
+		    					if (CenterNew['x'] + Offset['x'] == Center['x']){
+
+		    					} else if (CenterNew['x'] - Offset['x'] == Center['x']){
+		    						Offset['x'] = - Offset['x'];
+		    					}
+
+		    					if (CenterNew['y'] + Offset['y'] == Center['y']){
+
+		    					} else if (CenterNew['y'] - Offset['y'] == Center['y']){
+		    						Offset['y'] = - Offset['y']
+		    					}
+		    				}
+	    				offset(dae.children[i]);
+		    			}
+		    		}
+		    	}
+
+		    	//Смещаем вершины на значение Offset
+		    	addOffsetToVertices(colladaObjects['landscape'][0], 0);
+		    	function addOffsetToVertices(dae){
+		    		if(dae.children){
+		    			for (var i=0; i < dae.children.length; i++){
+		    				if (dae.children[i].Offset != undefined && dae.children[i].colladaId == undefined){
+		    					Geometry = dae.children[i].Geometry;
+		    					Offset = dae.children[i].Offset;
+		    					$.each(Geometry, function(index){
+
+	    							if (dae.children[i].Center['x'] > 0 && Offset['x'] > 0) {
+		    							Geometry[index]['x'] = Geometry[index]['x'] - Offset['x'];
+	    							} else if (dae.children[i].Center['x'] < 0 && Offset['x'] > 0){
+	    								Geometry[index]['x'] = Geometry[index]['x'] - Offset['x'];
+	    							} else {
+	    								Geometry[index]['x'] = Geometry[index]['x'] - Offset['x'];
+	    							}
+
+	    							if (dae.children[i].Center['y'] > 0 && Offset['y'] > 0) {
+		    							Geometry[index]['y'] = Geometry[index]['y'] - Offset['y'];
+	    							} else if (dae.children[i].Center['y'] < 0 && Offset['y'] > 0){
+	    								Geometry[index]['y'] = Geometry[index]['y'] + Offset['y'];
+	    							} else {
+	    								Geometry[index]['y'] = Geometry[index]['y'] - Offset['y'];
+	    							}
+
+		    					});
+		    				}
+		    				addOffsetToVertices(dae.children[i]);
+		    			}
+		    		}
+		    	}
+
+		    	//поворачиваем building на Zangle
+		    	rotateBuilding(colladaObjects['landscape'][0]);
+		    	function rotateBuilding(dae){
+		    		if(dae.children){
+		    			for(var i = 0; i < dae.children.length; i++){
+		    				if (dae.children[i].name.indexOf('building')!= -1 && dae.children[i].Zangle != undefined){
+		    					Zangle = dae.children[i].Zangle;
+		    					building = dae.children[i].parent;
+		    					building.rotation.z = Zangle;
+		    				}
+		    				rotateBuilding(dae.children[i]);
+		    			}
+		    		}
+		    	}
+
+		    	//получаем новый центр объектов
+		    	//building
+		    	newCenter(dae.children[0], 'building');
+		    	//floor
+		    	newCenter(dae.children[0], 'floor');
+		    	//kabinet
+		    	newCenter(dae.children[0], 'kabinet');
+
+		    	//ищем центр повернутых фигур
+		    	rotateChild(dae.children[0], 0);
+		    	//ищем offset
+		    	offset(dae.children[0]);
+		    	//ещё раз смещаем вершины Geometry
+		    	addOffsetToVertices(colladaObjects['landscape'][0], 0);
+
+
+
+		    	//наполняем словарь вершин BoxMin BoxMax
+		    	fillVerticesDict(colladaObjects['landscape'][0]);
+		    	function fillVerticesDict(dae){
+		    		if(dae.children){
+		    			for(var i = 0; i<dae.children.length; i++){
+		    				if (dae.children[i].BoxMin != undefined && dae.children[i].BoxMax != undefined && dae.children[i].name.indexOf('outer') == -1 && dae.children[i].name.indexOf('wall') == -1){
+		    					object = dae.children[i];
+		    					verticesDict['element'].push({'name':object.name, 'vertices': object.Geometry, 'BoxMin': object.BoxMin, 'BoxMax': object.BoxMax});
+		    				}
+		    				fillVerticesDict(dae.children[i]);
+		    			}
+		    		}
+		    	}
+		    	console.log(sceneOptions);
+		    	//записываем результат в БД
 				/*$.ajax({
 					type:"POST",
 					url:"/landscape_save",
-        			data: JSON.stringify({'landscape_id': '{{landscape_id}}'.toString(), colladaObjects, verticesDict}),
+        			data: JSON.stringify({'landscape_id': '{{landscape_id}}'.toString(), colladaObjects, verticesDict, sceneOptions}),
        				contentType: "application/json; charset=utf-8",
 		            dataType: 'json',
 		          	async: true,
-		          	success: function(data, textStatus, jqXHR){
-		          		window.location = '/landscapeloadform/success';
-		          		console.log(data);
+		          	success: function(data, textStatus, jqXHR){*/
+		          		/*window.location = '/landscapeloadform/success';*/
+		          		/*console.log(data);
 		          	}
 				});*/
-				console.log(colladaObjects['landscape'][0]);
-				console.log(dae);
-		    });
 
+				//ищу floor
+	    		var floorVert = [];
+				var floor_003 = [];
+		        lookColladaId(dae, 'floor_001', floor_003);
+		        function lookColladaId(dae, text, array){
+		        	if (dae.children){
+		        		for (var i = 0; i < dae.children.length; i++){
+		        			if (dae.children[i].colladaId == text){
+		        				array.push(dae.children[i]);
+		        				return true
+		        			}
+		        			lookColladaId(dae.children[i], text, array);
+		        		}
+		        	}
+		        }
+		    	$.each(floor_003[0].children[0].Geometry, function(index){
+					value = floor_003[0].children[0].Geometry[index];
+					floorVert.push({'x': value['x'], 'y': value['y']});
+				});
+				//проверить плоскость правильно ли отображается
+				var planeGeometry = new THREE.Geometry();
+				$.each(floorVert, function(index){
+					x = floorVert[index]['x'];
+					y = floorVert[index]['y'];
+					planeGeometry.vertices.push(
+						new THREE.Vector3(x, y, 0)
+					)
+				});
+				planeGeometry.faces.push(
+					/*new THREE.Face3(1, 3, 2),
+					new THREE.Face3(0, 1, 2)*/
+					new THREE.Face3(1, 8, 5),
+					new THREE.Face3(5, 2, 0),
+					new THREE.Face3(0, 1, 5),
+					new THREE.Face3(8, 7, 3),
+					new THREE.Face3(1, 6, 8),
+					new THREE.Face3(4, 5, 8),
+					new THREE.Face3(8, 3, 4)
+				);			
+
+				planeGeometry.computeBoundingSphere();
+
+				var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
+				var p = new THREE.Mesh(planeGeometry, planeMaterial);
+				/*helper(p);*/
+				/*p.rotation.set(0, 0, -0.872, 'XYZ');*/
+				scene.add(p);
+
+		    	// helper sphere
+		    	/*geometry = new THREE.SphereGeometry(5, 32, 32);
+		    	material = new THREE.MeshBasicMaterial({color: 0xbbbbbb});
+		    	var sph = new THREE.Mesh(geometry, material);
+		    	sph.position.set(25.171, 53.190, 10);
+		    	scene.add(sph);*/
+		    });
 			//фунцкция преобразования вершин отдельных объектов из относительных в абсолютные(dae файл - upaxis - down)
 			function verticesTransition(object){
 				var xmin = 0;
@@ -317,84 +683,66 @@
 					x = object.geometry.vertices[index].x;
 					y = object.geometry.vertices[index].y;
 					if (x == xmin){
-						object.Geometry[index].x = object.BoxMin.y;
+						object.Geometry[index].x = object.BoxMin.x;
 					}
 					if (x == xmax){
-						object.Geometry[index].x = object.BoxMax.y;
+						object.Geometry[index].x = object.BoxMax.x;
 					}
 					if (y == ymin){
-						object.Geometry[index].y = object.BoxMin.x;
+						object.Geometry[index].y = object.BoxMin.y;
 					}
 					if (y == ymax){
-						object.Geometry[index].y = object.BoxMax.x;
+						object.Geometry[index].y = object.BoxMax.y;
 					}
 					//если y отрицательное число
 					if (y != ymin && y < 0){
-						yDistanse = Math.abs(object.BoxMin.x - object.Center.x);
+						yDistanse = Math.abs(object.BoxMin.y - object.Center.y);
 						k = y/ymin;
-						object.Geometry[index].y = object.Center.x - yDistanse*k;
+						object.Geometry[index].y = object.Center.y - yDistanse*k;
 					}
 					//ecли у положительное число
 					if (y != ymax && y > 0){
-						yDistanse = Math.abs(object.Center.x - object.BoxMax.x);
+						yDistanse = Math.abs(object.Center.y - object.BoxMax.y);
 						k = y/ymax;
-						object.Geometry[index].y = object.Center.x + yDistanse*k;
+						object.Geometry[index].y = object.Center.y + yDistanse*k;
 					}
 					//если x отрицательное число
 					if (x != xmin && x < 0){
-						xDistanse = Math.abs(object.BoxMin.y - object.Center.y);
+						xDistanse = Math.abs(object.BoxMin.x - object.Center.x);
 						k = x/xmin;
-						object.Geometry[index].x = object.Center.y - xDistanse*k;
+						object.Geometry[index].x = object.Center.x - xDistanse*k;
 					}
 					//если x положительное число
 					if (x != xmax && x > 0){
-						xDistanse = Math.abs(object.Center.y - object.BoxMax.y);
+						xDistanse = Math.abs(object.Center.x - object.BoxMax.x);
 						k = x/xmax;
-						object.Geometry[index].x = object.Center.y + xDistanse*k;
+						object.Geometry[index].x = object.Center.x + xDistanse*k;
 					}
 				});
 				//меняем "x" на "y"
-				$.each(object.Geometry, function(index){
+				/*$.each(object.Geometry, function(index){
 					x = object.Geometry[index].x;
 					y = object.Geometry[index].y;
 					object.Geometry[index].x = y;
 					object.Geometry[index].y = x;
-				});
+				});*/
+			}
+			function rz2(y, z, gradus, returning){
+				y2 = y * Math.cos(gradus) + z * Math.sin(gradus);
+				if (returning == 'y'){
+					return y2;
+				}
 			}
 
-			//проверить плоскость правильно ли отображается
-			var planeGeometry = new THREE.Geometry();
-			planeGeometry.vertices.push(
-				new THREE.Vector3(-27.463, 128.642),
-				new THREE.Vector3(26.402, 128.642),
-				new THREE.Vector3(-27.463, 88.051),
-				new THREE.Vector3(-5.843, 79.879),
-				new THREE.Vector3(-5.755, 83.003),
-				new THREE.Vector3(-13.575, 88.051),
-				new THREE.Vector3(26.402, 82.885),
-				new THREE.Vector3(11.999, 79.879),
-				new THREE.Vector3(11.975, 83.078)
-			);
-			planeGeometry.faces.push(
-				new THREE.Face3(1, 8, 5),
-				new THREE.Face3(5, 2, 0),
-				new THREE.Face3(0, 1, 5),
-				new THREE.Face3(8, 7, 3),
-				new THREE.Face3(1, 6, 8),
-				new THREE.Face3(4, 5, 8),
-				new THREE.Face3(8, 3, 4)
-			);			
-
-			planeGeometry.computeBoundingSphere();
-
-			var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
-			var p = new THREE.Mesh(planeGeometry, planeMaterial);
-			scene.add(p);
-			
-
+			function rz(x, z, gradus, returning){
+				x2 = x * Math.cos(gradus) + z * Math.sin(gradus);
+				if (returning == 'x'){
+					return x2;
+				}
+			}
 
 			function r(x, y, gradus, returning){
-				gradus = gradus * Math.PI/180;
+				/*gradus = gradus * Math.PI/180;*/
 				x2 = x * Math.cos(gradus) + y * Math.sin(gradus);
 				y2 = -x * Math.sin(gradus) + y * Math.cos(gradus);
 				if (returning == 'x'){
@@ -404,18 +752,7 @@
 				}
 			}
 
-			planeGeometry2 = new THREE.Geometry();
-			planeGeometry2.vertices.push(
-				new THREE.Vector3(-1.749, 76.986),
-				new THREE.Vector3(46.256, 76.986),
-				new THREE.Vector3(-1.749, 52.163),
-				new THREE.Vector3(17.596, 47.136),
-				new THREE.Vector3(17.665, 49.057),
-				new THREE.Vector3(10.671, 52.163),
-				new THREE.Vector3(46.256, 48.985),
-				new THREE.Vector3(33.365, 47.136),
-				new THREE.Vector3(33.444, 49.103)
-			)
+			/*planeGeometry2 = new THREE.Geometry();*/
 
 			/*planeGeometry2.vertices.push(
 				new THREE.Vector3(r(10.241, 77.202, -50, 'x'), r(10.241, 77.202, -50, 'y')),
@@ -439,7 +776,7 @@
 				new THREE.Vector3(32.138, 29.196),
 				new THREE.Vector3(32.125, 32.361)
 			)*/
-			planeGeometry2.faces.push(
+			/*planeGeometry2.faces.push(
 				new THREE.Face3(1, 8, 5),
 				new THREE.Face3(5, 2, 0),
 				new THREE.Face3(0, 1, 5),
@@ -450,21 +787,47 @@
 			)
 			var planeMaterial2 = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
 			var p2 = new THREE.Mesh(planeGeometry2, planeMaterial2);
-			scene.add(p2);
+			scene.add(p2);*/
 
 			/* позиция камеры по умолчанию */
-		    camera.position.set(69, 69, -50);
+		    /*camera.position.set(69, 69, -50);*/
+		    x = -70;
+		    y = 69;
+		    z = 100;
+		    camera.position.set(x, y, z);
+		    sceneOptions['CameraPosition'] = {};
+		    sceneOptions['CameraPosition'].x = x;
+		    sceneOptions['CameraPosition'].y = y;
+		    sceneOptions['CameraPosition'].z = z;
 		    /* вверх - это Z*/
-		    camera.up.set( 0, 0, -1 );
+		    /*camera.up.set( 0, 0, -1 );*/
+		    x = 0;
+		    y = 1;
+		    z = 0;
+		    if (z == 1){
+		    	sceneOptions['LightTargetSymbol'] = 1;
+		    	sceneOptions['CircleStepSymbol'] = 1;
+		    	sceneOptions['GetWallHeightSymbol'] = 1; 
+		    } else if (z == -1){
+		    	sceneOptions['LightTargetSymbol'] = 0;
+		    	sceneOptions['CircleStepSymbol'] = 0;
+		    	sceneOptions['GetWallHeightSymbol'] = 0;
+		    }
+		    camera.up.set(x, y, z);
+		    sceneOptions['CameraUp'] = {};
+		    sceneOptions['CameraUp'].x = x;
+		    sceneOptions['CameraUp'].y = y;
+		    sceneOptions['CameraUp'].z = z;
+
 		    scene.add(camera);
 
 
 		    /*камера. контроль за сменой позиции*/
 		    controls = new THREE.OrbitControls( camera, renderer.domElement );
 		    /* камера вращается вокруг данных координат*/
-		    controls.target.copy(new THREE.Vector3(34.141, 67.862, 8.6));
+		    controls.target.copy(new THREE.Vector3(34.141, 0, 50));
 		    //камера смотрит
-		    camera.lookAt(new THREE.Vector3(34.141, 67.862, 8.6));
+		    camera.lookAt(new THREE.Vector3(34.141, 0, 50));
 		    controls.addEventListener( 'change', render );
 		    hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
 		    scene.add(hemi);

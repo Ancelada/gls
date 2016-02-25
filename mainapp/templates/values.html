@@ -5,7 +5,7 @@
 		<meta charset="UTF-8">
 		<title>Our WebGl</title>
 		{% load staticfiles %}
-
+        {% load poll_extras %}
 		<script type="text/javascript" src="{% static 'js/vendor/jquery-2.2.0.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/attrchange.js' %}"></script>
@@ -154,7 +154,7 @@
     var radius = 2;
     var segments = 24
     var circleGeom = new THREE.CircleGeometry(radius, segments);
-    var circleMaterial = new THREE.MeshBasicMaterial({color: 0xfadc4a, transparent: true, opacity:0.7});
+    var circleMaterial = new THREE.MeshBasicMaterial({color: 0xfadc4a, transparent: true, opacity:0.7, side: THREE.DoubleSide});
 	var guiControls, datGUI;
     //массив объектов
     var colladaObjects = {}
@@ -334,20 +334,20 @@
     var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
     var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
     this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
-    marker6004.position.set(39.682, 76.457, 7.6);
+    marker6004.position.set(39.682, 7.6, 76.457);
     scene.add(marker6004);
 
-    this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
-    marker6045.position.set(30.141, 76.462, 8.7);
-    scene.add(marker6045);
+    this.marker6042 = new THREE.Mesh(markGeom, markMaterial);
+    marker6042.position.set(39.850, 7.6, 67.725);
+    scene.add(marker6042);
 
     this.marker6003 = new THREE.Mesh(markGeom, markMaterial);
-    marker6003.position.set(39.811, 59.531, 7.595);
+    marker6003.position.set(39.811, 7.6, 59.531);
     scene.add(marker6003);
 
-    this.marker6012 = new THREE.Mesh(markGeom, markMaterial);
-    marker6012.position.set(28.649, 59.256, 8.7);
-    scene.add(marker6012);
+    this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
+    marker6045.position.set(30.141, 8.7, 76.426);
+    scene.add(marker6045);
 
     /* add collada import */
     var loader = new THREE.ColladaLoader();
@@ -423,8 +423,9 @@
     	var dae = collada.scene;
     	dae.position.set(28.141,59.087,8.6);
     	dae.scale.set(1,1,1);
-    	dae.rotation.z = - (Math.PI/2);
-    	dae.rotation.x = Math.PI;
+    	dae.rotation.z = {{sceneop.dae_rotation_z|stringformat:"f"}};
+    	dae.rotation.x = {{sceneop.dae_rotation_x|stringformat:"f"}};
+        dae.rotation.y = {{sceneop.dae_rotation_y|stringformat:"f"}};
     	scene.add(dae);
 
 
@@ -547,7 +548,7 @@
     	//landscape 
     	plane = colladaObjects['landscape'][0];
         /*plane.receiveShadow = true;*/
-    	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131 }));
+    	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131, visible:false }));
     	//building
         $.each(colladaObjects['landscape'][0].children, function(value){
             if (colladaObjects['landscape'][0].children[value].name.indexOf('building') != -1){
@@ -585,7 +586,8 @@
                 spotLight = new THREE.SpotLight(0xffffff);
                 spotLight.castShadow = true;
                 spotLight.position.set (a['x'], a['y'], a['z']);
-                spotLight.target.position.set(a['x'], a['y'], a['z']+60);
+                spotLight.target.position.set(a['x'], a['y'], a['z']{% if sceneop.light_target_symbol == 1 %}-{% else %}+{% endif%} 60);
+                /*spotLight.target.position.set(a['x'], a['y'], a['z']+60);*/
                 this.lightX = 20;
                 this.lightY = 35;
                 this.lightZ = 40;
@@ -1027,10 +1029,12 @@
 
               
 	/* позиция камеры по умолчанию */
-    camera.position.set(69, 69, -50);
-    camera.PozOld = new THREE.Vector3(69, 69, -50);
+    /*camera.position.set(69, 69, -50);*/
+    camera.position.set({{sceneop.camera_position_x|stringformat:"f"}}, {{sceneop.camera_position_y|stringformat:"f"}}, {{sceneop.camera_position_z|stringformat:"f"}});
+    camera.PozOld = new THREE.Vector3({{sceneop.camera_position_x|stringformat:"f"}}, {{sceneop.camera_position_y|stringformat:"f"}}, {{sceneop.camera_position_z|stringformat:"f"}});
     /* вверх - это Z*/
-    camera.up.set( 0, 0, -1 );
+    /*camera.up.set( 0, 0, -1 );*/
+    camera.up.set({{sceneop.camera_up_x|stringformat:"f"}}, {{sceneop.camera_up_y|stringformat:"f"}}, {{sceneop.camera_up_z|stringformat:"f"}});
     scene.add(camera);
 
 
@@ -1097,7 +1101,7 @@
                                     //поднять cylinder
                                     upCircle(colladaObjects['landscape'][0], 'wall', unique[i]['mesh'].children[0], unique[i]['mesh']);
                                     //откорректировать cilinder по z
-                                    unique[i]['circle'].position.z -= circleStep;
+                                    unique[i]['circle'].position.z {% if sceneop.circle_step_symbol == 1%}-{%else%}+{%endif%}= circleStep;
                                     circleStep += 0.01;
                                 }
                             })
@@ -1370,7 +1374,7 @@
 
                         zStep = Math.abs((zMax - zMin)/2);
                         if (Math.abs(circle.position.z) < zStep){
-                            circle.position.z -= zStep;
+                            circle.position.z {% if sceneop.get_wall_height_symbol == 1%}+{%else%}-{%endif%}= zStep;
                         }
                     }
                 }

@@ -154,7 +154,7 @@
     var radius = 2;
     var segments = 24
     var circleGeom = new THREE.CircleGeometry(radius, segments);
-    var circleMaterial = new THREE.MeshBasicMaterial({color: 0xfadc4a, transparent: true, opacity:0.7});
+    var circleMaterial = new THREE.MeshBasicMaterial({color: 0xfadc4a, transparent: true, opacity:0.7, side: THREE.DoubleSide});
 	var guiControls, datGUI;
     //массив объектов
     var colladaObjects = {}
@@ -368,8 +368,9 @@
     	var dae = collada.scene;
     	dae.position.set(28.141,59.087,8.6);
     	dae.scale.set(1,1,1);
-    	dae.rotation.z = - (Math.PI/2);
+    	dae.rotation.z = 0;
     	dae.rotation.x = Math.PI;
+        dae.rotation.y = Math.PI;
     	scene.add(dae);
 
 
@@ -530,7 +531,7 @@
                 spotLight = new THREE.SpotLight(0xffffff);
                 spotLight.castShadow = true;
                 spotLight.position.set (a['x'], a['y'], a['z']);
-                spotLight.target.position.set(a['x'], a['y'], a['z']+60);
+                spotLight.target.position.set(a['x'], a['y'], a['z']-60);
                 this.lightX = 20;
                 this.lightY = 35;
                 this.lightZ = 40;
@@ -973,10 +974,12 @@
 
               
 	/* позиция камеры по умолчанию */
-    camera.position.set(69, 69, -50);
+    /*camera.position.set(69, 69, -50);*/
+    camera.position.set(69, 69, 50);
     camera.PozOld = new THREE.Vector3(69, 69, -50);
     /* вверх - это Z*/
-    camera.up.set( 0, 0, -1 );
+    /*camera.up.set( 0, 0, -1 );*/
+    camera.up.set( 0, 0, 1 );
     scene.add(camera);
 
 
