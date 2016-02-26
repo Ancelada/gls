@@ -19,6 +19,12 @@ from django.contrib import auth
 from django.conf import settings
 from shapely.geometry import *
 import math
+
+import pkg_resources
+pkg_resources.require('matplotlib')
+import pylab
+import matplotlib.patches as patches
+
 # глобальный словарь static статичные объекты
 static = []
 static_tumbler = []
@@ -94,6 +100,11 @@ def fillStatic():
 					verticesBuilding = VerticesBuilding.objects.filter(Building_id=b.id)
 					for v in verticesBuilding:
 						i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+					#сортировка вершин
+					pp = i['objects'][bno]['vertices']
+					cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
+					pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
+					i['objects'][bno]['vertices'] = pp
 					bno += 1
 					#floor
 					floor = Floor.objects.filter(Building_id=b.id)
@@ -102,6 +113,11 @@ def fillStatic():
 						verticesFloor = VerticesFloor.objects.filter(Floor_id=f.id)
 						for v in verticesFloor:
 							i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+						#сортировка вершин
+						pp = i['objects'][bno]['vertices']
+						cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
+						pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
+						i['objects'][bno]['vertices'] = pp
 						bno += 1
 						#kabinet
 						kabinet  = Kabinet_n_Outer.objects.filter(Floor_id=f.id)
@@ -110,6 +126,12 @@ def fillStatic():
 							verticesKabinet_n_Outer = VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=k.id)
 							for v in verticesKabinet_n_Outer:
 								i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+							#сортировка вершин
+							pp = i['objects'][bno]['vertices']
+							if len(pp) > 0:
+								cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
+								pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
+								i['objects'][bno]['vertices'] = pp
 							bno += 1
 				# bno = 0
 
@@ -268,8 +290,6 @@ def findMatchingStatic(obj, landscape_id, obj_type):
 					minz = elem['minz']
 					maxz = elem['maxz']
 					match = inPolygon(obj_typeVertices, uniqueVector)
-					if elem['name'] == 'floor_003':
-						print match
 					if (match and inInterval(float(z), minz, maxz)):
 						return elem['name']
 
@@ -381,7 +401,8 @@ def getMarksByInterval(x, y, z, zone, dictionary):
 
 				landscape_id = i['landscape_id']
 				if len(i['vertices']) > 0:
-					if (inInterval(x, xmin, xmax) and inInterval(y, ymin, ymax) and inInterval(z, zmin, zmax) and zone ==landscape_id):
+					match = inPolygon(i['vertices'], [(float(x), float(y))])
+					if (match and inInterval(z, zmin, zmax) and zone ==landscape_id):
 						i['data'].append(dictionary)
 		except:
 			pass
@@ -508,6 +529,9 @@ def landscape_save(request):
 		p.camera_up_x = string['sceneOptions']['CameraUp']['x']
 		p.camera_up_y = string['sceneOptions']['CameraUp']['y']
 		p.camera_up_z = string['sceneOptions']['CameraUp']['z']
+		p.controls_target_x = string['sceneOptions']['ControlsTarget']['x']
+		p.controls_target_y = string['sceneOptions']['ControlsTarget']['y']
+		p.controls_target_z = string['sceneOptions']['ControlsTarget']['z']
 		p.dae_rotation_x = string['sceneOptions']['DaeRotation']['x']
 		p.dae_rotation_y = string['sceneOptions']['DaeRotation']['y']
 		p.dae_rotation_z = string['sceneOptions']['DaeRotation']['z']
@@ -754,43 +778,44 @@ def simplereport(request, parameters=0):
 		return render(request, 'simplereport.html', args)
 	return render(request, 'simplereport.html')
 # Нормальная матрица
-def matrix(request):
-	m = [-0.00018728063150774688, \
-	-0.00006872335507068783, \
-	-0.000014250318599806633, \
-	-0.00007018526957836002, \
-	0.00018337969959247857, \
-	0.000038025180401746184, \
-	6.856382572806297e-9, \
-	0.2030385285615921, \
-	-0.9791707396507263
-	]
-	return HttpResponse(getAngleAxis(m))
+# def matrix(request):
+# 	m = [-0.00018728063150774688, \
+# 	-0.00006872335507068783, \
+# 	-0.000014250318599806633, \
+# 	-0.00007018526957836002, \
+# 	0.00018337969959247857, \
+# 	0.000038025180401746184, \
+# 	6.856382572806297e-9, \
+# 	0.2030385285615921, \
+# 	-0.9791707396507263
+# 	]
+# 	return HttpResponse(getAngleAxis(m))
 
 
-def getAngleAxis(m):
-    xx = m[0]
-    yy = m[4]
-    zz = m[8]
+# def getAngleAxis(m):
+#     xx = m[0]
+#     yy = m[4]
+#     zz = m[8]
  
-    # Сумма элементов главной диагонали
-    traceR = xx + yy + zz
+#     # Сумма элементов главной диагонали
+#     traceR = xx + yy + zz
  
-    # Угол поворота
-    theta = math.acos((traceR - 1) * 0.5)
+#     # Угол поворота
+#     theta = math.acos((traceR - 1) * 0.5)
  
-    # Упростим вычисление каждого элемента вектора
-    omegaPreCalc = 1.0 / (2 * math.sin(theta))
+#     # Упростим вычисление каждого элемента вектора
+#     omegaPreCalc = 1.0 / (2 * math.sin(theta))
  
-    # Вычисляем вектор
-    w = {}
-    w['x'] = omegaPreCalc * (m[7] - m[5])
-    w['y'] = omegaPreCalc * (m[2] - m[6])
-    w['z'] = omegaPreCalc * (m[3] - m[1])
+#     # Вычисляем вектор
+#     w = {}
+#     w['x'] = omegaPreCalc * (m[7] - m[5])
+#     w['y'] = omegaPreCalc * (m[2] - m[6])
+#     w['z'] = omegaPreCalc * (m[3] - m[1])
  
-    # Получаем угол поворота и ось, 
-    # относительно которой был поворот
-    return (theta*(180/math.pi), w)
+#     # Получаем угол поворота и ось, 
+#     # относительно которой был поворот
+#     return (theta*(180/math.pi), w)
+
 
 def match(request):
 	# obj_typeVertices = [[10.2411702602139, 77.2020180078125], [40.0918277492793, 77.2020180078125], [10.2411702602139, 37.2824776785943], [22.2700845101335, 29.1969969911337], [22.313131222691, 32.2875236674882], [17.9645475438023, 37.2824776785943], [40.0918277492793, 32.1710069062937], [32.1380708538545, 29.1969969911337], [32.1251458030088, 32.3618649137633]]
@@ -798,7 +823,13 @@ def match(request):
 	# uniqueVector = [(28.49, 56.51)]
 	# true
 	# uniqueVector = [(25.49, 58.49)]
-	obj_typeVertices = [[10.2411702602139, 77.2020180078125], [40.0918277492793, 77.2020180078125], [10.2411702602139, 37.2824776785943], [22.2700845101335, 29.1969969911337], [22.313131222691, 32.2875236674882], [17.9645475438023, 37.2824776785943], [40.0918277492793, 32.1710069062937], [32.1380708538545, 29.1969969911337], [32.1251458030088, 32.3618649137633]]
-	uniqueVector = [[25.49, 58.49]]
-	match = pointloc(obj_typeVertices, uniqueVector)
+	pp = [[10.2411702602139, 77.2020180078125], [40.0918277492793, 77.2020180078125], [10.2411702602139, 37.2824776785943], [22.2700845101335, 29.1969969911337], [22.313131222691, 32.2875236674882], [17.9645475438023, 37.2824776785943], [40.0918277492793, 32.1710069062937], [32.1380708538545, 29.1969969911337], [32.1251458030088, 32.3618649137633]]
+	#compute centroid
+	cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
+	#sort by polar angle
+	pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
+	match = inPolygon(pp, [(25.49, 58.49)])
 	return HttpResponse(match)
+
+def getactiveusers(request):
+	return HttpResponse(active_users)

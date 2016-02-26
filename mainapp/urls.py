@@ -69,4 +69,7 @@ urlpatterns = patterns('',
 
 	#testing match
 	url(r'match', 'mainapp.views.match'),
+
+	#active_users
+	url(r'getactiveusers', 'mainapp.views.getactiveusers'),
 )

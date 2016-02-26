@@ -70,19 +70,19 @@
 		    var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
 		    var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
 		    this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
-		    marker6004.position.set(39.682, 7.6, 76.457);
+		    marker6004.position.set(76.457, 39.682, 7.6);
 		    scene.add(marker6004);
 
 		    this.marker6042 = new THREE.Mesh(markGeom, markMaterial);
-		    marker6042.position.set(39.850, 7.6, 67.725);
+		    marker6042.position.set(67.725, 39.850, 7.6);
 		    scene.add(marker6042);
 
 		    this.marker6003 = new THREE.Mesh(markGeom, markMaterial);
-		    marker6003.position.set(39.811, 7.6, 59.531);
+		    marker6003.position.set(59.531, 39.811 , 7.6);
 		    scene.add(marker6003);
 
 		    this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
-		    marker6045.position.set(30.141, 8.7, 76.426);
+		    marker6045.position.set(76.426, 30.141, 8.7);
 		    scene.add(marker6045);
 
 		    loader.load( '/static/js/webgl/models/{{source}}', function ( collada ) {
@@ -144,9 +144,9 @@
 		    	//gls.dae
 		    	var dae = collada.scene;
 		    	/*dae.position.set(28.141,59.087,8.6);*/
-		    	x = 31;
-		    	y = 6;
-		    	z = 50;
+		    	x = 59;
+		    	y = 28;
+		    	z = 6;
 		    	dae.position.set(x, y, z);
 		    	sceneOptions['DaePosition'] = {};
 		    	sceneOptions['DaePosition'].x = x;
@@ -288,9 +288,9 @@
 		        });
 
 				//разворот сцены dae
-				z = 0;
-				x = -Math.PI/2;
-				y = 0;
+				z = Math.PI;
+				x = Math.PI;
+				y = Math.PI;
 
 		    	dae.rotation.z = z;
 		    	dae.rotation.x = x;
@@ -580,7 +580,7 @@
 		    	}
 		    	console.log(sceneOptions);
 		    	//записываем результат в БД
-				/*$.ajax({
+/*				$.ajax({
 					type:"POST",
 					url:"/landscape_save",
         			data: JSON.stringify({'landscape_id': '{{landscape_id}}'.toString(), colladaObjects, verticesDict, sceneOptions}),
@@ -596,7 +596,7 @@
 				//ищу floor
 	    		var floorVert = [];
 				var floor_003 = [];
-		        lookColladaId(dae, 'floor_001', floor_003);
+		        lookColladaId(dae, 'floor_002', floor_003);
 		        function lookColladaId(dae, text, array){
 		        	if (dae.children){
 		        		for (var i = 0; i < dae.children.length; i++){
@@ -622,15 +622,15 @@
 					)
 				});
 				planeGeometry.faces.push(
-					/*new THREE.Face3(1, 3, 2),
-					new THREE.Face3(0, 1, 2)*/
-					new THREE.Face3(1, 8, 5),
+					new THREE.Face3(1, 3, 2),
+					new THREE.Face3(0, 1, 2)
+					/*new THREE.Face3(1, 8, 5),
 					new THREE.Face3(5, 2, 0),
 					new THREE.Face3(0, 1, 5),
 					new THREE.Face3(8, 7, 3),
 					new THREE.Face3(1, 6, 8),
 					new THREE.Face3(4, 5, 8),
-					new THREE.Face3(8, 3, 4)
+					new THREE.Face3(8, 3, 4)*/
 				);			
 
 				planeGeometry.computeBoundingSphere();
@@ -752,48 +752,12 @@
 				}
 			}
 
-			/*planeGeometry2 = new THREE.Geometry();*/
-
-			/*planeGeometry2.vertices.push(
-				new THREE.Vector3(r(10.241, 77.202, -50, 'x'), r(10.241, 77.202, -50, 'y')),
-				new THREE.Vector3(r(40.091, 77.202, -50, 'x'), r(40.091, 77.202, -50, 'y')),
-				new THREE.Vector3(r(10.241, 37.282, -50, 'x'), r(10.241, 37.282, -50, 'y')),
-				new THREE.Vector3(r(22.270, 29.196, -50, 'x'), r(22.270, 29.196, -50, 'y')),
-				new THREE.Vector3(r(22.313, 32.287, -50, 'x'), r(22.313, 32.287, -50, 'y')),
-				new THREE.Vector3(r(17.964, 37.282, -50, 'x'), r(17.964, 37.282, -50, 'y')),
-				new THREE.Vector3(r(40.091, 32.171, -50, 'x'), r(40.091, 32.171, -50, 'y')),
-				new THREE.Vector3(r(32.138, 29.196, -50, 'x'), r(32.138, 29.196, -50, 'y')),
-				new THREE.Vector3(r(32.125, 32.361, -50, 'x'), r(32.125, 32.361, -50, 'y'))
-			)*/
-			/*planeGeometry2.vertices.push(
-				new THREE.Vector3(10.241, 77.202),
-				new THREE.Vector3(40.091, 77.202),
-				new THREE.Vector3(10.241, 37.282),
-				new THREE.Vector3(22.270, 29.196),
-				new THREE.Vector3(22.313, 32.287),
-				new THREE.Vector3(17.964, 37.282),
-				new THREE.Vector3(40.091, 32.171),
-				new THREE.Vector3(32.138, 29.196),
-				new THREE.Vector3(32.125, 32.361)
-			)*/
-			/*planeGeometry2.faces.push(
-				new THREE.Face3(1, 8, 5),
-				new THREE.Face3(5, 2, 0),
-				new THREE.Face3(0, 1, 5),
-				new THREE.Face3(8, 7, 3),
-				new THREE.Face3(1, 6, 8),
-				new THREE.Face3(4, 5, 8),
-				new THREE.Face3(8, 3, 4)
-			)
-			var planeMaterial2 = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide});
-			var p2 = new THREE.Mesh(planeGeometry2, planeMaterial2);
-			scene.add(p2);*/
 
 			/* позиция камеры по умолчанию */
 		    /*camera.position.set(69, 69, -50);*/
-		    x = -70;
-		    y = 69;
-		    z = 100;
+		    x = 70;
+		    y = -80;
+		    z = 50;
 		    camera.position.set(x, y, z);
 		    sceneOptions['CameraPosition'] = {};
 		    sceneOptions['CameraPosition'].x = x;
@@ -802,8 +766,8 @@
 		    /* вверх - это Z*/
 		    /*camera.up.set( 0, 0, -1 );*/
 		    x = 0;
-		    y = 1;
-		    z = 0;
+		    y = 0;
+		    z = 1;
 		    if (z == 1){
 		    	sceneOptions['LightTargetSymbol'] = 1;
 		    	sceneOptions['CircleStepSymbol'] = 1;
@@ -825,9 +789,16 @@
 		    /*камера. контроль за сменой позиции*/
 		    controls = new THREE.OrbitControls( camera, renderer.domElement );
 		    /* камера вращается вокруг данных координат*/
-		    controls.target.copy(new THREE.Vector3(34.141, 0, 50));
+		    x = 67;
+		    y = 40;
+		    z = 0;
+		    sceneOptions['ControlsTarget'] = {};
+		    sceneOptions['ControlsTarget'].x = x;
+		    sceneOptions['ControlsTarget'].y = y;
+		    sceneOptions['ControlsTarget'].z = z;
+		    controls.target.copy(new THREE.Vector3(x, y, z));
 		    //камера смотрит
-		    camera.lookAt(new THREE.Vector3(34.141, 0, 50));
+		    camera.lookAt(new THREE.Vector3(x, y, z));
 		    controls.addEventListener( 'change', render );
 		    hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
 		    scene.add(hemi);

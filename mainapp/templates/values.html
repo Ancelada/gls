@@ -334,19 +334,19 @@
     var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
     var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
     this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
-    marker6004.position.set(39.682, 7.6, 76.457);
+    marker6004.position.set(76.457, 39.682, 7.6);
     scene.add(marker6004);
 
     this.marker6042 = new THREE.Mesh(markGeom, markMaterial);
-    marker6042.position.set(39.850, 7.6, 67.725);
+    marker6042.position.set(67.725, 39.850, 7.6);
     scene.add(marker6042);
 
     this.marker6003 = new THREE.Mesh(markGeom, markMaterial);
-    marker6003.position.set(39.811, 7.6, 59.531);
+    marker6003.position.set(59.531, 39.811 , 7.6);
     scene.add(marker6003);
 
     this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
-    marker6045.position.set(30.141, 8.7, 76.426);
+    marker6045.position.set(76.426, 30.141, 8.7);
     scene.add(marker6045);
 
     /* add collada import */
@@ -421,7 +421,9 @@
 
     	//gls.dae
     	var dae = collada.scene;
-    	dae.position.set(28.141,59.087,8.6);
+    	dae.position.x = {{sceneop.dae_position_x|stringformat:"f"}}
+        dae.position.y = {{sceneop.dae_position_y|stringformat:"f"}}
+        dae.position.z = {{sceneop.dae_position_z|stringformat:"f"}}
     	dae.scale.set(1,1,1);
     	dae.rotation.z = {{sceneop.dae_rotation_z|stringformat:"f"}};
     	dae.rotation.x = {{sceneop.dae_rotation_x|stringformat:"f"}};
@@ -548,7 +550,7 @@
     	//landscape 
     	plane = colladaObjects['landscape'][0];
         /*plane.receiveShadow = true;*/
-    	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131, visible:false }));
+    	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131}));
     	//building
         $.each(colladaObjects['landscape'][0].children, function(value){
             if (colladaObjects['landscape'][0].children[value].name.indexOf('building') != -1){
@@ -1041,11 +1043,11 @@
     /*камера. контроль за сменой позиции*/
     controls = new THREE.OrbitControls( camera, renderer.domElement );
     /* камера вращается вокруг данных координат*/
-    controls.target.copy(new THREE.Vector3(34.141, 67.862, 8.6));
-    controls.TarOld = new THREE.Vector3(34.141, 67.862, 8.6)
+    controls.target.copy(new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}}));
+    controls.TarOld = new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}})
     //камера смотрит
-    camera.lookAt(new THREE.Vector3(34.141, 67.862, 8.6));
-    camera.LookAt = new THREE.Vector3(34.141, 67.862, 8.6);
+    camera.lookAt(new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}}));
+    camera.LookAt = new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}});
     controls.addEventListener( 'change', render );
     hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
     scene.add(hemi);
@@ -1372,7 +1374,10 @@
                         yMax = object.BoxMax.y;
                         zMax = object.BoxMax.z;
 
-                        zStep = Math.abs((zMax - zMin)/2);
+                        /*zStep = Math.abs((zMax - zMin)/2);*/
+
+                        zStep = Math.abs(Math.abs(unique.position.z - zMin) - Math.abs(zMax-zMin)) + 0.20;
+                        console.log(zMax);
                         if (Math.abs(circle.position.z) < zStep){
                             circle.position.z {% if sceneop.get_wall_height_symbol == 1%}+{%else%}-{%endif%}= zStep;
                         }
