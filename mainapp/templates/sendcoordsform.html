@@ -5,6 +5,9 @@
 	<label for="mark1">Метка 1
 		<input type="text" id="mark1" placeholder="id">
 	</label>
+	<label for="landscape_id">
+		<input type="text" id="landscape_id" placeholder="landscape id">
+	</label>
 	<label for="x-position">
 		<input type="text" id="x-position" placeholder="x-position">
 	</label>
@@ -19,6 +22,9 @@
 	<br>
 	<label for="mark2">Метка 2
 		<input type="text" id="mark2" placeholder="id">
+	</label>
+	<label for="landscape_id2">
+		<input type="text" id="landscape_id2" placeholder="landscape id">
 	</label>
 	<label for="x-position2">
 		<input type="text" id="x-position2" placeholder="x-position">
@@ -37,13 +43,14 @@
 	var timer2;
 	$('#start').on('click', function(){
 		timer = setInterval(function(){
-			step = 9.25;
+			step = 2;
 			var mark1 = $('#mark1').val();
 			var x = parseFloat($('#x-position').val()) + Math.floor(Math.random() * -step) +step;
 			var y = parseFloat($('#y-position').val()) + Math.floor(Math.random() * -step) +step;
 			var z = parseFloat($('#z-position').val());
 			id = $('#mark1').val();
-			var value = "LabR,Std0,0000," + mark1 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038,0000"
+			landscape_id = $('#landscape_id').val();
+			var value = "LabR,Std0,0000," + mark1 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038," + landscape_id;
 			$.ajax({
 				type: "POST",
 				url: "/receive_slmp",
@@ -64,13 +71,14 @@
 
 	$('#start2').on('click', function(){
 		timer2 = setInterval(function(){
-			step = 9;
+			step = 2;
 			var mark2 = $('#mark2').val();
 			var x = parseFloat($('#x-position2').val()) + Math.floor(Math.random() * -step) +step;
 			var y = parseFloat($('#y-position2').val()) + Math.floor(Math.random() * -step) +step;
 			var z = parseFloat($('#z-position2').val());
 			id = $('#mark2').val();
-			var value2 = "LabR,Std0,0000,"+ mark2 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038,0000"
+			landscape_id2 = $('#landscape_id2').val();
+			var value2 = "LabR,Std0,0000," + mark2 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038,"+ landscape_id2;
 			$.ajax({
 				type: "POST",
 				url: "/receive_slmp",

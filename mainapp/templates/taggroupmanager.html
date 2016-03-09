@@ -1,0 +1,73 @@
+{% extends 'main.html' %}
+
+{% block content%}
+	{% load jsonify %}
+	{% if username %}
+		<h1>Управление группами</h1>
+		<h3>Пользователь {{username_name.username}}</h3>
+		<table>
+			<thead>
+				<tr>
+					<th>Наименование группы</th>
+					<th>Тип фигуры</th>
+					<th>Действие</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for g in groups %}
+				<tr>
+					<td><a href="/definetaggroup/{{g.id}}/{% for m in meshtype %}{% if m.id == g.id %}{{m.type}}{%endif%}{% endfor%}">{{g.GroupName}}</a></td>
+					<td>
+						{% for m in meshtype %}
+							{% if m.id == g.id%}
+								{{m.type}}
+							{% endif %}
+						{% endfor %}
+					</td>
+					<td>
+						<a href="/definetaggroup/{{g.id}}/{% for m in meshtype %}{% if m.id == g.id %}{{m.type}}{%endif%}{% endfor%}" class="button">Изменить</a>
+						<a class="button alert" data-open="deleteModal{{g.id}}">Удалить</a>
+						<a href="/taginoutgroup/{{g.id}}" class="button secondary">Привязать метки</a>
+						<div class="reveal" id="deleteModal{{g.id}}" data-reveal>
+							<h1>Вы уверены?</h1>
+							<span id="delete" class="button" data-id="{{g.id}}">Да, уверен</span>
+							<button class="close-button" data-close aria-label="Close modal" type="button">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+					</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+		<span class="button secondary" id="add">Добавить новую группу</span>
+	{% else %}
+  <div class="row">
+    <h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  </div>
+	{% endif %}
+	<script>
+		parameters = {'action': ''};
+		function doAjax(actionType){
+			parameters['action'] = actionType;
+			$.ajax({
+				type: "POST",
+				url: "/taggroupmanager",
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					window.location = '/taggroupmanager'
+				},
+			});
+		}
+		$('span#add').on('click', function(){
+			doAjax('add');			
+		});
+		$('span#delete').on('click', function(){
+			parameters['id'] = $(this).attr('data-id');
+			doAjax('delete');
+		})
+	</script>
+{% endblock %}

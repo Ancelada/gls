@@ -2,6 +2,8 @@
 # -*- coding: utf8 -*-
 from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import User
+import jsonfield
 
 def get_upload_file_name(instance, filename):
 	return '%s_%s' % (str(time).replace('.', '_'), filename)
@@ -113,7 +115,7 @@ class LoadLandscape(models.Model):
 		db_table = 'LoadLandscape'
 	landscape_name = models.CharField(max_length=100)
 	landscape_id = models.CharField(primary_key=True, max_length=20)
-	landscape_source = models.FileField(upload_to='static/js/webgl/models/', blank=True, null=True)
+	landscape_source = models.FileField(upload_to='', blank=True, null=True)
 	camera_position_x = models.FloatField(null=True)
 	camera_position_y = models.FloatField(null=True)
 	camera_position_z = models.FloatField(null=True)
@@ -217,14 +219,33 @@ class Wall(models.Model):
 ### Метки
 ######################
 
+
+class TagGroup(models.Model):
+	class Meta():
+		db_table = 'TagGroup'
+	GroupName = models.CharField(max_length=200, null=True, blank=True)
+	MeshGeometry = jsonfield.JSONField(null=True, blank=True)
+	MeshColor = models.CharField(max_length=50, null=True, blank=True)
+	CircleColor = models.CharField(max_length=50, null=True, blank=True)
+	User = models.ForeignKey(User)
+	def __str__(self):
+		return self.GroupName.encode('utf-8')
+
 class Tag(models.Model):
 	class Meta():
 		db_table = 'Tag'
 	TagId = models.CharField(primary_key=True, max_length=20)
 	TagType = models.CharField(max_length=20, null=True)
-	Group = models.CharField(max_length=20, null=True)
 	Name = models.CharField(max_length=200, null=True)
+	def __str__(self):
+		return self.TagId.encode('utf-8')
 
+class TagGroup_Tag(models.Model):
+	class Meta():
+		db_table = 'TagGroup_Tag'
+	TagGroup = models.ForeignKey(TagGroup)
+	Tag = models.ForeignKey(Tag)
+	User = models.ForeignKey(User)
 ######################
 ### События
 ######################
@@ -232,7 +253,7 @@ class Tag(models.Model):
 class ZoneChange(models.Model):
 	class Meta():
 		db_table = 'ZoneChange'
-	Tag = models.ForeignKey(Tag)
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	ZoneNew = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 	ChangeTime = models.DateTimeField(null=True)
 
@@ -240,20 +261,27 @@ class ZoneChange(models.Model):
 class BldChange(models.Model):
 	class Meta():
 		db_table = 'BldChange'
-	Tag = models.ForeignKey(Tag)
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	BldNew = models.ForeignKey(Building, on_delete=models.CASCADE)
 	ChangeTime = models.DateTimeField(null=True)
 
 class FlrChange(models.Model):
 	class Meta():
 		db_table = 'FlrChange'
-	Tag = models.ForeignKey(Tag)
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	FlrNew = models.ForeignKey(Floor, on_delete=models.CASCADE)
 	ChangeTime = models.DateTimeField(null=True)
 
 class KbntChange(models.Model):
 	class Meta():
 		db_table = 'KbntChange'
-	Tag = models.ForeignKey(Tag)
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	KbntNew = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
 	ChangeTime = models.DateTimeField(null=True)
+
+class TurnOnOffTag(models.Model):
+	class Meta():
+		db_table = 'TurnOnOffTag'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	OnOff = models.BooleanField()
+	OnOffTime = models.DateTimeField(null=True)

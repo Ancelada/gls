@@ -6,6 +6,7 @@
 		<title>Our WebGl</title>
 		{% load staticfiles %}
         {% load poll_extras %}
+        {% load jsonify %}
 		<script type="text/javascript" src="{% static 'js/vendor/jquery-2.2.0.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/attrchange.js' %}"></script>
@@ -53,26 +54,26 @@
                 <ul class="vertical menu objects_tree" data-drilldown data-options="backButton:<li class='js-drilldown-back'><a>Назад</a></li>;">
                     {% for building in buildings %}
                     <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
-                        <a href="#" data-dae="{{building.dae_BuildingName}}">{{building.dae_BuildingName}}</a>
+                        <a href="#" data-dae="{{building.dae_BuildingName}}">{% if building.BuildingName != None%}{{building.BuildingName}}{% else %}{{building.dae_BuildingName}}{%endif%}</a>
                         <ul class="vertical menu">
                         {% for floor in floors %}
                             {% if building.id == floor.Building_id %}
                                 <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
-                                    <a href="#" data-dae="{{floor.dae_FloorName}}">{{floor.dae_FloorName}}</a>
+                                    <a href="#" data-dae="{{floor.dae_FloorName}}">{% if floor.FloorName != None %}{{floor.FloorName}}{% else %}{{floor.dae_FloorName}}{% endif%}</a>
                                     <ul class="vertical menu">
                                     {% for k in kabinet_n_outer %}
                                         {% if k.Floor_id == floor.id %}
                                         <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
-                                            <a href="#" data-dae="{{k.dae_Kabinet_n_OuterName}}">{{k.dae_Kabinet_n_OuterName}}</a>
+                                            <a href="#" data-dae="{{k.dae_Kabinet_n_OuterName}}">{% if k.Kabinet_n_OuterName != None %}{{k.Kabinet_n_OuterName}}{% else %}{{k.dae_Kabinet_n_OuterName}}{% endif %}</a>
                                             <ul class="vertical menu">
-                                                {% for wall in walls %}
+                                                <!-- {% for wall in walls %}
                                                     {% if wall.Kabinet_n_Outer_id == k.id %}
                                                     <li onclick="$('.cursor_box span').text(jQuery('a', this).first().attr('data-dae'));">
                                                         <a href="#" data-dae="{{wall.dae_WallName}}">{{wall.dae_WallName}}</a>
                                                         <ul class="vertical menu"></ul>
                                                     </li>
                                                     {% endif %}
-                                                {% endfor %}
+                                                {% endfor %} -->
                                             </ul>
                                         </li>
                                         {% endif %}
@@ -157,9 +158,18 @@
     var circleMaterial = new THREE.MeshBasicMaterial({color: 0xfadc4a, transparent: true, opacity:0.7, side: THREE.DoubleSide});
 	var guiControls, datGUI;
     //массив объектов
-    var colladaObjects = {}
+    var colladaObjects = {};
+    //массив групп объектов(геометрия, цвет)
+    var group = [];
+    {% for tag in tags %}
+        {% for t in taggroup %}
+            {% if tag.TagId == t.Tag_id %}
+            group.push({ 'tag_id': '{{tag.TagId}}', 'groupname': '{{t.TagGroup__GroupName}}', 'username':{{t.User_id}}, 'meshcolor': '{{t.TagGroup__MeshColor}}', 'circlecolor': '{{t.TagGroup__CircleColor}}', 'meshgeometry': JSON.parse({{t.TagGroup__MeshGeometry|jsonify}}) })
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
 
-
+    console.log(group);
 	$(document).ready(function(){
 		var marks;
 		var unum = 0;
@@ -201,9 +211,13 @@
                             $.each(data, function(index){
                                 //первая запись в буфере
                                 if(unique[0] == undefined){
-                                    unique[0] = data[index];
-                                    unique[0]['cron'] = 0;
-                                    unum += 1;
+                                    //проверка совпадает ли зона
+                                    zone_id = data[index]['zone_id'];
+                                    if (zone_id == '{{sceneop.landscape_id}}'){
+                                        unique[0] = data[index];
+                                        unique[0]['cron'] = 0;
+                                        unum += 1;
+                                    }
                                 } else {
                                     //проверка на уникальность id в буфере
                                     //если нет, записать в массив
@@ -217,9 +231,13 @@
                                         }
                                     });
                                     if (doubled==0){
-                                        unique[unum] = data[index];
-                                        unique[unum]['cron'] = 0;
-                                        unum += 1;
+                                        //проверка совпадает ли зона
+                                        zone_id = data[index]['zone_id'];
+                                        if (zone_id == '{{sceneop.landscape_id}}'){
+                                            unique[unum] = data[index];
+                                            unique[unum]['cron'] = 0;
+                                            unum += 1;
+                                        }
                                     }
                                 }
                             });
@@ -331,7 +349,7 @@
     scene.add( sky );
 
     //маркеры калибровки
-    var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
+    /*var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
     var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
     this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
     marker6004.position.set(76.457, 39.682, 7.6);
@@ -347,7 +365,7 @@
 
     this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
     marker6045.position.set(76.426, 30.141, 8.7);
-    scene.add(marker6045);
+    scene.add(marker6045);*/
 
     /* add collada import */
     var loader = new THREE.ColladaLoader();
@@ -430,7 +448,29 @@
         dae.rotation.y = {{sceneop.dae_rotation_y|stringformat:"f"}};
     	scene.add(dae);
 
+        //наполняем именами объекты  building, floor, kabinet dae
+        {% for b in buildings %}
+            fillObjectName(dae.children[0], '{{b.dae_BuildingName}}', '{{b.BuildingName}}');
+        {% endfor %}
 
+        {% for f in floors %}
+            fillObjectName(dae.children[0], '{{f.dae_FloorName}}', '{{f.FloorName}}');
+        {% endfor %}
+
+        {% for k in kabinet_n_outer %}
+            fillObjectName(dae.children[0], '{{k.dae_Kabinet_n_OuterName}}', '{{k.Kabinet_n_OuterName}}');
+        {% endfor %}
+        function fillObjectName(dae, text, text2){
+            if (dae.children){
+                for (var i = 0; i < dae.children.length; i++){
+                    if(dae.children[i].name == text){
+                        dae.children[i].dbName = text2;
+                        /*console.log(dae.children[i]);*/
+                    }
+                    fillObjectName(dae.children[i], text, text2);
+                }
+            }
+        }
         //****************************
         //**заполняем массив элементов сцены
         //****************************
@@ -555,7 +595,7 @@
         $.each(colladaObjects['landscape'][0].children, function(value){
             if (colladaObjects['landscape'][0].children[value].name.indexOf('building') != -1){
                 building = colladaObjects['landscape'][0].children[value];
-                /*building.visible = false;*/
+                building.visible = false;
                 $.each(building.children, function(value){
                     //floor
                     floor = building.children[value];
@@ -677,7 +717,11 @@
                     $('.popup').empty();
                     $.each(flr.children, function(index){
                         if (flr.children[index].name.indexOf('floor') != -1){
-                            $('.popup').append('<li class="tabs-title" style="width:100%;"><a href="#panel2v">'+ flr.children[index].name +'</a></li>');    
+                            if (flr.children[index].dbName != 'None'){
+                                $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' +flr.children[index].name +'"><a href="#panel2v">'+ flr.children[index].dbName +'</a></li>');
+                            } else {
+                                $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' +flr.children[index].name +'"><a href="#panel2v">'+ flr.children[index].name +'</a></li>');
+                            }
                         }
                     });
                 }
@@ -685,7 +729,7 @@
 
             //событие нажатие переключение к floor
             $('.popup a').on('click', function(){
-                dae_elem = $(this).text();
+                dae_elem = $(this).parent().attr('data-id');
                 selectedFloor = dae_elem;
                 selectTarget(colladaObjects['landscape'][0], dae_elem);
                 lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
@@ -718,14 +762,20 @@
                 if (intersectsKab[index].length > 0) {
                     if (selectedFloor == kabinet[index].parent.parent.name){
                         dae_elem = intersectsKab[index][0].object.name;
-                        selectTarget(colladaObjects['landscape'][0], dae_elem);
+                        //при выборе кабинета, отображать метки на этаже вне этого кабинета
+                        f = intersectsKab[index][0].object.parent.parent.name;
+                        selectTarget(colladaObjects['landscape'][0], f);
                         lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
                         lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
                         lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
                         cameraToggle(colladaObjects['landscape'][0], dae_elem);
                         $('.popup').empty();
                         $.each(kabinet, function(index){
-                            $('.popup').append('<li class="tabs-title" style="width:100%;"><a href="#panel2v">'+ kabinet[index].name +'</a></li>');    
+                            if (kabinet[index].parent.dbName != 'None'){
+                                $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' + kabinet[index].name +'" data-floor="'+ f +'"><a href="#panel2v">'+ kabinet[index].parent.dbName +'</a></li>');    
+                            } else {
+                                $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' + kabinet[index].name +'" data-floor="'+ f +'"><a href="#panel2v">'+ kabinet[index].name +'</a></li>');
+                            }
                         });
                     }
                 }
@@ -733,9 +783,10 @@
         }
         //событие нажатие переключение kabinet
         $('.popup').delegate('a', 'click', function(){
-            dae_elem = $(this).text();
-            selectedFloor = dae_elem;
-            selectTarget(colladaObjects['landscape'][0], dae_elem);
+            dae_elem = $(this).parent().attr('data-id');
+            //при выборе кабинета, отображать метки на этаже вне этого кабинета
+            dae_floor = $(this).parent().attr('data-floor')
+            selectTarget(colladaObjects['landscape'][0], dae_floor);
             lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
             lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
             lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
@@ -1029,7 +1080,12 @@
         }
     }
 
-              
+                /*geometry = new THREE.SphereGeometry(2, 32, 32);
+                material = new THREE.MeshBasicMaterial({color: 0xbbbbbb});
+                var sph = new THREE.Mesh(geometry, material);
+                sph.position.set(0, 55, 6.8);
+                scene.add(sph);*/
+
 	/* позиция камеры по умолчанию */
     /*camera.position.set(69, 69, -50);*/
     camera.position.set({{sceneop.camera_position_x|stringformat:"f"}}, {{sceneop.camera_position_y|stringformat:"f"}}, {{sceneop.camera_position_z|stringformat:"f"}});
@@ -1065,6 +1121,107 @@
     var first = 1;
     var uniqueCount = 0;
     var circleStep = 0;
+    //функция создании геометрии, материала unique для группового объекта
+    function buildUnique(obj, text){
+        var geometry;
+        var material;
+        var circlegeometry;
+        var circlematerial;
+        $.each(group, function(index){
+            if(group[index]['tag_id'] == obj['tag_id']){
+                //куб
+                if (group[index]['meshgeometry']['type'] == 'box'){
+                    var width;
+                    var heigth;
+                    var depth;
+                    $.each(group[index]['meshgeometry'].parameters, function(i){
+                        obj = group[index]['meshgeometry']['parameters'][i];
+                        if(obj['name'] == 'width'){width = obj['value']}
+                        if(obj['name'] == 'heigth'){heigth = obj['value']}
+                        if(obj['name'] == 'depth'){depth = obj['value']}
+                    });
+                    geometry = new THREE.BoxGeometry(parseFloat(width), parseFloat(heigth), parseFloat(depth), 2, 2, 2);
+                    color = parseInt('0x'+group[index]['meshcolor']);
+                    material = new THREE.MeshBasicMaterial({color: color, transparent: false});
+
+                    circlegeometry = new THREE.CircleGeometry(2, 24);
+                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
+                    circlematerial = new THREE.MeshBasicMaterial({color: circlecolor, transparent: true, opacity:0.7, side: THREE.DoubleSide})
+                    return false;
+                };
+                //сфера
+                if (group[index]['meshgeometry']['type'] == 'sphere'){
+                    var radius, widthsegments, heigthsegments;
+                    $.each(group[index]['meshgeometry'].parameters, function(i){
+                        obj = group[index]['meshgeometry']['parameters'][i];
+                        if(obj['name'] == 'radius'){radius = obj['value']}
+                        if(obj['name'] == 'widthsegments'){widthsegments = obj['value']}
+                        if(obj['name'] == 'heigthsegments'){heigthsegments= obj['value']}
+                    });
+                    geometry = new THREE.SphereGeometry(parseFloat(radius), parseInt(widthsegments), parseInt(heigthsegments));
+                    color = parseInt('0x'+group[index]['meshcolor']);
+                    material = new THREE.MeshBasicMaterial({color: color, transparent: false});
+
+                    circlegeometry = new THREE.CircleGeometry(2, 24);
+                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
+                    circlematerial = new THREE.MeshBasicMaterial({color:circlecolor, transparent:true, opacity:0.7, side: THREE.DoubleSide})
+                    return false;
+                }
+                //кольцо
+                if (group[index]['meshgeometry']['type'] == 'torus'){
+                    var radius, tube, radialsegments, tubularsegments;
+                    $.each(group[index]['meshgeometry'].parameters, function(i){
+                        obj = group[index]['meshgeometry']['parameters'][i];
+                        if(obj['name'] == 'radius'){radius = obj['value']}
+                        if(obj['name'] == 'tube'){tube = obj['value']}
+                        if(obj['name'] == 'radialsegments'){radialsegments = obj['value']}
+                        if(obj['name'] == 'tubularsegments'){tubularsegments = obj['value']}
+                    });
+                    geometry = new THREE.TorusGeometry(parseFloat(radius), parseFloat(tube), parseInt(radialsegments), parseInt(tubularsegments));
+                    color = parseInt('0x'+group[index]['meshcolor']);
+                    material = new THREE.MeshBasicMaterial({color:color, transparent: false});
+
+                    circlegeometry = new THREE.CircleGeometry(2, 24);
+                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
+                    circlematerial = new THREE.MeshBasicMaterial({color:circlecolor, transparent:true, opacity:0.7, side: THREE.DoubleSide});
+                    return false;
+                }
+                //цилиндр
+                if (group[index]['meshgeometry']['type'] == 'cylinder'){
+                    var radiustop, radiusbottom, heigth, radiussegments;
+                    $.each(group[index]['meshgeometry'].parameters, function(i){
+                        obj = group[index]['meshgeometry']['parameters'][i];
+                        if(obj['name'] == 'radiustop'){radiustop = obj['value']}
+                        if(obj['name'] == 'radiusbottom'){radiusbottom = obj['value']}
+                        if(obj['name'] == 'heigth'){heigth = obj['value']}
+                        if(obj['name'] == 'radiussegments'){radiussegments = obj['value']}
+                    });
+                    geometry = new THREE.CylinderGeometry(parseFloat(radiustop), parseFloat(radiusbottom), parseFloat(heigth), parseInt(radiussegments));
+                    color = parseInt('0x'+group[index]['meshcolor']);
+                    material = new THREE.MeshBasicMaterial({color:color, transparent: false});
+
+                    circlegeometry = new THREE.CircleGeometry(2, 24);
+                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
+                    circlematerial = new THREE.MeshBasicMaterial({color:circlecolor, transparent:true, opacity:0.7, side: THREE.DoubleSide});
+                    return false;
+                }
+            }
+        });
+        if (text == 'tag'){
+            if (geometry){
+                return new THREE.Mesh(geometry, material);    
+            } else {
+                return new THREE.Mesh(cubeGeom, cubeMaterial);
+            }
+        } else if (text == 'circle'){
+            if (geometry){
+                return new THREE.Mesh(circlegeometry, circlematerial);    
+            } else {
+                return new THREE.Mesh(circleGeom, circleMaterial);
+            }
+        }
+    }
+
     function render(){
     	if ($.isEmptyObject(unique)==false){
 			//проверка наличия элемента на сцене, если новый добавить
@@ -1072,9 +1229,9 @@
 			$.each(unique, function(index){
 				if (unique[index]['mesh']==undefined){
 					//добавление элемента на сцену
-					unique[index]['mesh'] = new THREE.Mesh(cubeGeom, cubeMaterial);
+					unique[index]['mesh'] = buildUnique(unique[index], 'tag');
 					scene.add(unique[index]['mesh']);
-                    unique[index]['circle'] = new THREE.Mesh(circleGeom, circleMaterial);
+                    unique[index]['circle'] = buildUnique(unique[index], 'circle');
                     unique[index]['circle'].rotation.x = -1* Math.PI
                     scene.add(unique[index]['circle']);
                     unique[index]['mesh'].add(unique[index]['circle']);
@@ -1133,10 +1290,10 @@
                                 var radiusOld = unique[ind]['mesh'].children[0].geometry.boundingSphere.radius
                                 //плавное изменение окружности
                                 var step = 0.3;
-                                if(radiusOld < radiusNew){
+                                if(radiusOld < radiusNew && radiusNew < 10){
                                     unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
                                 }
-                                if(radiusOld > radiusNew){
+                                if(radiusOld > radiusNew && radius < 10){
                                     unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
                                 }
                             var step = 0.3;
@@ -1186,12 +1343,12 @@
 			});
             //скрываем видимость тех, от кого нет сигнала за обозначенное время
             $.each(unique, function(index){
-                if (unique[index]['cron'] > 300){
+                if (unique[index]['cron'] > 1200){
                     unique[index]['mesh'].visible = false;
                     unique[index]['invisible'] = 1;
                     clearInterval(unique[index]['timerid']);
                 }
-                if ((unique[index]['invisible'] == 1) && (unique[index]['cron'] < 300)){
+                if ((unique[index]['invisible'] == 1) && (unique[index]['cron'] < 1200)){
                     unique[index]['mesh'].visible = true;
                     unique[index]['invisible'] = 0;
                     clearInterval(unique[index]['timerid']);
@@ -1213,10 +1370,10 @@
                     var radiusOld = unique[index]['mesh'].children[0].geometry.boundingSphere.radius
                     //плавное изменение окружности
                     var step = 0.07;
-                    if(radiusOld < radiusNew){
+                    if(radiusOld < radiusNew && radiusNew < 10){
                         unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
                     }
-                    if(radiusOld > radiusNew){
+                    if(radiusOld > radiusNew && radiusNew < 10){
                         unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
                     }
                 var step = 0.07;
@@ -1377,7 +1534,6 @@
                         /*zStep = Math.abs((zMax - zMin)/2);*/
 
                         zStep = Math.abs(Math.abs(unique.position.z - zMin) - Math.abs(zMax-zMin)) + 0.20;
-                        console.log(zMax);
                         if (Math.abs(circle.position.z) < zStep){
                             circle.position.z {% if sceneop.get_wall_height_symbol == 1%}+{%else%}-{%endif%}= zStep;
                         }

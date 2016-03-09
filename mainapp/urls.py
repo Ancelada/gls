@@ -65,11 +65,22 @@ urlpatterns = patterns('',
 	url(r'simplereport/(?P<parameters>[0-1]+)', 'mainapp.views.simplereport'),
 
 	#matrix
-	url(r'matrix', 'mainapp.views.matrix'),
+	# url(r'matrix', 'mainapp.views.matrix'),
 
 	#testing match
 	url(r'match', 'mainapp.views.match'),
 
 	#active_users
 	url(r'getactiveusers', 'mainapp.views.getactiveusers'),
+
+	#object name define module - buildings, floors, etc
+	url(r'definemain/(?P<parameters>[0-9]+)', 'mainapp.views.definemain'),
+	#Tag in out group
+	url(r'taginoutgroup/(?P<group>[0-9]+)', 'mainapp.views.taginoutgroup'),
+	#TagGroup manager
+	url(r'taggroupmanager', 'mainapp.views.taggroupmanager'),
+	#TagGroup mesh define module
+	url(r'definetaggroup/(?P<parameters>[0-9]+)/(?P<geomtype>\w+)', 'mainapp.views.definetaggroup'),
+	#register tag module
+	url(ur'tagregister/(?P<tag_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.tagregister'),
 )

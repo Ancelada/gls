@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from mainapp.models import *
 from django.db.models import Q
+from django.contrib.auth.models import User
 import json
 import requests
 from django.http import StreamingHttpResponse
@@ -87,7 +88,6 @@ def clearstatic(request):
 def fillStatic():
 	landscape = LoadLandscape.objects.all()
 	bno = 0
-	fno = 0
 	for l in landscape:
 		static.append({'landscape_id': l.landscape_id, 'objects': []})
 		for i in static:
@@ -133,7 +133,7 @@ def fillStatic():
 								pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
 								i['objects'][bno]['vertices'] = pp
 							bno += 1
-				# bno = 0
+		bno = 0
 
 #unique очистить
 def clearUnique(request):
@@ -180,6 +180,16 @@ def correctFast(i):
 #плавная unique корректировка
 def correctF():
 	for i in unique:
+		if i['cron'] > 20:
+			try:
+				t = Tag.objects.get(TagId=i['tag_id'])
+				TurnOnOffTag(OnOff=0, OnOffTime=datetime.datetime.now(), Tag_id=t.TagId).save()
+				unique.remove(i)
+			except:
+				unique.remove(i)
+	for i in unique:
+		i['cron'] += 0.1
+
 		xCur = i['x']
 		yCur = i['y']
 		zCur = i['z']
@@ -227,12 +237,15 @@ def UniqueToStatic():
 					name = findMatchingStatic(i, i['zone_id'], 'building')
 					if i['building'] and name and name != i['building']:
 						#запись в базу изменения building
-						building = Building.objects.get(dae_BuildingName=name, LoadLandscape_id=s['landscape_id'])
-						tag = Tag.objects.get(TagId=i['tag_id'])
-						bldchange = BldChange(ChangeTime=datetime.datetime.now(), BldNew_id=building.id, Tag_id=tag.TagId)
-						bldchange.save()
-						i['building'] = name
-						return False
+						try:
+							building = Building.objects.get(dae_BuildingName=name, LoadLandscape_id=s['landscape_id'])
+							tag = Tag.objects.get(TagId=i['tag_id'])
+							bldchange = BldChange(ChangeTime=datetime.datetime.now(), BldNew_id=building.id, Tag_id=tag.TagId)
+							bldchange.save()
+							i['building'] = name
+							return False
+						except:
+							return False
 		#наполняем floor
 		if not('floor' in i):
 			for s in static:
@@ -248,12 +261,15 @@ def UniqueToStatic():
 					name = findMatchingStatic(i, i['zone_id'], 'floor')
 					if i['floor'] and name and name != i['floor']:
 						# запись в базу изменений floor
-						floor = Floor.objects.get(dae_FloorName=name, LoadLandscape_id=s['landscape_id'])
-						tag = Tag.objects.get(TagId=i['tag_id'])
-						flrchange = FlrChange(ChangeTime=datetime.datetime.now(), FlrNew_id=floor.id, Tag_id=tag.TagId)
-						flrchange.save()
-						i['floor'] = name
-						return False
+						try:
+							floor = Floor.objects.get(dae_FloorName=name, LoadLandscape_id=s['landscape_id'])
+							tag = Tag.objects.get(TagId=i['tag_id'])
+							flrchange = FlrChange(ChangeTime=datetime.datetime.now(), FlrNew_id=floor.id, Tag_id=tag.TagId)
+							flrchange.save()
+							i['floor'] = name
+							return False
+						except:
+							return False
 		# наполняем kabinet
 		if not('kabinet' in i):
 			for s in static:
@@ -269,12 +285,15 @@ def UniqueToStatic():
 					name = findMatchingStatic(i, i['zone_id'], 'kabinet')
 					if i['kabinet'] and name and name != i['kabinet']:
 						# запись в базу изменений kabinet
-						kabinet = Kabinet_n_Outer.objects.get(dae_Kabinet_n_OuterName=name, LoadLandscape_id=s['landscape_id'])
-						tag = Tag.objects.get(TagId=i['tag_id'])
-						kbntchange = KbntChange(ChangeTime=datetime.datetime.now(), KbntNew_id=kabinet.id, Tag_id=tag.TagId)
-						kbntchange.save()
-						i['kabinet'] = name
-						return False
+						try:
+							kabinet = Kabinet_n_Outer.objects.get(dae_Kabinet_n_OuterName=name, LoadLandscape_id=s['landscape_id'])
+							tag = Tag.objects.get(TagId=i['tag_id'])
+							kbntchange = KbntChange(ChangeTime=datetime.datetime.now(), KbntNew_id=kabinet.id, Tag_id=tag.TagId)
+							kbntchange.save()
+							i['kabinet'] = name
+							return False
+						except:
+							return False
 
 # найти подходящий под вектор объект, типы искомых объектов в obj_type
 def findMatchingStatic(obj, landscape_id, obj_type):
@@ -343,10 +362,16 @@ def receive_slmp(request):
 							i['zNew'] = float(dictionary['z'])
 							i['time'] = dictionary['zone']
 							i['zone_id'] = dictionary['zone_id']
+							i['cron'] = 0
 							#быстрая корректировка
 							correctFast(i)
 							doubled = 1
 					if not(doubled):
+						try:
+							t = Tag.objects.get(TagId=dictionary['tag_id'])
+							TurnOnOffTag(Tag_id=t.TagId, OnOff=1, OnOffTime=datetime.datetime.now()).save()
+						except:
+							pass
 						unique.append(dictionary)
 		# включаем функцию корректировки по милисекундам
 		if len(tumbler) == 0:
@@ -458,6 +483,10 @@ def values(request, landscape_id='0000'):
 	args['walls'] = Wall.objects.filter(LoadLandscape_id=landscape_id)
 	args['username'] = auth.get_user(request).id
 	args['landscape_id'] = landscape_id
+	args['tags'] = Tag.objects.all()
+	args['taggroup'] = TagGroup_Tag.objects.filter(User_id=auth.get_user(request).id).values( \
+		'Tag_id', 'User_id', 'TagGroup__GroupName', 'TagGroup__MeshGeometry', 'TagGroup__MeshColor', \
+		'TagGroup__CircleColor')
 	return render(request, 'values.html', args)
 
 # def getmarksvalues(request):
@@ -500,7 +529,7 @@ def landscapeloadform(request, result='error'):
 				obj = LoadLandscape.objects.get(landscape_id=landscape_id)
 				LoadLandscape.objects.filter(landscape_id=landscape_id).update(landscape_name=landscape_name, landscape_id=landscape_id, landscape_source=landscape_source)
 			except:
-				data = LoadLandscape(landscape_name=landscape_name, landscape_id=l_id, landscape_source=landscape_source).save()
+				data = LoadLandscape(landscape_name=landscape_name, landscape_id=l_id, landscape_source=landscape_source, circle_step_symbol=0, get_wall_height_symbol=0, light_target_symbol=0).save()
 			return redirect('/landscapetreeload/%s' %l_id)
 		return render(request, 'landscapeloadform.html', args)
 	elif result == 'success':
@@ -612,11 +641,13 @@ def landscape_save(request):
 									for vert in v['vertices']:
 										VerticesKabinet_n_Outer(x=vert['x'], y=vert['y'], Kabinet_n_Outer_id=kabinet_n_outer.id, LoadLandscape_id=landscape_id).save()
 							if 'kabinet' in x['name']:
-								for y in x['children']:
-									dae_WallName = y['name']
-									wall = Wall(dae_WallName=dae_WallName, Kabinet_n_Outer_id=kabinet_n_outer.id, LoadLandscape_id=landscape_id)
-									wall.save()
-
+								try:
+									for y in x['children']:
+										dae_WallName = y['name']
+										wall = Wall(dae_WallName=dae_WallName, Kabinet_n_Outer_id=kabinet_n_outer.id, LoadLandscape_id=landscape_id)
+										wall.save()
+								except:
+									pass
 		return JsonResponse({'string': string})
 
 # sockjs manipulations
@@ -761,17 +792,17 @@ def simplereport(request, parameters=0):
 				# строения
 				bldchange = BldChange.objects.filter(Tag_id=unique). \
 				values('Tag__TagType', 'Tag__Group', 'Tag__Name', 'ChangeTime', \
-				 'BldNew__dae_BuildingName').order_by('-ChangeTime')
+				 'BldNew__dae_BuildingName', 'BldNew__BuildingName').order_by('-ChangeTime')
 				args['bldchange'] = bldchange
 				# этажи
 				flrchange = FlrChange.objects.filter(Tag_id=unique). \
 				values('Tag__TagType', 'Tag__Group', 'Tag__Name', 'ChangeTime', \
-				 'FlrNew__dae_FloorName').order_by('-ChangeTime')
+				 'FlrNew__dae_FloorName', 'FlrNew__FloorName').order_by('-ChangeTime')
 				args['flrchange'] = flrchange
 				# кабинеты
 				kbntchange = KbntChange.objects.filter(Tag_id=unique). \
 				values('Tag__TagType', 'Tag__Group', 'Tag__Name', 'ChangeTime', \
-				 'KbntNew__dae_Kabinet_n_OuterName').order_by('-ChangeTime')
+				 'KbntNew__dae_Kabinet_n_OuterName', 'KbntNew__Kabinet_n_OuterName').order_by('-ChangeTime')
 				args['kbntchange'] = kbntchange
 		else:
 			args['error'].append({'empty_unique': True})
@@ -833,3 +864,144 @@ def match(request):
 
 def getactiveusers(request):
 	return HttpResponse(active_users)
+
+# Object Name define module
+def definemain(request, parameters=9999):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	args['parameters'] = parameters
+	args['landscape'] = LoadLandscape.objects.all()
+	if parameters == '9999':
+		parameters = '0000'
+	args['buildings'] = Building.objects.filter(LoadLandscape_id=parameters)
+	args['floors'] = Floor.objects.filter(LoadLandscape_id=parameters)
+	args['kabinets'] = Kabinet_n_Outer.objects.filter(LoadLandscape_id=parameters).exclude(dae_Kabinet_n_OuterName__icontains='outer')
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		LoadLandscape.objects.filter(landscape_id=string['landscape']['id']).update(landscape_name=string['landscape']['name'])
+		for b in string['building']:
+			Building.objects.filter(id=b['id']).update(BuildingName=b['name'])
+		for f in string['floor']:
+			Floor.objects.filter(id=f['id']).update(FloorName=f['name'])
+		for k in string['kabinet']:
+			Kabinet_n_Outer.objects.filter(id=k['id']).update(Kabinet_n_OuterName=k['name'])
+		return JsonResponse({'string': string})
+	return render(request, 'definemain.html', args)
+
+# TagGroup define module
+def definetaggroup(request, parameters=1, geomtype='sphere'):
+	args = {}
+	args['error'] = []
+	if request.method=='POST':
+		string = simplejson.loads(request.body)
+		for i in string['geometry']['parameters']:
+			if not (i['value'] > 0):
+				args['error'].append({'name': i['name'], 'type':'empty_input', 'ru': 'пустое поле'})
+		if len(args['error']) > 0:
+			# возвращаем ошибки
+			return JsonResponse({'error': args['error']})
+		else:
+			#пишем
+			user = User.objects.get(id=auth.get_user(request).id)
+			TagGroup.objects.filter(User_id=user.id, id=string['groupid']).update( \
+				GroupName=string['groupname'], MeshGeometry=string['geometry'], \
+				MeshColor=string['meshcolor'], CircleColor=string['circlecolor'], \
+				User_id=user.id)
+			return JsonResponse({'string': string});
+	args['username'] = auth.get_user(request).id
+	args['parameters'] = int(parameters)
+	args['geomtype'] = geomtype
+	args['groups'] = TagGroup.objects.all()
+	args['geometry'] = [{'type': 'sphere', 'ru': 'сфера', 'parameters': \
+	 [{'name': 'radius', 'ru': 'радиус'}, {'name': 'widthsegments', 'ru': 'сегментов по ширине'}, \
+	  {'name': 'heigthsegments', 'ru': 'сегментов по высоте'} ]}, \
+	  {'type': 'box', 'ru': 'куб', 'parameters': \
+	   [{'name':'width', 'ru': 'ширина'}, {'name': 'heigth' , 'ru': 'высота'}, \
+	    {'name':'depth', 'ru': 'глубина'}]}, \
+	  {'type': 'torus', 'ru': 'кольцо', 'parameters': [{'name':'radius', 'ru':'радиус'}, \
+	   {'name': 'tube', 'ru': 'ширина'}, {'name':'radialsegments', 'ru': 'боковых сегментов'}, \
+	   {'name': 'tubularsegments', 'ru': 'продольных сегментов'}]}, \
+	   {'type': 'cylinder', 'ru': 'цилиндр', 'parameters': \
+	    [{'name':'radiustop', 'ru': 'радиус верхней части'}, \
+	    {'name': 'radiusbottom', 'ru': 'радиус нижней части'}, \
+	     {'name': 'heigth', 'ru': 'высота'}, {'name': 'radiussegments', 'ru': 'количество ребер'}]}
+	  ]
+	return render(request, 'definetaggroup.html', args)
+
+def taggroupmanager(request, user=1):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	args['username_name'] = User.objects.get(id=args['username'])
+	args['groups'] = TagGroup.objects.filter(User_id=args['username'])
+	meshtype = []
+	for group in args['groups']:
+		meshtype.append({'id': group.id, 'type': group.MeshGeometry['type']})
+	args['meshtype'] = meshtype
+	if request.method == "POST":
+		string = simplejson.loads(request.body)
+		if string['action'] == 'add':
+			TagGroup(GroupName='Новая группа', User_id=auth.get_user(request).id, \
+			 MeshGeometry={'type':'box', 'parameters':[{'name': 'width', 'value': 0.3}, \
+			 {'name': 'heigth' , 'value':0.3}, {'name': 'depth', 'value':0.3}]}).save()
+			return JsonResponse({'ok': 'ok'})
+		if string['action'] == 'delete':
+			groupid = string['id']
+			TagGroup(id=groupid).delete()
+			return JsonResponse({'ok': 'ok'})
+	return render(request, 'taggroupmanager.html', args)
+
+def taginoutgroup(request, group=1):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	args['username_name'] = User.objects.get(id=args['username'])
+	args['groupid'] = group
+	args['group'] = TagGroup.objects.get(User_id=auth.get_user(request).id, id=group)
+	args['tag'] = Tag.objects.all()
+	args['tagothergroup'] = TagGroup_Tag.objects.filter(User_id= \
+		auth.get_user(request).id).exclude(TagGroup_id=group).values('Tag_id', \
+		 'TagGroup__GroupName', 'TagGroup_id')
+	args['taggroup_tag'] = TagGroup_Tag.objects.filter(TagGroup_id=group, \
+	 User_id=auth.get_user(request).id).values('Tag__TagId', 'Tag__TagType', 'Tag__Name')
+	unregistred = []
+	for i in unique:
+		getinunique = 0
+		for t in args['tag']:
+			if i['tag_id'] == t.TagId:
+				getinunique = 1
+		if getinunique == 0:
+			unregistred.append(i)
+	args['unregistred'] = unregistred
+	if request.method == "POST":
+		string = simplejson.loads(request.body)
+		tagid = string['tagid']
+		groupid = string['groupid']
+		action = string['action']
+		if (action == 'link' and len(TagGroup_Tag.objects.filter(Tag_id=tagid, \
+		 TagGroup_id=groupid, User_id=auth.get_user(request).id)) == 0):
+			TagGroup_Tag(Tag_id=tagid, TagGroup_id=groupid, User_id=auth.get_user(request).id \
+				).save()
+		if (action == 'unlink'):
+			TagGroup_Tag.objects.filter(Tag_id=tagid, TagGroup_id=groupid, User_id=auth.get_user(request).id).delete()
+		return JsonResponse({'ok': 'ok'})
+	return render(request, 'taginoutgroup.html', args)
+
+def tagregister(request, tag_id=0):
+	args = {}
+	args['error'] = []
+	args['tag_id'] = tag_id
+	args['username'] = auth.get_user(request).id
+	try:
+		args['tag'] = Tag.objects.get(TagId=tag_id)
+	except:
+		pass
+	if request.method == "POST":
+		TagType = request.POST['TagType']
+		Name = request.POST['Name']
+		if not(Name):
+			args['error'].append({'name': 'Отсутствует имя'})
+		if not(TagType):
+			args['error'].append({'type': 'Отстутствует тип метки'})
+		if (len(args['error']) == 0) :
+			Tag(TagId=tag_id, TagType=TagType, Name=Name).save()
+			args['success'] = 'Информация успешно внесена'
+	return render(request, 'tagregister.html', args)

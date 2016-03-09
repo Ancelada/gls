@@ -1,0 +1,33 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% if username %}
+	<form action="/tagregister/{{tag_id}}" method="POST">
+		<h1>Регистрация метки {{tag_id}}</h1>
+		<label for="TagType"><h3>Тип метки</h3>
+	  <p><input type="text" placeholder="человек/ товарно-материальная ценность" name="TagType" value="{% if tag %}{{tag.TagType}}{% endif %}"></p>
+	  </label>
+	  {% for err in error %}
+		  {% if err.type %}
+		  	<span class="alert label">{{err.type}}</span>
+	  	{% endif %}
+  	{% endfor %}
+	  <label for="Name"><h3>Наименование</h3>
+	  <p><input type="text" placeholder="Иванов Иван Иванович" name="Name" value="{% if tag %}{{tag.Name}}{% endif%}"></p>
+	  </label>
+	  {% for err in error %}
+	  	{% if err.name %}
+	  		<span class="alert label">{{err.name}}</span>
+	  	{% endif %}
+	  {% endfor %}
+	  {% if success %}
+	  	<span class="success label">{{success}}</span>
+	  {% endif %}
+	  <p><input class="button" type="submit" value="Сохранить"></p>
+  </form>
+	{% else %}
+  <div class="row">
+    <h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  </div>
+	{% endif %}
+{% endblock %}

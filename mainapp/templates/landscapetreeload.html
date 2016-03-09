@@ -87,6 +87,84 @@
 
 		    loader.load( '/static/js/webgl/models/{{source}}', function ( collada ) {
 				loader.options.convertUpAxis = true;
+				//функция преобразования относительных вершин к центру 0
+				function relativeCenter(obj){
+					var planeGeometry = new THREE.Geometry();
+					$.each(obj.geometry.vertices, function(index){
+						x = obj.geometry.vertices[index].x;
+						y = obj.geometry.vertices[index].y;
+						z = obj.geometry.vertices[index].z;
+						planeGeometry.vertices.push(
+							new THREE.Vector3(x, y, z)
+						)
+					});
+					$.each(obj.geometry.faces, function(index){
+						a = obj.geometry.faces[index].a;
+						b = obj.geometry.faces[index].b;
+						c = obj.geometry.faces[index].c;
+						planeGeometry.faces.push(
+							new THREE.Face3(a, b, c)
+						)
+					});
+					planeGeometry.computeBoundingSphere();
+
+					var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide});
+					var p = new THREE.Mesh(planeGeometry, planeMaterial);
+					var bbox = new THREE.Box3().setFromObject(p);
+					a = getCenter(bbox);
+					obj.geometry.relativeMin = bbox.min;
+					obj.geometry.relativeMax = bbox.max;
+					x = a['x']
+					y = a['y']
+					obj.geometry.relativeVertices = [];
+					$.each(obj.geometry.vertices, function(index){
+						obj.geometry.relativeVertices[index] = new THREE.Vector3(0, 0, 0);
+					});
+					if (x > 0 || x == 0) {
+						$.each(obj.geometry.vertices, function(index){
+							obj.geometry.relativeVertices[index].x = obj.geometry.vertices[index].x - x;
+						});
+					} else if (x < 0 || x == 0){
+						$.each(obj.geometry.vertices, function(index){
+							obj.geometry.relativeVertices[index].x = obj.geometry.vertices[index].x + x;
+						});
+					}
+					if (y > 0 || y == 0) {
+						$.each(obj.geometry.vertices, function(index){
+							obj.geometry.relativeVertices[index].y = obj.geometry.vertices[index].y + y;
+						});
+					} else if (y < 0 || y == 0){
+						$.each(obj.geometry.vertices, function(index){
+							obj.geometry.relativeVertices[index].y = obj.geometry.vertices[index].y - y;
+						});
+					}
+						//снова создаем объекты, чтобы найти min max
+						var planeGeometry = new THREE.Geometry();
+						$.each(obj.geometry.relativeVertices, function(index){
+							x = obj.geometry.relativeVertices[index].x;
+							y = obj.geometry.relativeVertices[index].y;
+							z = 0;
+							planeGeometry.vertices.push(
+								new THREE.Vector3(x, y, z)
+							)
+						});
+						$.each(obj.geometry.faces, function(index){
+							a = obj.geometry.faces[index].a;
+							b = obj.geometry.faces[index].b;
+							c = obj.geometry.faces[index].c;
+							planeGeometry.faces.push(
+								new THREE.Face3(a, b, c)
+							)
+						});
+						planeGeometry.computeBoundingSphere();
+
+						var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide});
+						var p = new THREE.Mesh(planeGeometry, planeMaterial);
+						/*scene.add(p);*/
+						var bbox = new THREE.Box3().setFromObject(p);
+						obj.geometry.relativeMin = bbox.min;
+						obj.geometry.relativeMax = bbox.max;
+				}
 
 		        //функция поиска центра collada объекта на оси координат
 		        var getCenter = function(obj){
@@ -143,9 +221,9 @@
 
 		    	//gls.dae
 		    	var dae = collada.scene;
-		    	/*dae.position.set(28.141,59.087,8.6);*/
-		    	x = 59;
-		    	y = 28;
+		    	/*dae.position.set(72,29,6);*/
+		    	x = 72;
+		    	y = 29;
 		    	z = 6;
 		    	dae.position.set(x, y, z);
 		    	sceneOptions['DaePosition'] = {};
@@ -196,10 +274,10 @@
 		                    bld.BoxMax = bbox['max'];
 		                    a = getCenter(bbox);
 		                    bld.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		                    //приводим относительные вершины к центру 0
+		             		relativeCenter(bld);
 		                    //преобразуем вершины
 		                    verticesTransition(bld);
-		                    //наполняем vertices
-		                    /*verticesDict['element'].push({'name': bld.name, 'vertices': bld.Geometry, 'BoxMin': bld.BoxMin, 'BoxMax': bld.BoxMax});*/
 		                building = colladaObjects['landscape'][0]['children'][no].parent.children;
 		                //**наполняем floor
 		                var noFloor = 0
@@ -207,17 +285,22 @@
 		                    if (building[value].name.indexOf('floor') != -1){
 		                        colladaObjects['landscape'][0].children[no].children.push(building[value].children[0]);
 		                        colladaObjects['landscape'][0].children[no].children[noFloor].name = building[value].name;
+		                        	flr = colladaObjects['landscape'][0].children[no].children[noFloor];
+    			                    //добавляем свойство Z angle
+		            		        setZangle(dae, flr);
 		                            // ищем центр floor
-		                            flr = colladaObjects['landscape'][0].children[no].children[noFloor];
 		                            var bbox = new THREE.Box3().setFromObject(flr.parent);
 		                            flr.BoxMin = bbox['min'];
 		                            flr.BoxMax = bbox['max'];
 		                            a = getCenter(bbox);
 		                            flr.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		                            //приводим относительные вершины к центру 0 
+                                   	relativeCenter(flr);
 		                            // преобразуем вершины
 		                            verticesTransition(flr);
-		                            // наполняем vertices
-		                            /*verticesDict['element'].push({'name':flr.name, 'vertices': flr.Geometry, 'BoxMin': flr.BoxMin, 'BoxMax': flr.BoxMax});*/
+		                            //для андрея высота и центр этажей
+		                            flr.CenterZ = flr.BoxMin.z + Math.abs(flr.BoxMax.z - flr.BoxMin.z)/2;
+		                            flr.HeightZ = Math.abs(flr.BoxMax.z - flr.BoxMin.z)
 		                        //** наполняем kabinet и outer
 		                        floor = colladaObjects['landscape'][0]['children'][no]['children'][noFloor].parent.children;
 		                        var noKabinet = 0;
@@ -225,17 +308,21 @@
 		                            if(floor[value].name.indexOf('kabinet') != -1){
 		                                colladaObjects['landscape'][0].children[no]['children'][noFloor].children.push(floor[value].children[0]);
 		                                colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet].name = floor[value].name;
+		                                	kbnt = colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet];
+    	    			                    //добавляем свойство Z angle
+		            				        setZangle(dae, kbnt);
+		            				        //обнуляем Z
+		                    				clearZ(dae, kbnt, colladaObjects['landscape'][0]['Zangle']);
 		                                    // ищем центр kabinet
-		                                    kbnt = colladaObjects['landscape'][0].children[no]['children'][noFloor].children[noKabinet];
 		                                    var bbox = new THREE.Box3().setFromObject(kbnt.parent);
 		                                    kbnt.BoxMin = bbox['min'];
 		                                    kbnt.BoxMax = bbox['max'];
 		                                    a = getCenter(bbox);
 		                                    kbnt.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		                                    //приводим относительные вершины к центру 0 
+                                   			relativeCenter(kbnt);
 		                                    // преобразуем вершины
 		                                    verticesTransition(kbnt);
-		                                    // наполняем vertices
-		                                    /*verticesDict['element'].push({'name':kbnt.name, 'vertices': kbnt.Geometry, 'BoxMin': kbnt.BoxMin, 'BoxMax': kbnt.BoxMax});*/
 		                                //** наполняем wall
 		                                kabinet = colladaObjects['landscape'][0]['children'][no]['children'][noFloor]['children'][noKabinet].parent.children;
 		                                var noWall = 0;
@@ -348,6 +435,29 @@
 		    	toDaePosition(dae.children[0], 'floor', angleZ, angleX, angleY);
 
 		    	toDaePosition(dae.children[0], 'kabinet', angleZ, angleX, angleY);
+
+		    	// функция разворота вершин kabinet, если есть поворот по z
+		    	function rotateObjectVertices(dae, objectType){
+		    		if (dae.children){
+		    			for(var i=0; i < dae.children.length; i++){
+		    				if (dae.children[i].name.indexOf(objectType) != -1 && dae.children[i].Zangle != 0){
+		    					angleZ = dae.children[i].Zangle;
+		    					name = dae.children[i].name;
+		    					$.each(dae.children[i].Geometry, function(index){
+									//z
+									object = dae.children[i];
+		    						x = object.Geometry[index]['x'];
+		    						y = object.Geometry[index]['y'];
+									x2 = r(x, y, angleZ, 'x');
+									y2 = r(x, y, angleZ, 'y');
+		    						object.Geometry[index]['x'] = x2;
+		    						object.Geometry[index]['y'] = y2;
+		    					});
+		    				}
+		    				rotateObjectVertices(dae.children[i], objectType);
+		    			}
+		    		}
+		    	}
 
 		    	function toDaePosition(dae, text, angleZ, angleX, angleY){
 		    		if(dae.children){
@@ -513,7 +623,7 @@
 	    							if (dae.children[i].Center['x'] > 0 && Offset['x'] > 0) {
 		    							Geometry[index]['x'] = Geometry[index]['x'] - Offset['x'];
 	    							} else if (dae.children[i].Center['x'] < 0 && Offset['x'] > 0){
-	    								Geometry[index]['x'] = Geometry[index]['x'] - Offset['x'];
+	    								Geometry[index]['x'] = Geometry[index]['x'] + Offset['x'];
 	    							} else {
 	    								Geometry[index]['x'] = Geometry[index]['x'] - Offset['x'];
 	    							}
@@ -533,17 +643,22 @@
 		    		}
 		    	}
 
+		    	//поворачиваем kabinet на Zangle
+		    	rotateBuilding(colladaObjects['landscape'][0], 'kabinet');
+		    	//поворачиваем вершины kabinet на Zangle
+		    	rotateObjectVertices(colladaObjects['landscape'][0], 'kabinet');
+
 		    	//поворачиваем building на Zangle
-		    	rotateBuilding(colladaObjects['landscape'][0]);
-		    	function rotateBuilding(dae){
+		    	rotateBuilding(colladaObjects['landscape'][0], 'building');
+		    	function rotateBuilding(dae, objectType){
 		    		if(dae.children){
 		    			for(var i = 0; i < dae.children.length; i++){
-		    				if (dae.children[i].name.indexOf('building')!= -1 && dae.children[i].Zangle != undefined){
+		    				if (dae.children[i].name.indexOf(objectType)!= -1 && dae.children[i].Zangle != undefined){
 		    					Zangle = dae.children[i].Zangle;
 		    					building = dae.children[i].parent;
 		    					building.rotation.z = Zangle;
 		    				}
-		    				rotateBuilding(dae.children[i]);
+		    				rotateBuilding(dae.children[i], objectType);
 		    			}
 		    		}
 		    	}
@@ -578,9 +693,8 @@
 		    			}
 		    		}
 		    	}
-		    	console.log(sceneOptions);
 		    	//записываем результат в БД
-/*				$.ajax({
+				/*$.ajax({
 					type:"POST",
 					url:"/landscape_save",
         			data: JSON.stringify({'landscape_id': '{{landscape_id}}'.toString(), colladaObjects, verticesDict, sceneOptions}),
@@ -592,11 +706,11 @@
 		          		/*console.log(data);
 		          	}
 				});*/
-
 				//ищу floor
 	    		var floorVert = [];
+	    		var floorFaces = [];
 				var floor_003 = [];
-		        lookColladaId(dae, 'floor_002', floor_003);
+		        lookColladaId(dae, 'kabinet_002', floor_003);
 		        function lookColladaId(dae, text, array){
 		        	if (dae.children){
 		        		for (var i = 0; i < dae.children.length; i++){
@@ -608,30 +722,34 @@
 		        		}
 		        	}
 		        }
+
 		    	$.each(floor_003[0].children[0].Geometry, function(index){
 					value = floor_003[0].children[0].Geometry[index];
 					floorVert.push({'x': value['x'], 'y': value['y']});
 				});
+
+				$.each(floor_003[0].children[0].geometry.faces, function(index){
+					value = floor_003[0].children[0].geometry.faces[index];
+					floorFaces.push({'a': value['a'], 'b': value['b'], 'c': value['c']});
+				});
+
 				//проверить плоскость правильно ли отображается
 				var planeGeometry = new THREE.Geometry();
 				$.each(floorVert, function(index){
 					x = floorVert[index]['x'];
 					y = floorVert[index]['y'];
 					planeGeometry.vertices.push(
-						new THREE.Vector3(x, y, 0)
+						new THREE.Vector3(x, y, 5)
 					)
 				});
-				planeGeometry.faces.push(
-					new THREE.Face3(1, 3, 2),
-					new THREE.Face3(0, 1, 2)
-					/*new THREE.Face3(1, 8, 5),
-					new THREE.Face3(5, 2, 0),
-					new THREE.Face3(0, 1, 5),
-					new THREE.Face3(8, 7, 3),
-					new THREE.Face3(1, 6, 8),
-					new THREE.Face3(4, 5, 8),
-					new THREE.Face3(8, 3, 4)*/
-				);			
+				$.each(floorFaces, function(index){
+					a = floorFaces[index]['a'];
+					b = floorFaces[index]['b'];
+					c = floorFaces[index]['c'];
+					planeGeometry.faces.push(
+						new THREE.Face3(a, b, c)
+					)
+				});
 
 				planeGeometry.computeBoundingSphere();
 
@@ -642,10 +760,10 @@
 				scene.add(p);
 
 		    	// helper sphere
-		    	/*geometry = new THREE.SphereGeometry(5, 32, 32);
+		    	/*geometry = new THREE.SphereGeometry(2, 32, 32);
 		    	material = new THREE.MeshBasicMaterial({color: 0xbbbbbb});
 		    	var sph = new THREE.Mesh(geometry, material);
-		    	sph.position.set(25.171, 53.190, 10);
+		    	sph.position.set(0, 28.11, 0);
 		    	scene.add(sph);*/
 		    });
 			//фунцкция преобразования вершин отдельных объектов из относительных в абсолютные(dae файл - upaxis - down)
@@ -655,33 +773,33 @@
 	           	var ymin = 0;
 	           	var ymax = 0;
 	           	object.Geometry = [];
-	            $.each(object.geometry.vertices, function(index){
+	            $.each(object.geometry.relativeVertices, function(index){
 	            	object.Geometry.push({'x': 0, 'y': 0});
 	            	if (xmin == 0){
-	            		xmin = object.geometry.vertices[index].x;
-	            	} else if (object.geometry.vertices[index].x < xmin){
-	            		xmin = object.geometry.vertices[index].x;
+	            		xmin = object.geometry.relativeVertices[index].x;
+	            	} else if (object.geometry.relativeVertices[index].x < xmin){
+	            		xmin = object.geometry.relativeVertices[index].x;
 	            	}
 	            	if (xmax == 0){
-	            		xmax = object.geometry.vertices[index].x;
-	            	} else if (object.geometry.vertices[index].x > xmax){
-	            		xmax = object.geometry.vertices[index].x;
+	            		xmax = object.geometry.relativeVertices[index].x;
+	            	} else if (object.geometry.relativeVertices[index].x > xmax){
+	            		xmax = object.geometry.relativeVertices[index].x;
 	            	}
 
 	            	if (ymin == 0){
-	            		ymin = object.geometry.vertices[index].y;
-	            	} else if (object.geometry.vertices[index] < ymin){
-	            		ymin = object.geometry.vertices[index].y;
+	            		ymin = object.geometry.relativeVertices[index].y;
+	            	} else if (object.geometry.relativeVertices[index] < ymin){
+	            		ymin = object.geometry.relativeVertices[index].y;
 	            	}
 	            	if (ymax == 0){
-	            		ymax = object.geometry.vertices[index].y;
-	            	} else if (object.geometry.vertices[index].y > ymax){
-	            		ymax = object.geometry.vertices[index].y;
+	            		ymax = object.geometry.relativeVertices[index].y;
+	            	} else if (object.geometry.relativeVertices[index].y > ymax){
+	            		ymax = object.geometry.relativeVertices[index].y;
 	            	}
 	            });
-				$.each(object.geometry.vertices, function(index){
-					x = object.geometry.vertices[index].x;
-					y = object.geometry.vertices[index].y;
+				$.each(object.geometry.relativeVertices, function(index){
+					x = object.geometry.relativeVertices[index].x;
+					y = object.geometry.relativeVertices[index].y;
 					if (x == xmin){
 						object.Geometry[index].x = object.BoxMin.x;
 					}
@@ -696,26 +814,38 @@
 					}
 					//если y отрицательное число
 					if (y != ymin && y < 0){
-						yDistanse = Math.abs(object.BoxMin.y - object.Center.y);
-						k = y/ymin;
+						yDistanse = Math.abs(object.BoxMin.y - object.BoxMax.y)/2;
+						//ищем коэфициент
+						relY = object.geometry.relativeVertices[index].y;
+						relminY = object.geometry.relativeMin.y;
+						k = Math.abs(relY/relminY);
 						object.Geometry[index].y = object.Center.y - yDistanse*k;
 					}
 					//ecли у положительное число
 					if (y != ymax && y > 0){
-						yDistanse = Math.abs(object.Center.y - object.BoxMax.y);
-						k = y/ymax;
+						yDistanse = Math.abs(object.BoxMin.y - object.BoxMax.y)/2;
+						//ищем коэфициент
+						relY = object.geometry.relativeVertices[index].y;
+						relmaxY = object.geometry.relativeMax.y;
+						k = Math.abs(relY/relmaxY);
 						object.Geometry[index].y = object.Center.y + yDistanse*k;
 					}
 					//если x отрицательное число
 					if (x != xmin && x < 0){
-						xDistanse = Math.abs(object.BoxMin.x - object.Center.x);
-						k = x/xmin;
+						xDistanse = Math.abs(object.BoxMin.x - object.BoxMax.x)/2;
+						//ищем коэфициент
+						relX = object.geometry.relativeVertices[index].x;
+						relminX = object.geometry.relativeMin.x;
+						k = Math.abs(relX/relminX);
 						object.Geometry[index].x = object.Center.x - xDistanse*k;
 					}
 					//если x положительное число
 					if (x != xmax && x > 0){
-						xDistanse = Math.abs(object.Center.x - object.BoxMax.x);
-						k = x/xmax;
+						xDistanse = Math.abs(object.BoxMin.x - object.BoxMax.x)/2;
+						//ищем коэфициент
+						relX = object.geometry.relativeVertices[index].x;
+						relmaxX = object.geometry.relativeMax.x;
+						k = Math.abs(relX/relmaxX);
 						object.Geometry[index].x = object.Center.x + xDistanse*k;
 					}
 				});

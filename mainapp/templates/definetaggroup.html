@@ -1,0 +1,137 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+{% csrf_token %}
+{% load jsonify %}
+{% if username %}
+<fieldset>
+	<h1>Настройка параметров группы меток</h1>
+	<a href="/taggroupmanager" class="button">Перейти к управлению группами</a>
+	<form action="" method="POST" class="large-12 small-12 columns">
+		<label for="groupid">
+			<h3>Группа</h3>
+			<select name="groupid" id="groupid">
+				{% for g in groups %}
+					{% if g.User_id == username %}
+					<option value="{{g.id}}" {% if g.id == parameters %}selected="selected"{% endif %}>{{g.GroupName}}</option>
+					{% endif %}
+				{% endfor %}
+			</select>
+		</label>
+		<label for="groupname">
+			<h3>Изменить наименование</h3>
+			<input type="text" id="groupname" value="{% for g in groups %}{% if g.id == parameters %}{{g.GroupName}}{% endif %}{% endfor %}" placeholder="Наименование группы">
+		</label>
+		<fieldset class="fieldset">
+			<h3>Геометрия меток</h3>
+			<select name="geometry" id="geometry">
+				{% for g in geometry %}
+					<option value="{{g.type}}" {% if g.type == geomtype %}selected="selected"{% endif %}>{{g.ru}}</option>
+				{% endfor %}
+			</select>
+			{% for g in geometry %}
+				{% if g.type == geomtype %}
+					{% for param in g.parameters %}
+						<h4>{{param.ru}}</h4>
+						<input type="number" step="0.1" placeholder="число" data-id="{{param.name}}" class="geometryparams" min="0">
+					{% endfor %}
+				{% endif %}
+			{% endfor %}
+		</fieldset>
+		<h3>Цвет меток</h3>
+		<input class="jscolor" value="{% for group in groups %}{% if group.id == parameters %}{{group.MeshColor}}{% endif %}{% endfor%}" id="meshcolor">
+		<h3>Цвет круга отклонений</h3>
+		<input class="jscolor" value="{% for group in groups %}{% if group.id == parameters %}{{group.CircleColor}}{% endif %}{% endfor %}" id="circlecolor">
+		<br>
+		<br>
+		<span class="button secondary" id="submit">Сохранить</span>
+	</form>
+</fieldset>
+{% else %}
+  <div class="row">
+    <h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  </div>
+{% endif %}
+<script>
+	$(document).ready(function(){
+		MeshGeometry = {};
+		{% for group in groups %}
+			{% if group.id == parameters %}
+				MeshGeometry = {{group.MeshGeometry|jsonify}}
+			{% endif %}
+		{% endfor %}
+
+		$.each($('input.geometryparams'), function(){
+			i = $(this);
+			name = i.attr('data-id');
+			$.each(MeshGeometry['parameters'], function(index){
+				if (MeshGeometry['parameters'][index]['name'] == name){
+					i.val(MeshGeometry['parameters'][index]['value']);
+				}
+			});
+		});
+	});
+	//событие сохранить
+	$('#submit').on('click', function(){
+		parameters = {};
+		parameters['groupid'] = {{parameters}}
+		parameters['groupname'] = $('input#groupname').val();
+		parameters['geometry'] = {};
+		parameters['geometry']['type'] = $('option:selected', '#geometry').val();
+		parameters['geometry']['parameters'] = [];
+		$.each($('input.geometryparams'), function(){
+			i = $(this);
+			obj = parameters['geometry']['parameters'];
+			name = i.attr('data-id');
+			value = parseFloat(i.val());
+			obj.push({'name' : name, 'value': value});
+		});
+
+		parameters['meshcolor'] = $('input#meshcolor').val();
+		parameters['circlecolor'] = $('input#circlecolor').val();
+		parameters['username'] = {{username}};
+
+		$.ajax({
+	 		type: "POST",
+	 		url: "/definetaggroup/"+"{{parameters}}"+"/"+"{{geomtype}}",
+	 		data: JSON.stringify(parameters),
+			contentType: "application/json; charset=utf-8",
+      dataType: 'json',
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		//очищаем параметры
+    		parameters['geometry']['parameters'] = [];
+    		//высвечиваем ошибки
+    		$('span.empty_input').remove();
+    		if (data.error){
+    			$.each(data.error, function(i){
+    				iobj = data.error[i];
+    				$.each($('input.geometryparams'), function(){
+    					jobj = $(this);
+    					if(iobj.name == jobj.attr('data-id')){
+    						$(this).after('<span class="alert label empty_input">'+ iobj.ru +'</span>');
+    					};
+    				});		
+    			});
+    		} else{
+    			$('div.success.callout').remove();
+    			$("<div class='success callout' data-closable><p>Информация успешно сохранена</p><button class='close-button' aria-label='Dismiss alert' type='button' data-close><span aria-hidden='true'>&times;</span></button></div>").insertBefore('span.button');
+    		}
+    	}
+	 	});
+	})
+	
+	$('#groupid').on('change', function(){
+		a = $('option:selected', this).val();
+		b = $('option:selected', '#geometry').val();
+		window.location = '/definetaggroup/'+ a +'/' + b;
+	});
+
+	$('#geometry').on('change', function(){
+		a = $('option:selected', '#groupid').val();
+		b = $('option:selected', this).val();
+		window.location = '/definetaggroup/' + a + '/' + b;
+	});
+</script>
+{% endblock %}

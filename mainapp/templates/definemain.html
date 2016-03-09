@@ -1,0 +1,125 @@
+{% extends 'main.html' %}
+
+{% block content %}
+		<div class="row">
+			<fieldset class="large-12 small-12 columns">
+			<h1>Изменить информацию об объектах сцены</h1>
+			<form action="" method="POST" class="large-12 small-12 columns">
+				{% csrf_token %}
+				<label for="scene_id">
+					<h3>Идентификатор сцены</h3>
+					<select name="scene_id" id="scene_id">
+						{% for l in landscape %}
+							<option value="{{l.landscape_id}}" {% if parameters == l.landscape_id %}selected="selected"{% endif %}>{{l.landscape_id}}</option>
+						{% endfor %}
+					</select>
+				</label>
+				<label for="">
+					<h3>Наименование сцены</h3>
+					<input type="text" id="scene_name" data-id="{% if parameters == '9999' %}0000{% else %}{{parameters}}{% endif %}" data-paragraph="landscape" name="scene_name" placeholder="Нет наименования" value="{% for l in landscape%}{%if l.landscape_id == parameters%}{{l.landscape_name}}{%endif%}{%endfor%}">
+				</label>
+				{% for b in buildings %}
+					<fieldset class="fieldset">
+					<h3>Строение:</h3>
+					<div class="row">
+						<div class="large-6 small-6 columns">
+							<label for="">
+								<input type="text" data-id="{{b.id}}" data-paragraph="building" placeholder="Нет наименования" value="{% if b.BuildingName != null %}{{b.BuildingName}}{% endif %}">	
+							</label>	
+						</div>
+						<div class="large-6 small-6 columns">
+							<label for="">
+								<input type="text" value="{{b.dae_BuildingName}}" disabled>
+							</label>
+						</div>
+					</div>
+					<br>
+
+					{% for f in floors%}
+						{% if f.Building_id == b.id %}
+							<fieldset class="fieldset">
+							<h4>Этаж:</h4>
+							<div class="row">
+								<div class="large-6 small-6 columns">
+									<label for="">
+										<input type="text" data-id="{{f.id}}" data-paragraph="floor" placeholder="Нет наименования" value="{% if f.FloorName != null %}{{f.FloorName}}{% endif %}">	
+									</label>	
+								</div>
+								<div class="large-6 small-6 columns">
+									<label for="">
+										<input type="text" value="{{f.dae_FloorName}}" disabled>
+									</label>
+								</div>
+							</div>
+							<br>
+
+							
+							{% for k in kabinets %}
+								{% if k.Floor_id == f.id%}
+								<h4>Кабинет:</h4>
+									<div class="row">
+										<div class="large-6 small-6 columns">
+											<label for="">
+												<input type="text" data-id="{{k.id}}" data-paragraph="kabinet" placeholder="Нет наименования" value="{% if k.Kabinet_n_OuterName != null%}{{k.Kabinet_n_OuterName}}{% endif %}">	
+											</label>	
+										</div>
+										<div class="large-6 small-6 columns">
+											<label for="">
+												<input type="text" value="{{k.dae_Kabinet_n_OuterName}}" disabled>
+											</label>
+										</div>
+									</div>
+								{% endif %}
+							{% endfor %}
+							</fieldset>
+						{% endif %}
+					{% endfor %}
+					</fieldset>
+				{% endfor %}
+				<span class="button" id="submit">Сохранить изменения</span>
+			</form>
+			</fieldset>
+		</div>
+	<script>
+	 $('#scene_id').on('change', function(){
+	 	a = $('option:selected', this).val();
+	 	window.location = '/definemain/'+ a;
+	 });
+	 var parameters = {};
+	 $('#submit').on('click', function(){
+
+	 	l = $('input[data-paragraph="landscape"]');
+	 	parameters['landscape'] = {'id': l.attr('data-id'), 'name': l.val()};
+
+	 	parameters['building'] = [];
+	 	$.each($('input[data-paragraph="building"]'), function(){
+	 		b = $(this);
+	 		parameters['building'].push({'id': b.attr('data-id'), 'name': b.val()});
+	 	});
+
+	 	parameters['floor'] = [];
+	 	$.each($('input[data-paragraph="floor"]'), function(){
+	 		f = $(this);
+	 		parameters['floor'].push({'id':f.attr('data-id'), 'name': f.val()});
+	 	});
+
+	 	parameters['kabinet'] = [];
+	 	$.each($('input[data-paragraph="kabinet"]'), function(){
+	 		k = $(this);
+	 		parameters['kabinet'].push({'id': k.attr('data-id'), 'name': k.val()});
+	 	});
+
+	 	$.ajax({
+	 		type: "POST",
+	 		url: "/definemain/"+"{{parameters}}",
+	 		data: JSON.stringify(parameters),
+			contentType: "application/json; charset=utf-8",
+      dataType: 'json',
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		$("<div class='success callout' data-closable><p>Информация успешно сохранена</p><button class='close-button' aria-label='Dismiss alert' type='button' data-close><span aria-hidden='true'>&times;</span></button></div>").insertBefore('span.button');
+    	}
+	 	});
+	 });
+	</script>
+{% endblock %}

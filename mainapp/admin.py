@@ -1,21 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 from django.contrib import admin
-from mainapp.models import Field_Definition_Message, DataType
-from mainapp.models import LMDMFormat, Locate_Message_Definition_Message
+from mainapp.models import *
 # СООБЩЕНИЯ
 
 # типы данных
-
 class DataTypeAdmin(admin.ModelAdmin):
 	fieldsets = [
 		('Наименование', {'fields': ['DataTypeName']}),
 		('Наименование в Джанго', {'fields': ['DjangoFormat']}),
 	]
-# конец типы данных
-
 # сообщения с определениями полей
-
 class Field_Definition_MessageAdmin(admin.ModelAdmin):
 	fieldsets = [
 		('Наименование', {'fields': ['Field_Definition_MessageName']}),
@@ -24,27 +19,39 @@ class Field_Definition_MessageAdmin(admin.ModelAdmin):
 		('Минимально символов', {'fields': ['LengthMin']}),
 		('Максимально символов', {'fields': ['LengthMax']}),
 	]
-
-# конец сообщений с определениями полей
-
-
 # тип формата определения сообщений местонахождения
 class LMDMFormatAdmin(admin.ModelAdmin):
 	fieldsets = [
 		('Наименование', {'fields': ['LMDMFormatName']}),
 	]
-# конец типа формата определения сообщений местонахождения
-
 # сообщения с oпределениями формата сообщений местонахождения
 class Locate_Message_Definition_MessageAdmin(admin.ModelAdmin):
 	fieldsets = [
 		('Источник', {'fields': ['Source']}),
 		('Тип формата', {'fields': ['Format']}),
 	]
-# конец сообщения с определениями формата сообщений местонахождения
-
-# КОНЕЦ СООБЩЕНИЯ
 admin.site.register(DataType, DataTypeAdmin)
 admin.site.register(Field_Definition_Message, Field_Definition_MessageAdmin)
 admin.site.register(LMDMFormat, LMDMFormatAdmin)
 admin.site.register(Locate_Message_Definition_Message, Locate_Message_Definition_MessageAdmin)
+
+#Tag
+class TagAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Идентификатор метки', {'fields': ['TagId']}),
+		('Тип метки', {'fields': ['TagType']}),
+		('Имя метки', {'fields': ['Name']}),
+		('Группа', {'fields': ['TagGroup']}),
+	]
+admin.site.register(Tag, TagAdmin)
+
+
+#TagGroup
+class TagGroupAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Имя группы', {'fields': ['GroupName']}),
+		('Геометрия объектов', {'fields': ['MeshGeometry']}),
+		('Цвет объектов', {'fields': ['MeshColor']}),
+		('Цвет круга', {'fields': ['CircleColor']}),
+	]
+admin.site.register(TagGroup, TagGroupAdmin)

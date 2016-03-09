@@ -1,0 +1,105 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% if username %}
+		<h1>Установка связей между группой и метками</h1>
+		<a href="/taggroupmanager" class="button">Перейти к управлению группами</a>
+		<h3>Пользователь {{username_name.username}}</h3>
+		<h2>Группа {{group.GroupName}}</h2>
+		<h3>Метки</h3>
+		<table>
+			<thead>
+				<tr>
+					<th>Идентификатор</th>
+					<th>Тип</th>
+					<th>Имя</th>
+					<th>Статус</th>
+					<th>Действие</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for t in tag %}
+				<tr>
+					<td><a href="/tagregister/{{t.TagId}}">{{t.TagId}}</a></td>
+					<td>{{t.TagType}}</td>
+					<td>{{t.Name}}</td>
+					<td class="status">{%for tg in taggroup_tag%}{%if tg.Tag__TagId == t.TagId%}Привязана к данной группе{% endif %}{%endfor%}{%for tog in tagothergroup %}{% if tog.Tag_id == t.TagId%}Привязана к группе <a href="/taginoutgroup/{{tog.TagGroup_id}}">{{tog.TagGroup__GroupName}}</a>{%endif%}{% endfor%}</td>
+					<td><span class="button" data-id="{{t.TagId}}" id="link">Привязать к группе</span></td>
+				</tr>
+				{% endfor%}
+				{% for u in unregistred %}
+				<tr>
+					<td><p class="subheader">{{u.tag_id}}</p></td>
+					<td><p class="subheader">Неизвестный</p></td>
+					<td><p class="subheader">Отсутствует</p></td>
+					<td><p class="subheader">Метка не зарегистрирована</p></td>
+					<td><a class="button success" href="/tagregister/{{u.tag_id}}">Зарегистрировать метку</span></a>
+				</tr>
+				{% endfor%}
+			</tbody>
+		</table>
+		<h3>Привязанные к группе метки</h3>
+		<table>
+			<thead>
+				<tr>
+					<th>Идентификатор</th>
+					<th>Тип</th>
+					<th>Имя</th>
+					<th>Действие</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for t in taggroup_tag %}
+				<tr>
+					<td>{{t.Tag__TagId}}</td>
+					<td>{{t.Tag__TagType}}</td>
+					<td>{{t.Tag__Name}}</td>
+					<td><span class="button alert" data-id="{{t.Tag__TagId}}" id="unlink">Отвязать от группы</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% else %}
+  <div class="row">
+    <h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  </div>
+	{% endif %}
+	<script>
+	//скрываем кнопку "привязать" для привязанных
+	$.each($('td.status'), function(){
+		if ($(this).html()!=''){
+			$(this).next().html('');
+		}
+	});
+	parameters = {'action': ''};
+
+	function doAjax(actionType){
+		parameters['action'] = actionType;
+		$.ajax({
+			type:"POST",
+			url: "/taginoutgroup/{{group.id}}",
+			data: JSON.stringify(parameters),
+			contentType: "application/json; charset=utf-8",
+			dataType: "json",
+			async: true,
+			success: function(data, TextStatus, jqXHR){
+				window.location = "/taginoutgroup/{{group.id}}";
+			}
+		});
+	}
+	$('span#link').on('click', function(){
+		tagid = $(this).attr('data-id');
+		groupid = '{{group.id}}';
+		parameters['tagid'] = tagid;
+		parameters['groupid'] = groupid;
+		doAjax('link');
+	});
+	$('span#unlink').on('click', function(){
+		tagid = $(this).attr('data-id');
+		groupid = '{{group.id}}';
+		parameters['tagid'] = tagid;
+		parameters['groupid'] = groupid;
+		doAjax('unlink');
+	});
+	</script>
+{% endblock %}
