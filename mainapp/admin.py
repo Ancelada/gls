@@ -35,23 +35,9 @@ admin.site.register(Field_Definition_Message, Field_Definition_MessageAdmin)
 admin.site.register(LMDMFormat, LMDMFormatAdmin)
 admin.site.register(Locate_Message_Definition_Message, Locate_Message_Definition_MessageAdmin)
 
-#Tag
-class TagAdmin(admin.ModelAdmin):
+#TagType
+class TagTypeAdmin(admin.ModelAdmin):
 	fieldsets = [
-		('Идентификатор метки', {'fields': ['TagId']}),
-		('Тип метки', {'fields': ['TagType']}),
-		('Имя метки', {'fields': ['Name']}),
-		('Группа', {'fields': ['TagGroup']}),
+		('Наименование', {'fields': ['Name']}),
 	]
-admin.site.register(Tag, TagAdmin)
-
-
-#TagGroup
-class TagGroupAdmin(admin.ModelAdmin):
-	fieldsets = [
-		('Имя группы', {'fields': ['GroupName']}),
-		('Геометрия объектов', {'fields': ['MeshGeometry']}),
-		('Цвет объектов', {'fields': ['MeshColor']}),
-		('Цвет круга', {'fields': ['CircleColor']}),
-	]
-admin.site.register(TagGroup, TagGroupAdmin)
+admin.site.register(TagType, TagTypeAdmin)

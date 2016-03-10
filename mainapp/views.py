@@ -477,9 +477,13 @@ def values(request, landscape_id='0000'):
 	landscape_id = landscape_id
 	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
+	args['lcolor'] = LandscapeColor.objects.all()
 	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id)
+	args['bcolor'] = BuildingColor.objects.all()
 	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id)
+	args['fcolor'] = FloorColor.objects.all()
 	args['kabinet_n_outer'] = Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id)
+	args['kcolor'] = KabinetColor.objects.all()
 	args['walls'] = Wall.objects.filter(LoadLandscape_id=landscape_id)
 	args['username'] = auth.get_user(request).id
 	args['landscape_id'] = landscape_id
@@ -865,26 +869,72 @@ def match(request):
 def getactiveusers(request):
 	return HttpResponse(active_users)
 
-# Object Name define module
+# Имя, цвет каждому объекту сцены
 def definemain(request, parameters=9999):
 	args = {}
 	args['username'] = auth.get_user(request).id
 	args['parameters'] = parameters
 	args['landscape'] = LoadLandscape.objects.all()
+	args['lcolor'] = LandscapeColor.objects.all()
 	if parameters == '9999':
 		parameters = '0000'
 	args['buildings'] = Building.objects.filter(LoadLandscape_id=parameters)
+	args['bcolor'] = BuildingColor.objects.all()
 	args['floors'] = Floor.objects.filter(LoadLandscape_id=parameters)
-	args['kabinets'] = Kabinet_n_Outer.objects.filter(LoadLandscape_id=parameters).exclude(dae_Kabinet_n_OuterName__icontains='outer')
+	args['fcolor'] = FloorColor.objects.all()
+	args['kabinets'] = Kabinet_n_Outer.objects.filter(LoadLandscape_id=parameters \
+		).exclude(dae_Kabinet_n_OuterName__icontains='outer')
+	args['kcolor'] = KabinetColor.objects.all()
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
-		LoadLandscape.objects.filter(landscape_id=string['landscape']['id']).update(landscape_name=string['landscape']['name'])
+		#сохраняем наименование
+		if (len(string['landscape']['name']) > 0): 
+			LoadLandscape.objects.filter(landscape_id=string['landscape']['id']).update(landscape_name=string['landscape']['name'])
+		#записываем цвет
+		try:
+			a = LandscapeColor.objects.get(User_id=string['user'], \
+			 LoadLandscape_id=string['landscape']['id'])
+			LandscapeColor.objects.filter(User_id=string['user'], \
+			 LoadLandscape_id=string['landscape']['id']).update(lcolor=string['landscape']['color'])
+		except LandscapeColor.DoesNotExist:
+			LandscapeColor(User_id=string['user'], LoadLandscape_id=string['landscape']['id'], \
+				lcolor=string['landscape']['color']).save()
 		for b in string['building']:
-			Building.objects.filter(id=b['id']).update(BuildingName=b['name'])
+			#сохраняем наименование
+			if (len(b['name']) > 0):
+				Building.objects.filter(id=b['id']).update(BuildingName=b['name'])
+			#записываем цвет
+			try:
+				building = BuildingColor.objects.get(User_id=string['user'], \
+					Building_id=b['id'])
+				BuildingColor.objects.filter(User_id=string['user'], \
+					Building_id=b['id']).update(bcolor=b['color'])
+			except BuildingColor.DoesNotExist:
+				BuildingColor(User_id=string['user'], Building_id=b['id'], bcolor=b['color']).save()
 		for f in string['floor']:
-			Floor.objects.filter(id=f['id']).update(FloorName=f['name'])
+			# сохраняем наименование
+			if (len(f['name']) > 0):
+				Floor.objects.filter(id=f['id']).update(FloorName=f['name'])
+			# записываем цвет
+			try:
+				floor = FloorColor.objects.get(User_id=string['user'], \
+					Floor_id=f['id'])
+				FloorColor.objects.filter(User_id=string['user'], \
+					Floor_id=f['id']).update(fcolor=f['color'])
+			except FloorColor.DoesNotExist:
+				FloorColor(User_id=string['user'], Floor_id=f['id'], fcolor=f['color']).save()
 		for k in string['kabinet']:
-			Kabinet_n_Outer.objects.filter(id=k['id']).update(Kabinet_n_OuterName=k['name'])
+			# сохраняем наименование
+			if (len(k['name']) > 0):
+				Kabinet_n_Outer.objects.filter(id=k['id']).update(Kabinet_n_OuterName=k['name'])
+			# записываем цвет
+			try:
+				kabinet = KabinetColor.objects.get(User_id=string['user'], \
+					Kabinet_id=k['id'])
+				KabinetColor.objects.filter(User_id=string['user'], \
+					Kabinet_id=k['id']).update(kcolor = k['color'])
+			except KabinetColor.DoesNotExist:
+				KabinetColor(User_id=string['user'], Kabinet_id=k['id'], kcolor=k['color']).save()
 		return JsonResponse({'string': string})
 	return render(request, 'definemain.html', args)
 
@@ -990,18 +1040,20 @@ def tagregister(request, tag_id=0):
 	args['error'] = []
 	args['tag_id'] = tag_id
 	args['username'] = auth.get_user(request).id
+	args['tagtype'] = TagType.objects.all()
 	try:
 		args['tag'] = Tag.objects.get(TagId=tag_id)
 	except:
 		pass
 	if request.method == "POST":
-		TagType = request.POST['TagType']
+		tType = request.POST['TagType']
 		Name = request.POST['Name']
 		if not(Name):
 			args['error'].append({'name': 'Отсутствует имя'})
-		if not(TagType):
+		if not(tType):
 			args['error'].append({'type': 'Отстутствует тип метки'})
 		if (len(args['error']) == 0) :
-			Tag(TagId=tag_id, TagType=TagType, Name=Name).save()
+			Tag(TagId=tag_id, TagType_id=tType, Name=Name).save()
+			args['tag'] = Tag.objects.get(TagId=tag_id)
 			args['success'] = 'Информация успешно внесена'
 	return render(request, 'tagregister.html', args)

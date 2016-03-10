@@ -106,7 +106,6 @@ class LogsJournal(models.Model):
 # КОНЕЦ ЖУРНАЛА ПЕРИОДИЧЕСКИХ ЗАДАНИЙ
 ###################
 
-
 ###################
 #РАБОТА СО СЦЕНАМИ
 ###################
@@ -231,12 +230,19 @@ class TagGroup(models.Model):
 	def __str__(self):
 		return self.GroupName.encode('utf-8')
 
+class TagType(models.Model):
+	class Meta():
+		db_table = 'TagType'
+	Name = models.CharField(max_length=200)
+	def __str__(self):
+		return self.Name.encode('utf-8')
+
 class Tag(models.Model):
 	class Meta():
 		db_table = 'Tag'
 	TagId = models.CharField(primary_key=True, max_length=20)
-	TagType = models.CharField(max_length=20, null=True)
 	Name = models.CharField(max_length=200, null=True)
+	TagType = models.ForeignKey(TagType, on_delete=models.CASCADE)
 	def __str__(self):
 		return self.TagId.encode('utf-8')
 
@@ -285,3 +291,36 @@ class TurnOnOffTag(models.Model):
 	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	OnOff = models.BooleanField()
 	OnOffTime = models.DateTimeField(null=True)
+
+
+###################
+# Таблицы цветовой
+# схемы сцен пользователей
+###################
+class LandscapeColor(models.Model):
+	class Meta():
+		db_table = 'LandscapeColor'
+	User = models.ForeignKey(User)
+	lcolor = models.CharField(max_length=50, null=True, blank=True)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+
+class BuildingColor(models.Model):
+	class Meta():
+		db_table = 'BuildingColor'
+	User = models.ForeignKey(User)
+	bcolor = models.CharField(max_length=50, null=True, blank=True)
+	Building = models.ForeignKey(Building,  on_delete=models.CASCADE)
+
+class FloorColor(models.Model):
+	class Meta():
+		db_table = "FloorColor"
+	User = models.ForeignKey(User)
+	fcolor = models.CharField(max_length=50, null=True, blank=True)
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+
+class KabinetColor(models.Model):
+	class Meta():
+		db_table = "KabinetColor"
+	User = models.ForeignKey(User)
+	kcolor = models.CharField(max_length=50, null=True, blank=True)
+	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)

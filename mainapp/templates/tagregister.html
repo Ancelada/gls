@@ -4,8 +4,13 @@
 	{% if username %}
 	<form action="/tagregister/{{tag_id}}" method="POST">
 		<h1>Регистрация метки {{tag_id}}</h1>
+		<a href="/taggroupmanager" class="button">Перейти к управлению группами</a>
 		<label for="TagType"><h3>Тип метки</h3>
-	  <p><input type="text" placeholder="человек/ товарно-материальная ценность" name="TagType" value="{% if tag %}{{tag.TagType}}{% endif %}"></p>
+		<select name="TagType" id="TagType">
+			{% for t in tagtype %}
+				<option value="{{t.id}}" {% if t.id == tag.TagType_id %}selected="selected"{% endif %}>{{t.Name}}</option>
+			{% endfor %}
+		</select>
 	  </label>
 	  {% for err in error %}
 		  {% if err.type %}

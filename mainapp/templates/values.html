@@ -45,7 +45,6 @@
             </ul>
         </div>
         <div class="instrument_block large-3 small-12 columns" style="right:-100%;">
-          
             <fieldset class="large-12 small-4 columns">
                 <button class="close-button close_panel" aria-label="Close menu" type="button">
                     <span aria-hidden="true">x</span>
@@ -169,20 +168,18 @@
         {% endfor %}
     {% endfor %}
 
-    console.log(group);
 	$(document).ready(function(){
 		var marks;
 		var unum = 0;
         //socket connection
         $(window).on('beforeunload', function(){
-            socket.close();     
+            socket.close();
         });
 
         socket_connect();
 
         function socket_connect(){
             socket = new SockJS('http://192.168.1.78:8989/orders');
-
             socket.onmessage = function(msg){
                 var channel = msg.data.type;
                 if (channel == 'lock'){
@@ -448,26 +445,28 @@
         dae.rotation.y = {{sceneop.dae_rotation_y|stringformat:"f"}};
     	scene.add(dae);
 
-        //наполняем именами объекты  building, floor, kabinet dae
+        //наполняем именами объекты  building, floor, kabinet dae,
+        //наполняем цвета объектов из БД
         {% for b in buildings %}
-            fillObjectName(dae.children[0], '{{b.dae_BuildingName}}', '{{b.BuildingName}}');
+            fillObjectName(dae.children[0], '{{b.dae_BuildingName}}', '{{b.BuildingName}}', '{% for bc in bcolor %}{% if bc.Building_id == b.id %}{{bc.bcolor}}{% endif %}{% endfor %}');
         {% endfor %}
 
         {% for f in floors %}
-            fillObjectName(dae.children[0], '{{f.dae_FloorName}}', '{{f.FloorName}}');
+            fillObjectName(dae.children[0], '{{f.dae_FloorName}}', '{{f.FloorName}}', '{% for fc in fcolor %}{% if fc.Floor_id == f.id%}{{fc.fcolor}}{%endif%}{% endfor %}');
         {% endfor %}
 
         {% for k in kabinet_n_outer %}
-            fillObjectName(dae.children[0], '{{k.dae_Kabinet_n_OuterName}}', '{{k.Kabinet_n_OuterName}}');
+            fillObjectName(dae.children[0], '{{k.dae_Kabinet_n_OuterName}}', '{{k.Kabinet_n_OuterName}}', '{% for kc in kcolor %}{% if kc.Kabinet_id == k.id %}{{kc.kcolor}}{% endif %}{% endfor %}');
         {% endfor %}
-        function fillObjectName(dae, text, text2){
+        function fillObjectName(dae, text, text2, dbColor){
             if (dae.children){
                 for (var i = 0; i < dae.children.length; i++){
                     if(dae.children[i].name == text){
                         dae.children[i].dbName = text2;
+                        dae.children[i].dbColor = dbColor;
                         /*console.log(dae.children[i]);*/
                     }
-                    fillObjectName(dae.children[i], text, text2);
+                    fillObjectName(dae.children[i], text, text2, dbColor);
                 }
             }
         }
@@ -477,7 +476,6 @@
 
         //**дерево
         colladaObjects['landscape'] = [];
-
         //**наполняем landscape
         colladaObjects['landscape'].push(dae['children'][0]['children'][0]);
         colladaObjects['landscape'][0].name = colladaObjects['landscape'][0]['parent']['name'];
@@ -586,20 +584,21 @@
         //****************************
         //**настройки сцены по умолчанию
         //****************************
-
     	//landscape 
     	plane = colladaObjects['landscape'][0];
         /*plane.receiveShadow = true;*/
-    	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131}));
+    	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: {% for lc in lcolor %}{% if lc.LoadLandscape_id == landscape_id %}parseInt('0x'+ '{{lc.lcolor}}'){% endif %}{% endfor %}}));
     	//building
         $.each(colladaObjects['landscape'][0].children, function(value){
             if (colladaObjects['landscape'][0].children[value].name.indexOf('building') != -1){
                 building = colladaObjects['landscape'][0].children[value];
+                bcolor = building.parent['dbColor'];
                 building.visible = false;
                 $.each(building.children, function(value){
                     //floor
                     floor = building.children[value];
-                    setMaterialObject(floor, new THREE.MeshPhongMaterial({color: 0x008080, transparent:true}));
+                    fcolor = floor.parent['dbColor'];
+                    setMaterialObject(floor, new THREE.MeshPhongMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
                     /*floor.receiveShadow = true;*/
                     /*floor.castShadow = true;*/
                     //kabinet n outer
@@ -607,15 +606,16 @@
                         if (floor.children[value].name.indexOf('outer') != -1){
                             outer = floor.children[value];
                             /*outer.castShadow = true;*/
-                            setMaterialObject(outer, new THREE.MeshLambertMaterial({color: 0x6b002b, transparent:true}));
+                            setMaterialObject(outer, new THREE.MeshLambertMaterial({color: parseInt('0x'+bcolor), transparent:true}));
                         } else if (floor.children[value].name.indexOf('kabinet') != -1){
                             kabinet = floor.children[value];
+                            kcolor = kabinet.parent['dbColor'];
                             kabinet.visible = false;
                             //wall
                             $.each(kabinet.children, function(value){
                                 wall = kabinet.children[value];
                                 /*wall.castShadow = true;*/
-                                setMaterialObject(wall, new THREE.MeshLambertMaterial({color: 0x193434, transparent:true}));
+                                setMaterialObject(wall, new THREE.MeshLambertMaterial({color: parseInt('0x'+kcolor), transparent:true}));
                             });
                         }
                     });
@@ -680,9 +680,22 @@
             event.preventDefault();
             mouse.x = (event.clientX/ renderer.domElement.width) * 2 - 1;
             mouse.y = -(event.clientY/ renderer.domElement.height) * 2 + 1;
-
             raycaster.setFromCamera(mouse, camera);
 
+            //пытался найти позицию по клику
+            //по позиции камеры
+            /*var vector = new THREE.Vector3();
+            vector.set(
+                (event.clientX / renderer.domElement.width) * 2 - 1,
+                - (event.clientY / renderer.domElement.height) * 2 + 1,
+                0.5);
+            vector.unproject(camera);
+            console.log(camera);
+            var dir = vector.sub(camera.position).normalize();
+            var distance = - camera.position.z / dir.z;
+            var pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            console.log(dir);*/
+            
             //ищем building по floor
             ElemLookUp(colladaObjects['landscape'][0], 'building', building, 0);
             

@@ -18,6 +18,9 @@
 					<h3>Наименование сцены</h3>
 					<input type="text" id="scene_name" data-id="{% if parameters == '9999' %}0000{% else %}{{parameters}}{% endif %}" data-paragraph="landscape" name="scene_name" placeholder="Нет наименования" value="{% for l in landscape%}{%if l.landscape_id == parameters%}{{l.landscape_name}}{%endif%}{%endfor%}">
 				</label>
+				<label for="landscapecolor"><h4>Цвет ландшафта</h4>
+					<input class="jscolor" id="landscapecolor" value="{% for l in lcolor %}{% if parameters == l.LoadLandscape_id %}{{l.lcolor}}{% endif %}{% endfor %}">
+				</label>
 				{% for b in buildings %}
 					<fieldset class="fieldset">
 					<h3>Строение:</h3>
@@ -25,6 +28,9 @@
 						<div class="large-6 small-6 columns">
 							<label for="">
 								<input type="text" data-id="{{b.id}}" data-paragraph="building" placeholder="Нет наименования" value="{% if b.BuildingName != null %}{{b.BuildingName}}{% endif %}">	
+							</label>
+							<label for="building{{b.id}}"><h4>Цвет строения</h4>
+								<input class="jscolor" id="building{{b.id}}" data-type="building" data-id="{{b.id}}" value="{% for bc in bcolor %}{% if b.id == bc.Building_id%}{{bc.bcolor}}{% endif %}{% endfor %}">
 							</label>	
 						</div>
 						<div class="large-6 small-6 columns">
@@ -43,7 +49,10 @@
 								<div class="large-6 small-6 columns">
 									<label for="">
 										<input type="text" data-id="{{f.id}}" data-paragraph="floor" placeholder="Нет наименования" value="{% if f.FloorName != null %}{{f.FloorName}}{% endif %}">	
-									</label>	
+									</label>
+									<label for="floor{{f.id}}"><h4>Цвет этажа</h4>
+										<input class="jscolor" id="floor{{f.id}}" data-type="floor" data-id="{{f.id}}" value="{% for fc in fcolor %}{% if f.id == fc.Floor_id %}{{fc.fcolor}}{% endif %}{% endfor %}">
+									</label>
 								</div>
 								<div class="large-6 small-6 columns">
 									<label for="">
@@ -61,7 +70,10 @@
 										<div class="large-6 small-6 columns">
 											<label for="">
 												<input type="text" data-id="{{k.id}}" data-paragraph="kabinet" placeholder="Нет наименования" value="{% if k.Kabinet_n_OuterName != null%}{{k.Kabinet_n_OuterName}}{% endif %}">	
-											</label>	
+											</label>
+											<label for="kabinet{{k.id}}">
+												<input class="jscolor" id="kabinet{{k.id}}" data-type="kabinet" data-id="{{k.id}}" value="{% for kc in kcolor %}{% if kc.Kabinet_id == k.id %}{{kc.kcolor}}{% endif %}{% endfor %}">
+											</label>
 										</div>
 										<div class="large-6 small-6 columns">
 											<label for="">
@@ -87,28 +99,47 @@
 	 });
 	 var parameters = {};
 	 $('#submit').on('click', function(){
+	 	parameters['user'] = {{username}};
 
 	 	l = $('input[data-paragraph="landscape"]');
-	 	parameters['landscape'] = {'id': l.attr('data-id'), 'name': l.val()};
+	 	lcolor = $('input#landscapecolor').val();
+	 	parameters['landscape'] = {'id': l.attr('data-id'), 'name': l.val(), 'color': lcolor};
 
 	 	parameters['building'] = [];
 	 	$.each($('input[data-paragraph="building"]'), function(){
 	 		b = $(this);
-	 		parameters['building'].push({'id': b.attr('data-id'), 'name': b.val()});
+	 		bid = b.attr('data-id');
+	 		$.each($('input.jscolor[data-type="building"]'), function(){
+	 			if (bid == $(this).attr('data-id')){
+	 				bcolor = $(this).val();
+	 			}
+	 		})
+	 		parameters['building'].push({'id': b.attr('data-id'), 'name': b.val(), 'color': bcolor});
 	 	});
 
 	 	parameters['floor'] = [];
 	 	$.each($('input[data-paragraph="floor"]'), function(){
 	 		f = $(this);
-	 		parameters['floor'].push({'id':f.attr('data-id'), 'name': f.val()});
+	 		fid = f.attr('data-id');
+	 		$.each($('input.jscolor[data-type="floor"]'), function(){
+	 			if (fid == $(this).attr('data-id')){
+	 				fcolor = $(this).val();
+	 			}
+	 		});
+	 		parameters['floor'].push({'id':f.attr('data-id'), 'name': f.val(), 'color': fcolor});
 	 	});
 
 	 	parameters['kabinet'] = [];
 	 	$.each($('input[data-paragraph="kabinet"]'), function(){
 	 		k = $(this);
-	 		parameters['kabinet'].push({'id': k.attr('data-id'), 'name': k.val()});
+	 		kid = k.attr('data-id');
+	 		$.each($('input.jscolor[data-type="kabinet"]'), function(){
+	 			if (kid == $(this).attr('data-id')){
+	 				kcolor = $(this).val();
+	 			}
+	 		});
+	 		parameters['kabinet'].push({'id': k.attr('data-id'), 'name': k.val(), 'color': kcolor});
 	 	});
-
 	 	$.ajax({
 	 		type: "POST",
 	 		url: "/definemain/"+"{{parameters}}",
