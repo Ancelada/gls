@@ -324,3 +324,22 @@ class KabinetColor(models.Model):
 	User = models.ForeignKey(User)
 	kcolor = models.CharField(max_length=50, null=True, blank=True)
 	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+
+###################
+# Зоны
+###################
+
+class BuildingIncomeZone(models.Model):
+	class Meta():
+		db_table = "BuildingIncomeZone"
+	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
+
+class FloorIncomeZone(models.Model):
+	class Meta():
+		db_table = 'FloorIncomeZone'
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+
+class KabinetIncomeZone(models.Model):
+	class Meta():
+		db_table = 'KabinetIncomeZone'
+	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)

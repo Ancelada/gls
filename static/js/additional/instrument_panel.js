@@ -2,10 +2,10 @@
 // панель инструментов
 //**********************************************
 
-$('.show_hide_button').on('click', function(){
+$('body').delegate('.show_hide_button', 'click', function(){
 	$('.instrument_block').css('right', 0);
 });
 
-$('.close_panel').on('click', function(){
+$('body').delegate('.close_panel', 'click', function(){
 	$('.instrument_block').css('right', '-100%');
 });

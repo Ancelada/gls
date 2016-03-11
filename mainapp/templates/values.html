@@ -3,6 +3,7 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8">
+        <meta content="user-scalable=no" name="viewport">
 		<title>Our WebGl</title>
 		{% load staticfiles %}
         {% load poll_extras %}
@@ -37,18 +38,24 @@
 		<div id ="webGL-container"></div>
         <!-- ***блок панель управления*** -->
         <!--************************-->
-        <button class="button show_hide_button">Панель инструментов</button>
+        <button class="button large show_hide_button">Панель инструментов</button>
         <div class="large-3 small-3 columns popup" style="padding-left:0px;padding-right:0px;">
             <ul class="tabs vertical" id="example-vert-tabs" data-tabs>
 
 
             </ul>
         </div>
-        <div class="instrument_block large-3 small-12 columns" style="right:-100%;">
-            <fieldset class="large-12 small-4 columns">
+        <div class="instrument_block large-3 small-4 columns" style="right:-100%;">
+            <fieldset class="large-12 small-12 columns">
                 <button class="close-button close_panel" aria-label="Close menu" type="button">
                     <span aria-hidden="true">x</span>
                 </button>
+                <br>
+                <h3 class="subheader">Детализация</h3>
+                <ul class="tabs" data-tabs id="example-tabs">
+                    <li class="tabs-title is-active" id="high"><a href="#panel1">Высокая</a></li>
+                    <li class="tabs-title" id="low"><a href="#panel2">Низкая</a></li>
+                </ul>
                 <h3 class="subheader">Объекты</h3>
                 <ul class="vertical menu objects_tree" data-drilldown data-options="backButton:<li class='js-drilldown-back'><a>Назад</a></li>;">
                     {% for building in buildings %}
@@ -86,22 +93,22 @@
                     {% endfor %}                    
                 </ul>
             </fieldset>
-            <fieldset class="large-12 small-4 columns cursor_box">
+            <fieldset class="large-12 small-12 columns cursor_box">
                 <span class="label large-12 small-12 columns" style="margin-top:15px;"></span>
                 <br>
             </fieldset>
-            <fieldset class="large-12 small-4 columns">
+            <fieldset class="large-12 small-12 columns">
                 <a href="#" class="secondary hollow button large button_style select_object" style="font-size:100%;">Выбрать</a>
                 <a href="#" class="secondary hollow button large button_style camera" style="font-size:100%;">Навести камеру</a>    
             </fieldset>
-            <fieldset class="large-12 small-4 columns">
+            <fieldset class="large-12 small-12 columns">
                 <!-- <h3 class="subheader">Видимость</h3> -->
                 <ul class="tabs" data-tabs id="example-tabs">
                     <li class="tabs-title is-active" id="turn_on"><a href="#panel1">Показать</a></li>
                     <li class="tabs-title" id="turn_off"><a href="#panel2">Скрыть</a></li>
                 </ul>
             </fieldset>
-            <fieldset class="large-12 small-4 columns">
+            <fieldset class="large-12 small-12 columns">
                 <h3 class="subheader">Видимость</h3>
                 <div class="slider" data-slider data-initial-start="1" data-start="0" data-end="1">
                     <span class="slider-handle" data-slider-handle role="slider" tabindex="1"></span>
@@ -660,8 +667,8 @@
         mouse = new THREE.Vector2();
 
         //add event listener for mouse and calls function when activated
-        document.addEventListener('dblclick', onDocumentMouseDown, false);
-        document.addEventListener('touchstart', onDocumentTouchStart, false);
+        document.getElementById('webGL-container').addEventListener('dblclick', onDocumentMouseDown, false);
+        document.getElementById('webGL-container').addEventListener('touchstart', onDocumentTouchStart, false);
 
         function onDocumentTouchStart(event){
             event.preventDefault();
@@ -818,10 +825,34 @@
             }
         }
 
+        //высокая, низкая детализация переключатели
+        $('#high').on('click', function(){
+            plane = colladaObjects['landscape'][0];
+            setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: {% for lc in lcolor %}{% if lc.LoadLandscape_id == landscape_id %}parseInt('0x'+ '{{lc.lcolor}}'){% endif %}{% endfor %}}));
+            toggleQualityFloor(dae.children[0], 'floor', 'high');
+        });
 
+        $('#low').on('click', function(){
+            plane = colladaObjects['landscape'][0];
+            setMaterialObject(plane, new THREE.MeshBasicMaterial({ color: {% for lc in lcolor %}{% if lc.LoadLandscape_id == landscape_id %}parseInt('0x'+ '{{lc.lcolor}}'){% endif %}{% endfor %}}));
+            toggleQualityFloor(dae.children[0], 'floor', 'low'); 
+        });
 
-
-
+        function toggleQualityFloor(dae_elem, objectType, toggleTo){
+            if(dae_elem.children){
+                for(var i = 0; dae_elem.children.length > i; i++){
+                    if(dae_elem.children[i].name.indexOf(objectType) != -1 && dae_elem.children[i].colladaId == undefined){
+                        fcolor = dae_elem.children[i].parent['dbColor'];
+                        if (toggleTo == 'high'){
+                            setMaterialObject(dae_elem.children[i], new THREE.MeshPhongMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
+                        } else if (toggleTo == 'low'){
+                            setMaterialObject(dae_elem.children[i], new THREE.MeshBasicMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
+                        }
+                    }
+                    toggleQualityFloor(dae_elem.children[i], objectType, toggleTo);
+                }
+            }
+        }
 
         //видимость
         $('#turn_off').on('click', function(){
@@ -1045,7 +1076,6 @@
                         x = node.children[i].Center.x;
                         y = node.children[i].Center.y;
                         z = node.children[i].Center.z;
-                        /*camera.position.set(x+40, y, z-40);*/
                         /*controls.target.copy(new THREE.Vector3(x, y, z));*/
                         camera.LookAtNew = new THREE.Vector3(x, y, z);
                         /*camera.PozNew = new THREE.Vector3(x, y, z);*/

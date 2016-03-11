@@ -1057,3 +1057,7 @@ def tagregister(request, tag_id=0):
 			args['tag'] = Tag.objects.get(TagId=tag_id)
 			args['success'] = 'Информация успешно внесена'
 	return render(request, 'tagregister.html', args)
+
+# incomezone
+def incomezonedefine(request):
+	pass

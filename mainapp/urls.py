@@ -83,4 +83,8 @@ urlpatterns = patterns('',
 	url(r'definetaggroup/(?P<parameters>[0-9]+)/(?P<geomtype>\w+)', 'mainapp.views.definetaggroup'),
 	#register tag module
 	url(ur'tagregister/(?P<tag_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.tagregister'),
+
+
+	#income zone define
+	url(r'incomezonedefine/', 'mainapp.views.incomezonedefine'),
 )
