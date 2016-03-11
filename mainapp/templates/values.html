@@ -45,16 +45,16 @@
 
             </ul>
         </div>
-        <div class="instrument_block large-3 small-4 columns" style="right:-100%;">
+        <div class="instrument_block large-3 small-5 columns" style="right:-100%;">
             <fieldset class="large-12 small-12 columns">
                 <button class="close-button close_panel" aria-label="Close menu" type="button">
                     <span aria-hidden="true">x</span>
                 </button>
                 <br>
-                <h3 class="subheader">Детализация</h3>
+                <h3 class="subheader">Качество графики</h3>
                 <ul class="tabs" data-tabs id="example-tabs">
-                    <li class="tabs-title is-active" id="high"><a href="#panel1">Высокая</a></li>
-                    <li class="tabs-title" id="low"><a href="#panel2">Низкая</a></li>
+                    <li class="tabs-title is-active" id="high"><a>Высокое</a></li>
+                    <li class="tabs-title" id="low"><a>Низкое</a></li>
                 </ul>
                 <h3 class="subheader">Объекты</h3>
                 <ul class="vertical menu objects_tree" data-drilldown data-options="backButton:<li class='js-drilldown-back'><a>Назад</a></li>;">
@@ -825,31 +825,33 @@
             }
         }
 
-        //высокая, низкая детализация переключатели
+        //высокое, низкое качество графики
         $('#high').on('click', function(){
             plane = colladaObjects['landscape'][0];
             setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: {% for lc in lcolor %}{% if lc.LoadLandscape_id == landscape_id %}parseInt('0x'+ '{{lc.lcolor}}'){% endif %}{% endfor %}}));
-            toggleQualityFloor(dae.children[0], 'floor', 'high');
+            toggleFloorQuality(dae.children[0], 'high');
         });
 
         $('#low').on('click', function(){
             plane = colladaObjects['landscape'][0];
             setMaterialObject(plane, new THREE.MeshBasicMaterial({ color: {% for lc in lcolor %}{% if lc.LoadLandscape_id == landscape_id %}parseInt('0x'+ '{{lc.lcolor}}'){% endif %}{% endfor %}}));
-            toggleQualityFloor(dae.children[0], 'floor', 'low'); 
+            toggleFloorQuality(dae, 'low');
         });
 
-        function toggleQualityFloor(dae_elem, objectType, toggleTo){
-            if(dae_elem.children){
-                for(var i = 0; dae_elem.children.length > i; i++){
-                    if(dae_elem.children[i].name.indexOf(objectType) != -1 && dae_elem.children[i].colladaId == undefined){
-                        fcolor = dae_elem.children[i].parent['dbColor'];
-                        if (toggleTo == 'high'){
-                            setMaterialObject(dae_elem.children[i], new THREE.MeshPhongMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
-                        } else if (toggleTo == 'low'){
-                            setMaterialObject(dae_elem.children[i], new THREE.MeshBasicMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
+        function toggleFloorQuality(dae, ToggleTo){
+            if (dae.children){
+                for (var i = 0; dae.children.length > i; i++){
+                    if (dae.children[i].name.indexOf('floor') != -1 && dae.children[i].colladaId == null){
+                        fcolor = dae.children[i].parent['dbColor'];
+                        floor = dae.children[i];
+                        if (ToggleTo == 'high'){
+                            setMaterialObject(floor, new THREE.MeshPhongMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
+                        }
+                        else if(ToggleTo == 'low'){
+                            setMaterialObject(floor, new THREE.MeshBasicMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
                         }
                     }
-                    toggleQualityFloor(dae_elem.children[i], objectType, toggleTo);
+                    toggleFloorQuality(dae.children[i], ToggleTo);
                 }
             }
         }
@@ -1076,14 +1078,19 @@
                         x = node.children[i].Center.x;
                         y = node.children[i].Center.y;
                         z = node.children[i].Center.z;
+                        /*camera.position.set(x+40, y, z-40);*/
                         /*controls.target.copy(new THREE.Vector3(x, y, z));*/
-                        camera.LookAtNew = new THREE.Vector3(x, y, z);
+                        camera.LookAtNew = new THREE.Vector3(rdr(x), rdr(y), rdr(z));
                         /*camera.PozNew = new THREE.Vector3(x, y, z);*/
-                        controls.TarNew = new THREE.Vector3(x, y, z);
+                        controls.TarNew = new THREE.Vector3(rdr(x), rdr(y), rdr(z));
                     }
                     cameraToggle(node.children[i], dae_elem);
                 }
             }
+        }
+
+        function rdr(val){
+            return parseFloat(Math.round(val).toFixed(2));
         }
     });
 
@@ -1330,13 +1337,14 @@
                                 vecCur = new THREE.Vector2(xCur, yCur);
                                 vecNew = new THREE.Vector2(xNew, yNew);
                                 var radiusNew = vecCur.distanceTo(vecNew);
+                                radiusNew = parseFloat(radiusNew.toFixed(2));
                                 var radiusOld = unique[ind]['mesh'].children[0].geometry.boundingSphere.radius
                                 //плавное изменение окружности
-                                var step = 0.3;
-                                if(radiusOld < radiusNew && radiusNew < 10){
+                                var step = 0.2;
+                                if(parseFloat(radiusOld.toFixed(2)) < radiusNew && radiusNew < 10.00){
                                     unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
                                 }
-                                if(radiusOld > radiusNew && radius < 10){
+                                if(parseFloat(radiusOld.toFixed(2)) > radiusNew && radiusNew < 10.00){
                                     unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
                                 }
                             var step = 0.3;
@@ -1456,8 +1464,8 @@
         if (camera.LookAtNew){
             oldCam = camera.LookAt;
             newCam = camera.LookAtNew;
-            if (oldCam != newCam){
-                var step = 0.52;
+            if (oldCam.x != newCam.x || oldCam.y != newCam.y || oldCam.z != newCam.z){
+                var step = 0.50;
 
                 xCur = oldCam.x;
                 yCur = oldCam.y;
@@ -1467,35 +1475,34 @@
                 yNew = newCam.y;
                 zNew = newCam.z;
 
-                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
                     camera.lookAt(new THREE.Vector3(xCur += step, yCur, zCur));
-                    oldCam.x = xCur += step;
+                    oldCam.x += step;
                 }
 
-                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                else if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur += step, zCur));
-                    oldCam.y = yCur += step;
+                    oldCam.y += step;
                 }
 
-                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                else if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur, zCur += step));
-                    oldCam.z = zCur += step;
+                    oldCam.z += step;
                 }
 
-
-                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                else if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
                     camera.lookAt(new THREE.Vector3(xCur -= step, yCur, zCur));
-                    oldCam.x = xCur -= step;
+                    oldCam.x -= step;
                 }
 
-                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                else if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur -= step, zCur));
-                    oldCam.y = yCur -= step;
+                    oldCam.y -= step;
                 }
 
-                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                else if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur, zCur -= step));
-                    oldCam.z = zCur -= step
+                    oldCam.z -= step
                 }    
             }
         }
@@ -1503,8 +1510,8 @@
         if (controls.TarNew){
             oldCam = controls.TarOld;
             newCam = controls.TarNew;
-            if (oldCam != newCam){
-                var step = 0.52;
+            if (oldCam.x != newCam.x || oldCam.y != newCam.y || oldCam.z != newCam.z){
+                var step = 0.50;
 
                 xCur = oldCam.x;
                 yCur = oldCam.y;
@@ -1514,35 +1521,35 @@
                 yNew = newCam.y;
                 zNew = newCam.z;
 
-                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
                     controls.target.copy(new THREE.Vector3(xCur += step, yCur, zCur));
-                    oldCam.x = xCur += step;
+                    oldCam.x += step;
                 }
 
-                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur += step, zCur));
-                    oldCam.y = yCur += step;
+                    oldCam.y += step;
                 }
 
-                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur, zCur += step));
-                    oldCam.z = zCur += step;
+                    oldCam.z += step;
                 }
 
 
-                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
                     controls.target.copy(new THREE.Vector3(xCur -= step, yCur, zCur));
-                    oldCam.x = xCur -= step;
+                    oldCam.x -= step;
                 }
 
-                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur -= step, zCur));
-                    oldCam.y = yCur -= step;
+                    oldCam.y -= step;
                 }
 
-                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur, zCur -= step));
-                    oldCam.z = zCur -= step
+                    oldCam.z -= step
                 }    
             }
         }
