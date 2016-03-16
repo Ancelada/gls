@@ -633,6 +633,27 @@
 
 		}
 
+		//кнопки управления движением камеры
+		$('#up').on('click', function(){
+			pan( 0, 36 );
+			scope.update();
+		});
+
+		$('#down').on('click', function(){
+			pan( 0, - 36 );
+			scope.update();
+		});
+
+		$('#right').on('click', function(){
+			pan( - 36, 0 );
+			scope.update();
+		});
+
+		$('#left').on('click', function(){
+			pan( 36, 0 );
+			scope.update();
+		});
+
 		function touchstart( event ) {
 
 			if ( scope.enabled === false ) return;

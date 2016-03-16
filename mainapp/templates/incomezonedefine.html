@@ -37,7 +37,7 @@
 		<!--************************-->
 		<div id ="webGL-container"></div>
         <!-- ***блок панель управления*** -->
-        <!--************************-->
+        ************************
         <div class="small-4 columns" id="mobile-control-panel">
             <div class="small-12 columns" style="padding:0">
                 <div class="small-12 columns" style="padding:0">
@@ -53,12 +53,14 @@
             </div>
         </div>
         <button class="button large show_hide_button">Панель инструментов</button>
+        <button class="button alert large income_zone_button">Настройка зон входа</button>
         <div class="large-3 small-3 columns popup" style="padding-left:0px;padding-right:0px;">
             <ul class="tabs vertical" id="example-vert-tabs" data-tabs>
 
 
             </ul>
         </div>
+        <!-- Блок интрументов -->
         <div class="instrument_block large-3 small-4 columns" style="right:-100%;">
             <fieldset class="large-12 small-12 columns">
                 <button class="close-button close_panel" aria-label="Close menu" type="button">
@@ -131,6 +133,114 @@
                 </div>
             </fieldset>
         </div>
+        <!-- Блок настройки зон входа -->
+        <div class="incomezone_panel large-3 small-4 columns" style="right:-100%;overflow:visible;">
+            <button class="close-button close_incomezone_panel" aria-label="Close menu" type="button">
+                <span aria-hidden="true">x</span>
+            </button>
+            <br>
+            <br>
+            <fieldset class="large-12 small-12 columns">
+                <h3 class="subheader">Список зон входа</h3>
+                <div class="large-12 small-12 columns" id="zonetable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Статус</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for z in zones %}
+                                <tr>
+                                    <td class="subheader">
+                                        {% for bz in bIncomeZone %}
+                                            {% if bz.IncomeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for fz in fIncomeZone %}
+                                            {% if fz.IncomeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for f in floors %}{% if f.id == fz.Floor_id%}{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for kz in kIncomeZone %}
+                                            {% if kz.IncomeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for k in kabinet_n_outer %}{% if k.id == kz.Kabinet_id %}{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <button class="button" data-toggle="dropdown{{z.id}}">Действие</button>
+                                        <div class="dropdown-pane left" id="dropdown{{z.id}}" data-dropdown style="width:200px;">
+                                            <ul class="vertical dropdown menu" data-dropdown-menu>
+                                                <li><a href="#" id="show" data-id="{{z.id}}">Показать</a></li>
+                                                <li>
+                                                    <a href="#" id="delete" data-id="{{z.id}}">Удалить</a>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Привязать</a>
+                                                    <ul class="menu">
+                                                    {% for b in buildings %}
+                                                        <li><a href="#" data-type="building" data-id="{{b.id}}" id="link" data-zoneid="{{z.id}}">{% if not b.BuildingName or b.BuildingName == '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{%endif%}</a>
+                                                            <ul class="menu">
+                                                                {% for f in floors %}
+                                                                {% if f.Building_id == b.id %}
+                                                                <li><a href="#" data-type="floor" data-id="{{f.id}}" id="link" data-zoneid="{{z.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
+                                                                    <ul class="menu">
+                                                                    {% for k in kabinet_n_outer %}
+                                                                    {% if k.Floor_id = f.id %}
+                                                                    <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="link" data-zoneid="{{z.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
+                                                                    {% endif %}
+                                                                    {% endfor %}
+                                                                    </ul>
+                                                                </li>
+                                                                {% endif %}
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </li>
+                                                    {% endfor %}        
+                                                    </ul>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Откорректировать высоту</a>
+                                                    <ul class="menu">
+                                                        <li><a href="#">Минимум</a>
+                                                            <ul class="menu">
+                                                                <li>
+<label for="">Значение
+    <input type="number" step="0.01" data-type="min" data-id="{{z.id}}" placeholder="{% for bz in bIncomeZone %}{% if bz.IncomeZone_id == z.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.minz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fIncomeZone %}{% if fz.IncomeZone_id == z.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.minz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kIncomeZone %}{% if kz.IncomeZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.minz}}{%endif%}{%endfor%}{%endif%}{% endfor %}"></li>    
+</label>
+<button class="button" id="savemin" data-id="{{z.id}}">Сохранить</button>
+                                                            </ul>
+                                                        </li>
+                                                        <li><a href="#" >Максимум</a>
+                                                            <ul class="menu">
+                                                                <li>
+<label for="">Значение
+    <input type="number" step="0.01" data-type="max" data-id="{{z.id}}" placeholder="{% for bz in bIncomeZone %}{% if bz.IncomeZone_id == z.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.maxz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fIncomeZone %}{% if fz.IncomeZone_id == z.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.maxz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kIncomeZone %}{% if kz.IncomeZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.maxz}}{%endif%}{%endfor%}{%endif%}{% endfor %}">
+</label>
+<button class="button" id="savemax" data-id="{{z.id}}">Сохранить</button>
+                                                                </li>
+                                                            </ul>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button class="button" id="new">Новая</button>
+            </fieldset>
+            <label class="lessvert label alert" style="display:none;">Мало вершин</label>
+        </div>
+
 		<!-- **********шейдеры ******-->
 		<!--************************-->
 		<script type="x-shader/x-vertex" id="vertexShader">
@@ -167,144 +277,8 @@
 	<script>
     //панель инструментов
     $.getScript("/static/js/additional/instrument_panel.js");
-	var unique = {};
-    //геометрия метки
-	var cubeGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
-	var cubeMaterial = new THREE.MeshBasicMaterial({color: 0x0000ff, transparent: false, opacity:0.8});
-    //геометрия окружности
-    var radius = 2;
-    var segments = 24
-    var circleGeom = new THREE.CircleGeometry(radius, segments);
-    var circleMaterial = new THREE.MeshBasicMaterial({color: 0xfadc4a, transparent: true, opacity:0.7, side: THREE.DoubleSide});
-	var guiControls, datGUI;
     //массив объектов
     var colladaObjects = {};
-    //массив групп объектов(геометрия, цвет)
-    var group = [];
-    {% for tag in tags %}
-        {% for t in taggroup %}
-            {% if tag.TagId == t.Tag_id %}
-            group.push({ 'tag_id': '{{tag.TagId}}', 'groupname': '{{t.TagGroup__GroupName}}', 'username':{{t.User_id}}, 'meshcolor': '{{t.TagGroup__MeshColor}}', 'circlecolor': '{{t.TagGroup__CircleColor}}', 'meshgeometry': JSON.parse({{t.TagGroup__MeshGeometry|jsonify}}) })
-            {% endif %}
-        {% endfor %}
-    {% endfor %}
-
-	$(document).ready(function(){
-		var marks;
-		var unum = 0;
-        //socket connection
-        $(window).on('beforeunload', function(){
-            socket.close();
-        });
-
-        socket_connect();
-
-        function socket_connect(){
-            socket = new SockJS('http://192.168.1.78:8989/orders');
-            socket.onmessage = function(msg){
-                var channel = msg.data.type;
-                if (channel == 'lock'){
-                    var data = msg.data.data['data'];
-                    if (marks){
-                        //проверка на повторение пачки
-                        function verify(){
-                            var doubled = 0;
-                            $.each(data, function(index){
-                                tag_id_new = data[index]['tag_id'];
-                                zone_new = data[index]['zone'];
-                                $.each(marks, function(index){
-                                    tag_id_old = marks[index]['tag_id'];
-                                    zone_old = marks[index]['zone'];
-                                    if(tag_id_old == tag_id_new && zone_old == zone_new){
-                                        doubled = 1;
-                                        return false;
-                                    }
-                                });
-                            });
-                            return doubled;
-                        }
-                        result = verify();
-                        //если пачка не повторяется записываем в буфер
-                        if(result == 0){
-                            $.each(data, function(index){
-                                //первая запись в буфере
-                                if(unique[0] == undefined){
-                                    //проверка совпадает ли зона
-                                    zone_id = data[index]['zone_id'];
-                                    if (zone_id == '{{sceneop.landscape_id}}'){
-                                        unique[0] = data[index];
-                                        unique[0]['cron'] = 0;
-                                        unum += 1;
-                                    }
-                                } else {
-                                    //проверка на уникальность id в буфере
-                                    //если нет, записать в массив
-                                    tag_id_new = data[index]['tag_id'];
-                                    doubled = 0;
-                                    $.each(unique, function(index){
-                                        tag_id_unique = unique[index]['tag_id'];
-                                        if (tag_id_new == tag_id_unique){
-                                            doubled = 1;
-                                            return false;
-                                        }
-                                    });
-                                    if (doubled==0){
-                                        //проверка совпадает ли зона
-                                        zone_id = data[index]['zone_id'];
-                                        if (zone_id == '{{sceneop.landscape_id}}'){
-                                            unique[unum] = data[index];
-                                            unique[unum]['cron'] = 0;
-                                            unum += 1;
-                                        }
-                                    }
-                                }
-                            });
-                            //запись в буфер позиций метки
-                            //в том числе повторяющихся
-                            //меток с разными позициями
-                            $.each(data, function(index){
-                                tag_id_new = data[index]['tag_id'];
-                                var ind = index;
-                                $.each(unique, function(index){
-                                    tag_id_unique = unique[index]['tag_id'];
-                                    if (tag_id_new == tag_id_unique){
-                                        //при совпадении создаем таймер
-                                        unique[index]['cron'] = 0;
-                                        //при совпадении задаем список
-                                        //записываем все повторяющиеся значения 
-                                        unique[index]['data'] = [];
-                                        uind = index;
-                                        no=0;
-                                        $.each(data, function(index){
-                                            if (unique[uind]['tag_id'] == data[index]['tag_id']){
-                                                unique[uind]['data'][no] = data[index];
-                                                //количество позиций в пачке
-                                                unique[uind]['count'] = no;
-                                                no+=1;  
-                                            }
-                                        });
-                                        return false;
-                                    }
-                                });
-                            });
-                            
-                            //передача буфера в рендер
-                            /*console.log(unique);*/
-                        }
-
-                        marks = data;//не удалять
-                    } else {
-                        marks = data;
-                    }
-                    /*console.log(unique);*/
-                }
-            }
-
-            socket.onclose = function(e){
-                setTimeout(socket_connect, 5000);
-            }
-        }
-	});
 
 	//************************
 	//************************
@@ -312,9 +286,6 @@
 	//инициализация
 	//************************
 	//************************
-
-	//массив меток
-	var cube = {};
 
     //глобальные переменные
 	var dae;
@@ -325,6 +296,11 @@
 	var scene;
 	// глобальный объект
 	var center;
+    // vertices zone
+    var vertices = [];
+    var landscape_id = '{{landscape_id}}';
+    // объект с параметрами selected building, floor, kabinet
+    var selObject = {};
 
 	function init(){
 
@@ -365,25 +341,6 @@
 
     var sky = new THREE.Mesh( skyGeo, skyMat );
     scene.add( sky );
-
-    //маркеры калибровки
-    /*var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
-    var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
-    this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
-    marker6004.position.set(76.457, 39.682, 7.6);
-    scene.add(marker6004);
-
-    this.marker6042 = new THREE.Mesh(markGeom, markMaterial);
-    marker6042.position.set(67.725, 39.850, 7.6);
-    scene.add(marker6042);
-
-    this.marker6003 = new THREE.Mesh(markGeom, markMaterial);
-    marker6003.position.set(59.531, 39.811 , 7.6);
-    scene.add(marker6003);
-
-    this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
-    marker6045.position.set(76.426, 30.141, 8.7);
-    scene.add(marker6045);*/
 
     /* add collada import */
     var loader = new THREE.ColladaLoader();
@@ -657,7 +614,6 @@
                 spotLight.castShadow = true;
                 spotLight.position.set (a['x'], a['y'], a['z']);
                 spotLight.target.position.set(a['x'], a['y'], a['z']{% if sceneop.light_target_symbol == 1 %}-{% else %}+{% endif%} 60);
-                /*spotLight.target.position.set(a['x'], a['y'], a['z']+60);*/
                 this.lightX = 20;
                 this.lightY = 35;
                 this.lightZ = 40;
@@ -686,6 +642,37 @@
         //add raycaster and mouse as 2D vector
         raycaster = new THREE.Raycaster();
         mouse = new THREE.Vector2();
+        //добавляем слушатель событи одного клика для назначения зон
+        document.getElementById('webGL-container').addEventListener('click', onVerticeAdd, false);
+
+        //функция добавить вершну к зоне входа
+        function onVerticeAdd(event){
+            if ($('#new').text()== 'Остановить'){
+                addVertice(vertices);
+            }
+        }
+
+        function addVertice(arr){
+            event.preventDefault();
+            mouse.x = (event.clientX/ renderer.domElement.width) * 2 - 1;
+            mouse.y = -(event.clientY/ renderer.domElement.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            var vector = new THREE.Vector3();
+            vector.set(
+                (event.clientX / renderer.domElement.width) * 2 - 1,
+                - (event.clientY / renderer.domElement.height) * 2 + 1,
+                0.5);
+            vector.unproject(camera);
+            var dir = vector.sub(camera.position).normalize();
+            var distance = - camera.position.z / dir.z;
+            var pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            camx = camera.position.x;
+            camy = camera.position.y;
+            dirx = dir.x;
+            diry = dir.y
+            arr.push({x: dirx+camx, y: diry+camy, id: landscape_id});
+        }
+
 
         //add event listener for mouse and calls function when activated
         document.getElementById('webGL-container').addEventListener('dblclick', onDocumentMouseDown, false);
@@ -710,20 +697,6 @@
             mouse.y = -(event.clientY/ renderer.domElement.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
-            //пытался найти позицию по клику
-            //по позиции камеры
-            /*var vector = new THREE.Vector3();
-            vector.set(
-                (event.clientX / renderer.domElement.width) * 2 - 1,
-                - (event.clientY / renderer.domElement.height) * 2 + 1,
-                0.5);
-            vector.unproject(camera);
-            console.log(camera);
-            var dir = vector.sub(camera.position).normalize();
-            var distance = - camera.position.z / dir.z;
-            var pos = camera.position.clone().add(dir.multiplyScalar(distance));
-            console.log(dir);*/
-            
             //ищем building по floor
             ElemLookUp(colladaObjects['landscape'][0], 'building', building, 0);
             
@@ -749,7 +722,6 @@
             $.each(intersects, function(index){
                 if (intersects[index].length > 0) {
                     dae_elem = intersects[index][0].object.parent.parent.name;
-                    selectTarget(colladaObjects['landscape'][0], dae_elem);
                     lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
                     lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
                     lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
@@ -772,7 +744,6 @@
             $('.popup a').on('click', function(){
                 dae_elem = $(this).parent().attr('data-id');
                 selectedFloor = dae_elem;
-                selectTarget(colladaObjects['landscape'][0], dae_elem);
                 lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
                 lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
                 lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
@@ -805,7 +776,6 @@
                         dae_elem = intersectsKab[index][0].object.name;
                         //при выборе кабинета, отображать метки на этаже вне этого кабинета
                         f = intersectsKab[index][0].object.parent.parent.name;
-                        selectTarget(colladaObjects['landscape'][0], f);
                         lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
                         lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
                         lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
@@ -827,7 +797,6 @@
             dae_elem = $(this).parent().attr('data-id');
             //при выборе кабинета, отображать метки на этаже вне этого кабинета
             dae_floor = $(this).parent().attr('data-floor')
-            selectTarget(colladaObjects['landscape'][0], dae_floor);
             lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
             lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
             lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
@@ -955,7 +924,6 @@
         //кнопка "выбрать"
         $('.select_object').on('click', function(){
             var dae_elem = $('.cursor_box span').text();
-            selectTarget(colladaObjects['landscape'][0], dae_elem);
             lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
             lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
             lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
@@ -972,6 +940,10 @@
                             opacityFinder(colladaObjects['landscape'][0], dae_elem, 0.3);
                             //показываем скрытые объекты
                             togleVisibleOn(colladaObjects['landscape'][0], building);
+                            //отметка привязанных зон в таблице
+                            colored(building);
+                            //запрос вершин здания и вершин привязанных к нему объектов
+                            getVertices(building, node.children[i]);
                         }
                     }
                     lookUpBuilding(node.children[i], dae_elem);
@@ -1019,6 +991,10 @@
                                     togleVisibleOff(colladaObjects['landscape'][0], cur['outrName']);
                                     //устанавливаем прозрачность текущего этажа
                                     opacityFinder(colladaObjects['landscape'][0], cur['curName'], 1);
+                                        //отметка привязанных зон в таблице
+                                        colored(cur['curName']);
+                                        //запрос вершин здания и вершин привязанных к нему объектов
+                                        getVertices(cur['curName'], node.children[i]);
                                 }
                             })
                             max = Math.max.apply(Math, floors);
@@ -1053,41 +1029,14 @@
                                 }
                                 //устанавливаем прозрачность текущего кабинета
                                 opacityFinder(colladaObjects['landscape'][0], curName, 0.8);
+                                    //отметка привязанных зон в таблице
+                                    colored(curName);
+                                    //запрос вершин здания и вершин привязанных к нему объектов
+                                    getVertices(curName, node.children[i]);
                             });
                         }
                     }
                     lookUpKabinet(node.children[i], dae_elem, kabinets);
-                }
-            }
-        }
-
-
-        var selectTarget = function(node, dae_elem){
-            if (node.children){
-                for(var i=0; i < node.children.length; i++){
-                    if(node.children[i].name == dae_elem){
-                        var min = node.children[i].BoxMin;
-                        var max = node.children[i].BoxMax;
-                        //записать min и max в сессию
-                        $.ajax({
-                            type: "POST",
-                            url: "/minmaxtosession",
-                            data: JSON.stringify({'username': '{{username}}', 'landscape_id': '{{landscape_id}}', 'min':min, 'max':max, 'dae_elem': dae_elem}),
-                            contentType: "application/json; charset=utf-8",
-                            dataType: 'json',
-                            async: true,
-                            success: function(data, textStatus, jqXHR){
-                                //очищаем метки, которые ранее отображались
-                                $.each(unique, function(index){
-                                    scene.remove(unique[index]['mesh']);
-                                });
-                                unique = {};
-                                first = 1;
-                            }
-                        });
-                        return 'ok';
-                    }
-                    selectTarget(node.children[i], dae_elem);
                 }
             }
         }
@@ -1099,10 +1048,7 @@
                         x = node.children[i].Center.x;
                         y = node.children[i].Center.y;
                         z = node.children[i].Center.z;
-                        /*camera.position.set(x+40, y, z-40);*/
-                        /*controls.target.copy(new THREE.Vector3(x, y, z));*/
                         camera.LookAtNew = new THREE.Vector3(rdr(x), rdr(y), rdr(z));
-                        /*camera.PozNew = new THREE.Vector3(x, y, z);*/
                         controls.TarNew = new THREE.Vector3(rdr(x), rdr(y), rdr(z));
                     }
                     cameraToggle(node.children[i], dae_elem);
@@ -1151,11 +1097,6 @@
         }
     }
 
-                /*geometry = new THREE.SphereGeometry(2, 32, 32);
-                material = new THREE.MeshBasicMaterial({color: 0xbbbbbb});
-                var sph = new THREE.Mesh(geometry, material);
-                sph.position.set(0, 55, 6.8);
-                scene.add(sph);*/
 
 	/* позиция камеры по умолчанию */
     /*camera.position.set(69, 69, -50);*/
@@ -1189,298 +1130,8 @@
     $("#webGL-container").append( stats.domElement );       
 	  }
 
-    var first = 1;
-    var uniqueCount = 0;
-    var circleStep = 0;
-    //функция создании геометрии, материала unique для группового объекта
-    function buildUnique(obj, text){
-        var geometry;
-        var material;
-        var circlegeometry;
-        var circlematerial;
-        $.each(group, function(index){
-            if(group[index]['tag_id'] == obj['tag_id']){
-                //куб
-                if (group[index]['meshgeometry']['type'] == 'box'){
-                    var width;
-                    var heigth;
-                    var depth;
-                    $.each(group[index]['meshgeometry'].parameters, function(i){
-                        obj = group[index]['meshgeometry']['parameters'][i];
-                        if(obj['name'] == 'width'){width = obj['value']}
-                        if(obj['name'] == 'heigth'){heigth = obj['value']}
-                        if(obj['name'] == 'depth'){depth = obj['value']}
-                    });
-                    geometry = new THREE.BoxGeometry(parseFloat(width), parseFloat(heigth), parseFloat(depth), 2, 2, 2);
-                    color = parseInt('0x'+group[index]['meshcolor']);
-                    material = new THREE.MeshBasicMaterial({color: color, transparent: false});
-
-                    circlegeometry = new THREE.CircleGeometry(2, 24);
-                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
-                    circlematerial = new THREE.MeshBasicMaterial({color: circlecolor, transparent: true, opacity:0.7, side: THREE.DoubleSide})
-                    return false;
-                };
-                //сфера
-                if (group[index]['meshgeometry']['type'] == 'sphere'){
-                    var radius, widthsegments, heigthsegments;
-                    $.each(group[index]['meshgeometry'].parameters, function(i){
-                        obj = group[index]['meshgeometry']['parameters'][i];
-                        if(obj['name'] == 'radius'){radius = obj['value']}
-                        if(obj['name'] == 'widthsegments'){widthsegments = obj['value']}
-                        if(obj['name'] == 'heigthsegments'){heigthsegments= obj['value']}
-                    });
-                    geometry = new THREE.SphereGeometry(parseFloat(radius), parseInt(widthsegments), parseInt(heigthsegments));
-                    color = parseInt('0x'+group[index]['meshcolor']);
-                    material = new THREE.MeshBasicMaterial({color: color, transparent: false});
-
-                    circlegeometry = new THREE.CircleGeometry(2, 24);
-                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
-                    circlematerial = new THREE.MeshBasicMaterial({color:circlecolor, transparent:true, opacity:0.7, side: THREE.DoubleSide})
-                    return false;
-                }
-                //кольцо
-                if (group[index]['meshgeometry']['type'] == 'torus'){
-                    var radius, tube, radialsegments, tubularsegments;
-                    $.each(group[index]['meshgeometry'].parameters, function(i){
-                        obj = group[index]['meshgeometry']['parameters'][i];
-                        if(obj['name'] == 'radius'){radius = obj['value']}
-                        if(obj['name'] == 'tube'){tube = obj['value']}
-                        if(obj['name'] == 'radialsegments'){radialsegments = obj['value']}
-                        if(obj['name'] == 'tubularsegments'){tubularsegments = obj['value']}
-                    });
-                    geometry = new THREE.TorusGeometry(parseFloat(radius), parseFloat(tube), parseInt(radialsegments), parseInt(tubularsegments));
-                    color = parseInt('0x'+group[index]['meshcolor']);
-                    material = new THREE.MeshBasicMaterial({color:color, transparent: false});
-
-                    circlegeometry = new THREE.CircleGeometry(2, 24);
-                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
-                    circlematerial = new THREE.MeshBasicMaterial({color:circlecolor, transparent:true, opacity:0.7, side: THREE.DoubleSide});
-                    return false;
-                }
-                //цилиндр
-                if (group[index]['meshgeometry']['type'] == 'cylinder'){
-                    var radiustop, radiusbottom, heigth, radiussegments;
-                    $.each(group[index]['meshgeometry'].parameters, function(i){
-                        obj = group[index]['meshgeometry']['parameters'][i];
-                        if(obj['name'] == 'radiustop'){radiustop = obj['value']}
-                        if(obj['name'] == 'radiusbottom'){radiusbottom = obj['value']}
-                        if(obj['name'] == 'heigth'){heigth = obj['value']}
-                        if(obj['name'] == 'radiussegments'){radiussegments = obj['value']}
-                    });
-                    geometry = new THREE.CylinderGeometry(parseFloat(radiustop), parseFloat(radiusbottom), parseFloat(heigth), parseInt(radiussegments));
-                    color = parseInt('0x'+group[index]['meshcolor']);
-                    material = new THREE.MeshBasicMaterial({color:color, transparent: false});
-
-                    circlegeometry = new THREE.CircleGeometry(2, 24);
-                    circlecolor = parseInt('0x'+group[index]['circlecolor']);
-                    circlematerial = new THREE.MeshBasicMaterial({color:circlecolor, transparent:true, opacity:0.7, side: THREE.DoubleSide});
-                    return false;
-                }
-            }
-        });
-        if (text == 'tag'){
-            if (geometry){
-                return new THREE.Mesh(geometry, material);    
-            } else {
-                return new THREE.Mesh(cubeGeom, cubeMaterial);
-            }
-        } else if (text == 'circle'){
-            if (geometry){
-                return new THREE.Mesh(circlegeometry, circlematerial);    
-            } else {
-                return new THREE.Mesh(circleGeom, circleMaterial);
-            }
-        }
-    }
 
     function render(){
-    	if ($.isEmptyObject(unique)==false){
-			//проверка наличия элемента на сцене, если новый добавить
-            noUnq = 0;
-			$.each(unique, function(index){
-				if (unique[index]['mesh']==undefined){
-					//добавление элемента на сцену
-					unique[index]['mesh'] = buildUnique(unique[index], 'tag');
-					scene.add(unique[index]['mesh']);
-                    unique[index]['circle'] = buildUnique(unique[index], 'circle');
-                    unique[index]['circle'].rotation.x = -1* Math.PI
-                    scene.add(unique[index]['circle']);
-                    unique[index]['mesh'].add(unique[index]['circle']);
-				}
-                noUnq += 1;
-			});
-            if (noUnq != uniqueCount) {
-                first = 1;
-                uniqueCount = noUnq;
-            }
-			$.each(unique, function(index){
-				var timeOut = 5000;
-				ind = index;
-				//прохождение позиций координат
-				$.each(unique[ind]['data'], function(index){
-					if (unique[ind]['data'][index] != undefined){
-                        //новый элемент на сцене
-                        if (first == 1) {
-                            $.each(unique, function(i){
-                                if (unique[i]['data'][0]){
-                                    x = unique[i]['data'][0]['x'];
-                                    y = unique[i]['data'][0]['y'];
-                                    z = unique[i]['data'][0]['z'];
-                                    unique[i]['mesh'].position.set(parseFloat(x), parseFloat(y), parseFloat(z));
-                                    unique[i]['circle'].position = unique[i]['mesh'].position;
-                                    //поднять cylinder
-                                    upCircle(colladaObjects['landscape'][0], 'wall', unique[i]['mesh'].children[0], unique[i]['mesh']);
-                                    //откорректировать cilinder по z
-                                    unique[i]['circle'].position.z {% if sceneop.circle_step_symbol == 1%}-{%else%}+{%endif%}= circleStep;
-                                    circleStep += 0.01;
-                                }
-                            })
-                            first = 0;
-                        } else {
-                            //плавные перемещения
-							x = unique[ind]['data'][index]['x'];
-							y = unique[ind]['data'][index]['y'];
-							z = unique[ind]['data'][index]['z'];
-
-                            unique[ind].xnew = x;
-                            unique[ind].ynew = y;
-                            unique[ind].znew = z;
-
-                            xCur = parseFloat(unique[ind].x);
-                            yCur = parseFloat(unique[ind].y);
-                            zCur = parseFloat(unique[ind].z);
-
-                            xNew = parseFloat(unique[ind].xnew);
-                            yNew = parseFloat(unique[ind].ynew);
-                            zNew = parseFloat(unique[ind].znew);
-
-                                //для радиуса окружности
-                                vecCur = new THREE.Vector2(xCur, yCur);
-                                vecNew = new THREE.Vector2(xNew, yNew);
-                                var radiusNew = vecCur.distanceTo(vecNew);
-                                radiusNew = parseFloat(radiusNew.toFixed(2));
-                                var radiusOld = unique[ind]['mesh'].children[0].geometry.boundingSphere.radius
-                                //плавное изменение окружности
-                                var step = 0.2;
-                                if(parseFloat(radiusOld.toFixed(2)) < radiusNew && radiusNew < 10.00){
-                                    unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
-                                }
-                                if(parseFloat(radiusOld.toFixed(2)) > radiusNew && radiusNew < 10.00){
-                                    unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
-                                }
-                            var step = 0.3;
-                            if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
-                                unique[ind]['mesh'].position.x += step;
-                                unique[ind].x = unique[ind]['mesh'].position.x;
-                            }
-
-                            else if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
-                                unique[ind]['mesh'].position.y += step;
-                                unique[ind].y = unique[ind]['mesh'].position.y;
-                            }
-
-                            else if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
-                                unique[ind]['mesh'].position.z += step;
-                                unique[ind].z = unique[ind]['mesh'].position.z;
-                            }
-
-
-                            else if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
-                                unique[ind]['mesh'].position.x -= step;
-                                unique[ind].x = unique[ind]['mesh'].position.x;
-                            }
-
-                            else if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
-                                unique[ind]['mesh'].position.y -= step;
-                                unique[ind].y = unique[ind]['mesh'].position.y;
-                            }
-
-                            else if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
-                                unique[ind]['mesh'].position.z -= step;
-                                unique[ind].z = unique[ind]['mesh'].position.z;
-                            }
-                        }
-
-						timeOut += timeOut;
-						//удаление пройденных координат из буфера
-						unique[ind]['data'] = jQuery.grep(unique[ind]['data'], function(value){
-							return value != unique[ind]['data'][index];
-						});
-					}
-				});
-                //наполняем таймер cron
-                unique[ind]['cron'] += 1;
-				//oчищаем count
-				unique[ind]['count'] = 0;
-			});
-            //скрываем видимость тех, от кого нет сигнала за обозначенное время
-            $.each(unique, function(index){
-                if (unique[index]['cron'] > 1200){
-                    unique[index]['mesh'].visible = false;
-                    unique[index]['invisible'] = 1;
-                    clearInterval(unique[index]['timerid']);
-                }
-                if ((unique[index]['invisible'] == 1) && (unique[index]['cron'] < 1200)){
-                    unique[index]['mesh'].visible = true;
-                    unique[index]['invisible'] = 0;
-                    clearInterval(unique[index]['timerid']);
-                }
-            });
-            //плавное перемещение между посылками
-            $.each(unique, function(index){
-                xCur = parseFloat(unique[index].x);
-                yCur = parseFloat(unique[index].y);
-                zCur = parseFloat(unique[index].z);
-
-                xNew = parseFloat(unique[index].xnew);
-                yNew = parseFloat(unique[index].ynew);
-                zNew = parseFloat(unique[index].znew);
-                    //для радиуса окружности
-                    vecCur = new THREE.Vector2(xCur, yCur);
-                    vecNew = new THREE.Vector2(xNew, yNew);
-                    var radiusNew = vecCur.distanceTo(vecNew);
-                    var radiusOld = unique[index]['mesh'].children[0].geometry.boundingSphere.radius
-                    //плавное изменение окружности
-                    var step = 0.07;
-                    if(radiusOld < radiusNew && radiusNew < 10){
-                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
-                    }
-                    if(radiusOld > radiusNew && radiusNew < 10){
-                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
-                    }
-                var step = 0.07;
-                if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
-                    unique[index]['mesh'].position.x += step;
-                    unique[index].x = unique[index]['mesh'].position.x;
-                }
-
-                if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
-                    unique[index]['mesh'].position.y += step;
-                    unique[index].y = unique[index]['mesh'].position.y;
-                }
-
-                if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
-                    unique[index]['mesh'].position.z += step;
-                    unique[index].z = unique[index]['mesh'].position.z;
-                }
-
-
-                if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
-                    unique[index]['mesh'].position.x -= step;
-                    unique[index].x = unique[index]['mesh'].position.x;
-                }
-
-                if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
-                    unique[index]['mesh'].position.y -= step;
-                    unique[index].y = unique[index]['mesh'].position.y;
-                }
-
-                if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
-                    unique[index]['mesh'].position.z -= step;
-                    unique[index].z = unique[index]['mesh'].position.z;
-                }
-            });
-    	}
         //плавное перемещение camera target
         if (camera.LookAtNew){
             oldCam = camera.LookAt;
@@ -1575,73 +1226,6 @@
             }
         }
     }
-
-    //подымаем circle
-    function upCircle(node, text, circle, unique){
-        if(node.children){
-            for (var i = 0; i < node.children.length; i++ ){
-                if (node.children[i].name.indexOf(text) != -1) {
-                    getWallHeight(colladaObjects['landscape'][0], unique, circle);
-                }
-                upCircle(node.children[i], text, circle, unique);
-            }
-        }
-    }
-
-    function getWallHeight(node, unique, circle){
-        if(node.children){
-            for (var i = 0; i < node.children.length; i++){
-                if(node.children[i].name.indexOf('floor') != -1){
-                    if (getFloorOfUnique(node.children[i], unique)){
-                        object = node.children[i];
-                        xMin = object.BoxMin.x;
-                        yMin = object.BoxMin.y;
-                        zMin = object.BoxMin.z;
-
-                        xMax = object.BoxMax.x;
-                        yMax = object.BoxMax.y;
-                        zMax = object.BoxMax.z;
-
-                        /*zStep = Math.abs((zMax - zMin)/2);*/
-
-                        zStep = Math.abs(Math.abs(unique.position.z - zMin) - Math.abs(zMax-zMin)) + 0.20;
-                        if (Math.abs(circle.position.z) < zStep){
-                            circle.position.z {% if sceneop.get_wall_height_symbol == 1%}+{%else%}-{%endif%}= zStep;
-                        }
-                    }
-                }
-                getWallHeight(node.children[i], unique, circle);
-            }
-        }
-    }
-
-    function getFloorOfUnique(floor, unique){
-        xMin = floor.BoxMin.x;
-        yMin = floor.BoxMin.y;
-        zMin = floor.BoxMin.z;
-
-        xMax = floor.BoxMax.x;
-        yMax = floor.BoxMax.y;
-        zMax = floor.BoxMax.z;
-
-        x = unique.position.x;
-        y = unique.position.y;
-        z = unique.position.z;
-
-        if (inInterval(x, xMin, xMax) && inInterval(y, yMin, yMax) && inInterval(z, zMin, zMax)){
-            return true;
-        }
-    }
-
-
-    function inInterval(i, imin, imax){
-        if (i >= imin && i <= imax){
-            return true;
-        } else {
-            return false;
-        }
-    }
-
 
 
     function update(){

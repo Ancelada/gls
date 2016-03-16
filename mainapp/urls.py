@@ -86,5 +86,5 @@ urlpatterns = patterns('',
 
 
 	#income zone define
-	url(r'incomezonedefine/', 'mainapp.views.incomezonedefine'),
+	url(ur'incomezonedefine/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.incomezonedefine'),
 )

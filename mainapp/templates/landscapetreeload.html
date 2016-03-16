@@ -710,11 +710,12 @@
 	    		var floorVert = [];
 	    		var floorFaces = [];
 				var floor_003 = [];
-		        lookColladaId(dae, 'kabinet_002', floor_003);
+		        lookColladaId(dae, 'floor_003', floor_003);
 		        function lookColladaId(dae, text, array){
 		        	if (dae.children){
 		        		for (var i = 0; i < dae.children.length; i++){
 		        			if (dae.children[i].colladaId == text){
+		        				console.log(dae.children[i]);
 		        				array.push(dae.children[i]);
 		        				return true
 		        			}

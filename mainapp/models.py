@@ -328,18 +328,34 @@ class KabinetColor(models.Model):
 ###################
 # Зоны
 ###################
+class IncomeZone(models.Model):
+	class Meta():
+		db_table = "IncomeZone"
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+
+class VerticesIncomeZone(models.Model):
+	class Meta():
+		db_table = "VerticesIncomeZone"
+	xCoord = models.FloatField()
+	yCoord = models.FloatField()
+	zmin = models.FloatField(blank=True, null=True)
+	zmax = models.FloatField(blank=True, null=True)
+	IncomeZone = models.ForeignKey(IncomeZone, on_delete=models.CASCADE)
 
 class BuildingIncomeZone(models.Model):
 	class Meta():
 		db_table = "BuildingIncomeZone"
 	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
+	IncomeZone = models.ForeignKey(IncomeZone, on_delete=models.CASCADE)
 
 class FloorIncomeZone(models.Model):
 	class Meta():
 		db_table = 'FloorIncomeZone'
 	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+	IncomeZone = models.ForeignKey(IncomeZone, on_delete=models.CASCADE)
 
 class KabinetIncomeZone(models.Model):
 	class Meta():
 		db_table = 'KabinetIncomeZone'
 	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+	IncomeZone = models.ForeignKey(IncomeZone, on_delete=models.CASCADE)
