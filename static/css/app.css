@@ -125,3 +125,19 @@ li.tabs-title a{
 	max-height: 400px;
 	overflow-y:scroll;
 }
+
+.exclude_zone_button{
+	position:fixed;
+	right: 0;
+	top: 113px;
+}
+.excludezone_panel{
+	position:fixed;
+	top:0;
+	right:0;
+	height: 100%;
+	overflow:auto;
+	background-color:#fff;
+	-webkit-transition: right 1s;
+	transition: right 1s;	
+}

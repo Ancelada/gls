@@ -68,7 +68,7 @@
 <label for="">Значение
     <input type="number" step="0.01" data-type="min" data-id="{{z.id}}" placeholder="{% for bz in bIncomeZone %}{% if bz.IncomeZone_id == z.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.minz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fIncomeZone %}{% if fz.IncomeZone_id == z.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.minz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kIncomeZone %}{% if kz.IncomeZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.minz}}{%endif%}{%endfor%}{%endif%}{% endfor %}"></li>    
 </label>
-<button class="button" id="savemix">Сохранить</button>
+<button class="button" id="savemin">Сохранить</button>
                                                             </ul>
                                                         </li>
                                                         <li><a href="#" >Максимум</a>

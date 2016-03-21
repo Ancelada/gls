@@ -9,7 +9,8 @@ $('body').delegate('.show_hide_button', 'click', function(){
 $('body').delegate('.close_panel', 'click', function(){
 	$('.instrument_block').css('right', '-100%');
 });
-
+//панель зоны входа
+//**********************************************
 $('.income_zone_button').on('click', function(){
 	$('.incomezone_panel').css('right', 0);
 });
@@ -17,7 +18,16 @@ $('.income_zone_button').on('click', function(){
 $('.close_incomezone_panel').on('click', function(){
 	$('.incomezone_panel').css('right', '-100%');
 });
-//записать вершины
+//панель зоны исключения
+//**********************************************
+$('.exclude_zone_button').on('click', function(){
+	$('.excludezone_panel').css('right', 0);
+});
+
+$('.close_excludezone_panel').on('click', function(){
+	$('.excludezone_panel').css('right', '-100%');
+});
+//записать вершины income
 $('body').delegate('#new', 'click', function(){
     if($(this).text() == 'Новая'){
         $(this).text('Остановить');
@@ -44,7 +54,34 @@ $('body').delegate('#new', 'click', function(){
     	}
     }
 });
-//удалить зону
+//записать вершины exclude
+$('body').delegate('#new_exclude', 'click', function(){
+    if($(this).text() == 'Новая'){
+        $(this).text('Остановить');
+        $(this).addClass('secondary')
+    } else{
+    	if (vertices.length > 2){
+    		$('.exclude_lessvert').hide();
+	    	$(this).removeClass('secondary');
+	        $(this).text('Новая');
+	        $.ajax({
+	        	type: "POST",
+	        	url: "/incomezonedefine/"+landscape_id,
+	        	data: JSON.stringify({'method': 'addexclude', 'vertices': vertices, 'landscape_id': landscape_id}),
+	        	contentType: "application/json; charset=utf-8",
+	        	dataType: "html",
+	        	async: true,
+	        	success: function(data, textStatus, jqXHR){
+	        		$('#excludezonetable').html(data);
+	        	}
+	        })
+	        vertices = [];	
+    	} else {
+    		$('.exclude_lessvert').show()
+    	}
+    }
+});
+//удалить зону income
 $('body').delegate('#delete', 'click', function(){
 	zoneid = $(this).attr('data-id');
 	$.ajax({
@@ -59,8 +96,22 @@ $('body').delegate('#delete', 'click', function(){
 		}
 	});
 });
-
-//прицепить к объекту
+//удалить зону exclude
+$('body').delegate('#delete_exclude', 'click', function(){
+	zoneid = $(this).attr('data-id');
+	$.ajax({
+		type: "POST",
+		url: "/incomezonedefine/"+landscape_id,
+		data: JSON.stringify({'method': 'delete_exclude', 'landscape_id':landscape_id, 'zoneid': parseInt(zoneid)}),
+		contentType: "application/json; charset=utf-8",
+		dataType: "html",
+		async: true,
+		success: function(data, textStatus, jqXHR){
+			$('#excludezonetable').html(data);
+		}
+	});
+});
+//прицепить к объекту includezone
 $('body').delegate('#link', 'click', function(){
 	zoneid = $(this).attr('data-zoneid');
 	id = $(this).attr('data-id');
@@ -77,7 +128,24 @@ $('body').delegate('#link', 'click', function(){
 		}
 	});
 });
-//отйцепить от объекта
+//прицепить к объекту excludezone
+$('body').delegate('#link_exclude', 'click', function(){
+	zoneid = $(this).attr('data-zoneid');
+	id = $(this).attr('data-id');
+	type = $(this).attr('data-type');
+	$.ajax({
+		type: "POST",
+		url: "/incomezonedefine/"+landscape_id,
+		data: JSON.stringify({'method': 'link_exclude', 'landscape_id': landscape_id, 'zoneid': zoneid, 'type': type, 'id': parseInt(id)}),
+		contentType: "application/json; charset=utf-8",
+		dataType: "html",
+		async: true,
+		success: function(data, textStatus, jqXHR){
+			$('#excludezonetable').html(data);
+		}
+	});
+});
+//отцепить от объекта incomezone
 $('body').delegate('#unlink', 'click', function(){
 	zoneid = $(this).attr('data-id');
 	$.ajax({
@@ -92,7 +160,23 @@ $('body').delegate('#unlink', 'click', function(){
 		}
 	})
 });
-//отметка привязанных зон в таблице
+//отцепить от объекта excludezone
+$('body').delegate('#unlink_exclude', 'click', function(){
+	zoneid = $(this).attr('data-id');
+	$.ajax({
+		type: "POST",
+		url: "/incomezonedefine/"+landscape_id,
+		data: JSON.stringify({'method': 'unlink_exclude', 'landscape_id': landscape_id, 'zoneid': zoneid}),
+		contentType: "application/json; charset=utf-8",
+		dataType: "html",
+		async: true,
+		success: function(data, textStatus, jqXHR){
+			$('#excludezonetable').html(data);
+		}
+	})
+});
+
+//отметка привязанных зон в таблице incomezone
 function colored(dae_elem){
 	parameters = {}
 	parameters['method'] = 'colored';
@@ -120,7 +204,36 @@ function colored(dae_elem){
 	});
 }
 
-//сохраниение минимального значения высоты зоны
+//отметка привязанных зон в таблице excludezone
+function coloredexclude(dae_elem){
+	parameters = {}
+	parameters = {}
+	parameters['method'] = 'colored_exclude';
+	parameters['landscape_id'] = landscape_id;
+	if (dae_elem.indexOf('building') != -1){
+		parameters['type'] = 'building';
+		parameters['dae_name'] = dae_elem;
+	} else if (dae_elem.indexOf('floor') != -1){
+		parameters['type'] = 'floor';
+		parameters['dae_name'] = dae_elem;
+	} else if (dae_elem.indexOf('kabinet') != -1){
+		parameters['type'] = 'kabinet';
+		parameters['dae_name'] = dae_elem;
+	}
+	$.ajax({
+		type: "POST",
+		url: "/incomezonedefine/"+landscape_id,
+		data: JSON.stringify(parameters),
+		contentType: "application/json; charset=utf-8",
+		dataType: "html",
+		async: true,
+		success: function(data, textStatus, jqXHR){
+			$('#excludezonetable').html(data);
+		}
+	});
+}
+
+//сохраниение минимального значения высоты зоны incomezone
 $('#zonetable').delegate('#savemin', 'click', function(){
 	elem = $(this).prev('li').children('label').children();
 	parameters = {}
@@ -165,6 +278,52 @@ $('#zonetable').delegate('#savemax', 'click', function(){
 		});
 	} 
 });
+//сохраниение минимального значения высоты зоны excludezone
+$('#excludezonetable').delegate('#savemin_exclude', 'click', function(){
+	elem = $(this).prev('li').children('label').children();
+	parameters = {}
+	parameters['method'] = 'savemin_exclude'
+	
+	parameters['value'] = parseFloat(elem.val());
+	parameters['zoneid'] = elem.attr('data-id');
+	parameters['landscape_id'] = landscape_id;
+	if (elem.val()>0){
+		$.ajax({
+			type: "POST",
+			url: "/incomezonedefine/"+landscape_id,
+			data:JSON.stringify(parameters),
+			contentType: "application/json; charset=utf-8",
+			dataType: "html",
+			async: true,
+			success: function(data, textStatus, jqXHR){
+				$('#excludezonetable').html(data);
+			}
+		});
+	} 
+});
+$('#excludezonetable').delegate('#savemax_exclude', 'click', function(){
+	elem = $(this).prev().children('input');
+	parameters = {}
+	parameters['method'] = 'savemax_exclude'
+	
+	parameters['value'] = parseFloat(elem.val());
+	parameters['zoneid'] = elem.attr('data-id');
+	parameters['landscape_id'] = landscape_id;
+	if (elem.val()>0){
+		$.ajax({
+			type: "POST",
+			url: "/incomezonedefine/"+landscape_id,
+			data:JSON.stringify(parameters),
+			contentType: "application/json; charset=utf-8",
+			dataType: "html",
+			async: true,
+			success: function(data, textStatus, jqXHR){
+				$('#excludezonetable').html(data);
+			}
+		});
+	} 
+});
+
 //получить вершины объекта x, y. Отдельно минимальное значение z.
 var ObjMesh;
 var ObjMeshUp;
@@ -172,11 +331,15 @@ var ObjMeshUp;
 var Obj_I_Zone = [];
 var Obj_I_ZoneUp = [];
 
+var Obj_I_eZone = [];
+var Obj_I_eZoneUp = []; 
+
 
 function getVertices(dae_elem, object){
 	scene.remove(ObjMesh);
 	scene.remove(ObjMeshUp);
 
+	//удаляем ранее отображаемые incomezone
 	$.each(Obj_I_Zone, function(index){
 		scene.remove(Obj_I_Zone[index]['mesh']);
 	});
@@ -185,6 +348,15 @@ function getVertices(dae_elem, object){
 	});
 	Obj_I_Zone = [];
 	Obj_I_ZoneUp = [];
+	//удаляем ранее отображаемые excludezone
+	$.each(Obj_I_eZone, function(index){
+		scene.remove(Obj_I_eZone[index]['mesh']);
+	});
+	$.each(Obj_I_eZoneUp, function(index){
+		scene.remove(Obj_I_eZoneUp[index]['mesh']);
+	});
+	Obj_I_eZone = [];
+	Obj_I_eZoneUp = [];
 
 	parameters = {};
 	parameters['method'] = 'objvertices';
@@ -278,7 +450,7 @@ function getVertices(dae_elem, object){
 				ObjMeshUp = new THREE.Mesh(planeGeometryUp, planeMaterialUp);
 				scene.add(ObjMesh);
 				scene.add(ObjMeshUp);
-				//многоугольники зон
+				//многоугольники зон incomezone
 				$.each(data['izone'], function(index){
 					var iZoneVert = [];
 					var iZoneVertUp = [];
@@ -347,19 +519,94 @@ function getVertices(dae_elem, object){
 						Obj_I_ZoneUp.push({'mesh': new THREE.Mesh(izoneGeometryUp, izoneMaterialUp), 'id':izone['id']});
 					}
 				});
+
 				$.each(Obj_I_Zone, function(index){
 					scene.add(Obj_I_Zone[index]['mesh']);
 				});
 				$.each(Obj_I_ZoneUp, function(index){
 					scene.add(Obj_I_ZoneUp[index]['mesh']);
 				});
+				//многоугольник зон excludezone
+				$.each(data['ezone'], function(index){
+					var eZoneVert = [];
+					var eZoneVertUp = [];
+					var eZoneFaces = [];
+					ezone = data['ezone'][index];
+					$.each(ezone['vertices'], function(index){
+						value = ezone['vertices'][index];
+						eZoneVert.push({'x': value['x'], 'y': value['y'], 'z': value['zmin']});
+					});
+					$.each(ezone['vertices'], function(index){
+						value = ezone['vertices'][index];
+						eZoneVertUp.push({'x': value['x'], 'y': value['y'], 'z': value['zmax']});
+					});
+					$.each(ezone['faces'], function(index){
+						value = ezone['faces'][index];
+						eZoneFaces.push({'a': value['a'], 'b': value['b'], 'c': value['c']});
+					});
+					//строим плоскость
+					var ezoneGeometry = new THREE.Geometry();
+					$.each(eZoneVert, function(index){
+						x = eZoneVert[index]['x'];
+						y = eZoneVert[index]['y'];
+						z = eZoneVert[index]['z'];
+						ezoneGeometry.vertices.push(
+							new THREE.Vector3(x, y, z + 0.12)
+						)
+					});
+					$.each(eZoneFaces, function(index){
+						a = eZoneFaces[index]['a'];
+						b = eZoneFaces[index]['b'];
+						c = eZoneFaces[index]['c'];
+						ezoneGeometry.faces.push(
+							new THREE.Face3(a, b, c)
+						)
+					});
+					var ezoneGeometryUp = new THREE.Geometry();
+					$.each(eZoneVertUp, function(index){
+						x = eZoneVertUp[index]['x'];
+						y = eZoneVertUp[index]['y'];
+						z = eZoneVertUp[index]['z'];
+						ezoneGeometryUp.vertices.push(
+							new THREE.Vector3(x, y, z + 0.06)
+						)
+					});
+					$.each(eZoneFaces, function(index){
+						a = eZoneFaces[index]['a'];
+						b = eZoneFaces[index]['b'];
+						c = eZoneFaces[index]['c'];
+						ezoneGeometryUp.faces.push(
+							new THREE.Face3(a, b, c)
+						)
+					});
+					ezoneGeometry.computeBoundingSphere();
+					ezoneGeometryUp.computeBoundingSphere();
+					var ezoneMaterial = new THREE.MeshBasicMaterial({ color: 0x483d8b, side: THREE.DoubleSide, transparent: true, opacity:0.5});
+					var ezoneMaterialUp = new THREE.MeshBasicMaterial({ color: 0x483d8b, side: THREE.DoubleSide, transparent: true, opacity:0.3});
+					//исключаем повторения
+					doubled = 0;
+					$.each(Obj_I_eZone, function(index){
+						if (Obj_I_eZone[index]['id'] == ezone['id']){
+							doubled = 1;
+						}
+					});
+					if (doubled==0){
+						Obj_I_eZone.push({'mesh': new THREE.Mesh(ezoneGeometry, ezoneMaterial), 'id':ezone['id']});
+						Obj_I_eZoneUp.push({'mesh': new THREE.Mesh(ezoneGeometryUp, ezoneMaterialUp), 'id':ezone['id']});
+					}
+				});
+				$.each(Obj_I_eZone, function(index){
+					scene.add(Obj_I_eZone[index]['mesh']);
+				});
+				$.each(Obj_I_eZoneUp, function(index){
+					scene.add(Obj_I_eZoneUp[index]['mesh']);
+				});
 			}
-			console.log(Obj_I_Zone);
 		}
 	});
 }
 
-//показать зону
+//показать зону incomezone
 $('body').delegate('#show', 'click', function(){
 	$.each(Obj_I_Zone, function(index){
 		scene.remove(Obj_I_Zone[index]['mesh']);
@@ -404,7 +651,6 @@ $('body').delegate('#show', 'click', function(){
 					new THREE.Vector3(x, y, z + 0.10)
 				)
 			});
-			console.log(izoneGeometry);
 			$.each(iZoneFaces, function(index){
 				a = iZoneFaces[index]['a'];
 				b = iZoneFaces[index]['b'];
@@ -451,6 +697,102 @@ $('body').delegate('#show', 'click', function(){
 			});
 			$.each(Obj_I_ZoneUp, function(index){
 				scene.add(Obj_I_ZoneUp[index]['mesh']);
+			});
+		}
+	});
+});
+
+//показать зону excludezone
+$('body').delegate('#show_exclude', 'click', function(){
+	$.each(Obj_I_eZone, function(index){
+		scene.remove(Obj_I_eZone[index]['mesh']);
+	});
+	$.each(Obj_I_eZoneUp, function(index){
+		scene.remove(Obj_I_eZoneUp[index]['mesh']);
+	});
+	parameters = {};
+	parameters['method'] = 'show_exclude';
+	parameters['landscape_id'] = landscape_id;
+	parameters['zoneid'] = parseInt($(this).attr('data-id'));
+	$.ajax({
+		type: "POST",
+		url: "/incomezonedefine/"+landscape_id,
+		data:JSON.stringify(parameters),
+		contentType: "application/json; charset=utf-8",
+		dataType: "json",
+		async: true,
+		success: function(data, textStatus, jqXHR){
+			Obj_I_eZone = [];
+			Obj_I_eZoneUp = [];
+			var eZoneVert = [];
+			var eZoneVertUp = [];
+			var eZoneFaces = [];
+			ezone = data['ezone'][0];
+			$.each(ezone['vertices'], function(index){
+				value = ezone['vertices'][index];
+				eZoneVert.push({'x': value['x'], 'y': value['y'], 'z': value['zmin']});
+				eZoneVertUp.push({'x': value['x'], 'y': value['y'], 'z': value['zmax']});
+			});
+			$.each(ezone['faces'], function(index){
+				value = ezone['faces'][index];
+				eZoneFaces.push({'a': value['a'], 'b': value['b'], 'c': value['c']});
+			});
+			//строим плоскость
+			var ezoneGeometry = new THREE.Geometry();
+			$.each(eZoneVert, function(index){
+				x = eZoneVert[index]['x'];
+				y = eZoneVert[index]['y'];
+				z = eZoneVert[index]['z'];
+				ezoneGeometry.vertices.push(
+					new THREE.Vector3(x, y, z + 0.12)
+				)
+			});
+			$.each(eZoneFaces, function(index){
+				a = eZoneFaces[index]['a'];
+				b = eZoneFaces[index]['b'];
+				c = eZoneFaces[index]['c'];
+				ezoneGeometry.faces.push(
+					new THREE.Face3(a, b, c)
+				)
+			});
+			
+			var ezoneGeometryUp = new THREE.Geometry();
+			$.each(eZoneVertUp, function(index){
+				x = eZoneVertUp[index]['x'];
+				y = eZoneVertUp[index]['y'];
+				z = eZoneVertUp[index]['z'];
+				ezoneGeometryUp.vertices.push(
+					new THREE.Vector3(x, y, z + 0.06)
+				)
+			});
+			$.each(eZoneFaces, function(index){
+				a = eZoneFaces[index]['a'];
+				b = eZoneFaces[index]['b'];
+				c = eZoneFaces[index]['c'];
+				ezoneGeometryUp.faces.push(
+					new THREE.Face3(a, b, c)
+				)
+			});
+			ezoneGeometry.computeBoundingSphere();
+			ezoneGeometryUp.computeBoundingSphere();
+			var ezoneMaterial = new THREE.MeshBasicMaterial({ color: 0x4b0082, side: THREE.DoubleSide, transparent: false, opacity:0.5});
+			var ezoneMaterialUp = new THREE.MeshBasicMaterial({ color: 0x4b0082, side: THREE.DoubleSide, transparent: false, opacity:0.3});
+			//исключаем повторения
+			doubled = 0;
+			$.each(Obj_I_eZone, function(index){
+				if (Obj_I_eZone[index]['id'] == ezone['id']){
+					doubled = 1;
+				}
+			});
+			if (doubled==0){
+				Obj_I_eZone.push({'mesh': new THREE.Mesh(ezoneGeometry, ezoneMaterial), 'id':ezone['id']});
+				Obj_I_eZoneUp.push({'mesh': new THREE.Mesh(ezoneGeometryUp, ezoneMaterialUp), 'id':ezone['id']});
+			}
+			$.each(Obj_I_eZone, function(index){
+				scene.add(Obj_I_eZone[index]['mesh']);
+			});
+			$.each(Obj_I_eZoneUp, function(index){
+				scene.add(Obj_I_eZoneUp[index]['mesh']);
 			});
 		}
 	});

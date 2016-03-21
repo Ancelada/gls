@@ -326,7 +326,7 @@ class KabinetColor(models.Model):
 	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
 
 ###################
-# Зоны
+# Зоны входа
 ###################
 class IncomeZone(models.Model):
 	class Meta():
@@ -359,3 +359,38 @@ class KabinetIncomeZone(models.Model):
 		db_table = 'KabinetIncomeZone'
 	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
 	IncomeZone = models.ForeignKey(IncomeZone, on_delete=models.CASCADE)
+
+####################
+# Зоны исключения
+####################
+class ExcludeZone(models.Model):
+	class Meta():
+		db_table = "ExcludeZone"
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+
+class VerticesExcludeZone(models.Model):
+	class Meta():
+		db_table = "VerticesExcludeZone"
+	xCoord = models.FloatField()
+	yCoord = models.FloatField()
+	zmin = models.FloatField(blank=True, null=True)
+	zmax = models.FloatField(blank=True, null=True)
+	ExcludeZone = models.ForeignKey(ExcludeZone, on_delete=models.CASCADE)
+
+class BuildingExcludeZone(models.Model):
+	class Meta():
+		db_table = "BuildingExcludeZone"
+	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
+	ExcludeZone = models.ForeignKey(ExcludeZone, on_delete=models.CASCADE)
+
+class FloorExcludeZone(models.Model):
+	class Meta():
+		db_table = "FloorExcludeZone"
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+	ExcludeZone = models.ForeignKey(ExcludeZone, on_delete=models.CASCADE)
+
+class KabinetExcludeZone(models.Model):
+	class Meta():
+		db_table = 'KabinetExcludeZone'
+	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+	ExcludeZone = models.ForeignKey(ExcludeZone, on_delete=models.CASCADE)

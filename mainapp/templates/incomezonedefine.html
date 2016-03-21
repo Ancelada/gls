@@ -52,8 +52,9 @@
                 </div>
             </div>
         </div>
-        <button class="button large show_hide_button">Панель инструментов</button>
-        <button class="button alert large income_zone_button">Настройка зон входа</button>
+        <button class="button large show_hide_button">Статичные объекты</button>
+        <button class="button alert large income_zone_button">Зоны входа</button>
+        <button class="button success large exclude_zone_button">Зоны исключения</button>
         <div class="large-3 small-3 columns popup" style="padding-left:0px;padding-right:0px;">
             <ul class="tabs vertical" id="example-vert-tabs" data-tabs>
 
@@ -240,7 +241,113 @@
             </fieldset>
             <label class="lessvert label alert" style="display:none;">Мало вершин</label>
         </div>
+        <!-- блок зоны исключения -->
+        <div class="excludezone_panel large-3 small-4 columns" style="right:-100%;overflow:visible;">
+            <button class="close-button close_excludezone_panel" aria-label="Close menu" type="button">
+                <span aria-hidden="true">x</span>
+            </button>
+            <br>
+            <br>
+            <fieldset class="large-12 small-12 columns">
+                <h3 class="subheader">Список зон исключения</h3>
+                <div class="large-12 small-12 columns" id="excludezonetable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Статус</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for z in ezones %}
+                                <tr>
+                                    <td class="subheader">
+                                        {% for bz in bExcludeZone %}
+                                            {% if bz.ExcludeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_exclude" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
 
+                                        {% for fz in fExcludeZone %}
+                                            {% if fz.ExcludeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for f in floors %}{% if f.id == fz.Floor_id%}{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_exclude" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for kz in kExcludeZone %}
+                                            {% if kz.ExcludeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for k in kabinet_n_outer %}{% if k.id == kz.Kabinet_id %}{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_exclude" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <button class="button" data-toggle="dropdownexclude{{z.id}}">Действие</button>
+                                        <div class="dropdown-pane left" id="dropdownexclude{{z.id}}" data-dropdown style="width:200px;">
+                                            <ul class="vertical dropdown menu" data-dropdown-menu>
+                                                <li><a href="#" id="show_exclude" data-id="{{z.id}}">Показать</a></li>
+                                                <li>
+                                                    <a href="#" id="delete_exclude" data-id="{{z.id}}">Удалить</a>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Привязать</a>
+                                                    <ul class="menu">
+                                                    {% for b in buildings %}
+                                                        <li><a href="#" data-type="building" data-id="{{b.id}}" id="link_exclude" data-zoneid="{{z.id}}">{% if not b.BuildingName or b.BuildingName == '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{%endif%}</a>
+                                                            <ul class="menu">
+                                                                {% for f in floors %}
+                                                                {% if f.Building_id == b.id %}
+                                                                <li><a href="#" data-type="floor" data-id="{{f.id}}" id="link_exclude" data-zoneid="{{z.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
+                                                                    <ul class="menu">
+                                                                    {% for k in kabinet_n_outer %}
+                                                                    {% if k.Floor_id = f.id %}
+                                                                    <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="link_exclude" data-zoneid="{{z.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
+                                                                    {% endif %}
+                                                                    {% endfor %}
+                                                                    </ul>
+                                                                </li>
+                                                                {% endif %}
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </li>
+                                                    {% endfor %}        
+                                                    </ul>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Откорректировать высоту</a>
+                                                    <ul class="menu">
+                                                        <li><a href="#">Минимум</a>
+                                                            <ul class="menu">
+                                                                <li>
+<label for="">Значение
+    <input type="number" step="0.01" data-type="min" data-id="{{z.id}}" placeholder="{% for bz in bExcludeZone %}{% if bz.ExcludeZone_id == z.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.minz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fExcludeZone %}{% if fz.ExcludeZone_id == z.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.minz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kExcludeZone %}{% if kz.ExcludeZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.minz}}{%endif%}{%endfor%}{%endif%}{% endfor %}"></li>    
+</label>
+<button class="button" id="savemin_exclude" data-id="{{z.id}}">Сохранить</button>
+                                                            </ul>
+                                                        </li>
+                                                        <li><a href="#" >Максимум</a>
+                                                            <ul class="menu">
+                                                                <li>
+<label for="">Значение
+    <input type="number" step="0.01" data-type="max" data-id="{{z.id}}" placeholder="{% for bz in bExcludeZone %}{% if bz.ExcludeZone_id == z.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.maxz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fExcludeZone %}{% if fz.ExcludeZone_id == z.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.maxz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kExcludeZone %}{% if kz.ExcludeZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.maxz}}{%endif%}{%endfor%}{%endif%}{% endfor %}">
+</label>
+<button class="button" id="savemax_exclude" data-id="{{z.id}}">Сохранить</button>
+                                                                </li>
+                                                            </ul>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button class="button" id="new_exclude">Новая</button>
+            </fieldset>
+            <label class="exclude_lessvert label alert" style="display:none;">Мало вершин</label>
+        </div>
 		<!-- **********шейдеры ******-->
 		<!--************************-->
 		<script type="x-shader/x-vertex" id="vertexShader">
@@ -650,6 +757,9 @@
             if ($('#new').text()== 'Остановить'){
                 addVertice(vertices);
             }
+            if ($('#new_exclude').text()=='Остановить'){
+                addVertice(vertices);
+            }
         }
 
         function addVertice(arr){
@@ -725,7 +835,7 @@
                     lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
                     lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
                     lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
-                    cameraToggle(colladaObjects['landscape'][0], dae_elem);
+                    /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
                     flr = intersects[index][0].object.parent.parent
                     $('.popup').empty();
                     $.each(flr.children, function(index){
@@ -747,7 +857,7 @@
                 lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
                 lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
                 lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
-                cameraToggle(colladaObjects['landscape'][0], dae_elem);                
+                /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/                
             });
 
             nokabinet = 0;
@@ -779,7 +889,7 @@
                         lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
                         lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
                         lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
-                        cameraToggle(colladaObjects['landscape'][0], dae_elem);
+                        /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
                         $('.popup').empty();
                         $.each(kabinet, function(index){
                             if (kabinet[index].parent.dbName != 'None'){
@@ -800,7 +910,7 @@
             lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
             lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
             lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
-            cameraToggle(colladaObjects['landscape'][0], dae_elem);
+            /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
         });
 
         function ElemLookUp(node, text, object, no){
@@ -942,6 +1052,7 @@
                             togleVisibleOn(colladaObjects['landscape'][0], building);
                             //отметка привязанных зон в таблице
                             colored(building);
+                            coloredexclude(building);
                             //запрос вершин здания и вершин привязанных к нему объектов
                             getVertices(building, node.children[i]);
                         }
@@ -993,6 +1104,7 @@
                                     opacityFinder(colladaObjects['landscape'][0], cur['curName'], 1);
                                         //отметка привязанных зон в таблице
                                         colored(cur['curName']);
+                                        coloredexclude(cur['curName']);
                                         //запрос вершин здания и вершин привязанных к нему объектов
                                         getVertices(cur['curName'], node.children[i]);
                                 }
@@ -1031,6 +1143,7 @@
                                 opacityFinder(colladaObjects['landscape'][0], curName, 0.8);
                                     //отметка привязанных зон в таблице
                                     colored(curName);
+                                    coloredexclude(curName);
                                     //запрос вершин здания и вершин привязанных к нему объектов
                                     getVertices(curName, node.children[i]);
                             });

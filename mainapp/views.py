@@ -84,56 +84,178 @@ def turnoff_tumbler(request):
 def clearstatic(request):
 	del static[:]
 	return HttpResponse('static list cleared')
+
 # наполняем статику
 def fillStatic():
 	landscape = LoadLandscape.objects.all()
-	bno = 0
 	for l in landscape:
-		static.append({'landscape_id': l.landscape_id, 'objects': []})
+		static.append({'landscape_id': l.landscape_id, 'buildings': []})
 		for i in static:
 			if i['landscape_id'] == l.landscape_id:
 				#building
 				building = Building.objects.filter(LoadLandscape_id=l.landscape_id)
+				bno = 0
 				for b in building:
-					i['objects'].append({'name': b.dae_BuildingName, 'vertices': [], 'maxz': b.maxz, 'minz': b.minz})
+					i['buildings'].append({'id': b.id, 'name': b.dae_BuildingName, \
+					 'floors':[], 'vertices': [], 'maxz': b.maxz, 'minz': b.minz, \
+					 'IncomeZones': [], 'ExcludeZones': []})
 					#add building vertices
 					verticesBuilding = VerticesBuilding.objects.filter(Building_id=b.id)
 					for v in verticesBuilding:
-						i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+						i['buildings'][bno]['vertices'].append([float(v.x), float(v.y)])
 					#сортировка вершин
-					pp = i['objects'][bno]['vertices']
-					cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
-					pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
-					i['objects'][bno]['vertices'] = pp
-					bno += 1
+					a = sortVert(i['buildings'][bno]['vertices'])
+					i['buildings'][bno]['vertices'] = a
+					# BuildingIncomeZone добавляем id зон
+					biz = BuildingIncomeZone.objects.filter(Building_id=b.id)
+					zno = 0
+					for z in biz:
+						i['buildings'][bno]['IncomeZones'].append({'id': z.IncomeZone_id, \
+						 'vertices': [], 'minz': 0, 'maxz': 0})
+						# BuildingIncomeZone добавляем вершины зон
+						bizvert = VerticesIncomeZone.objects.filter(IncomeZone_id=z.IncomeZone_id)
+						#минимальные и максимальные значения по высоте
+						i['buildings'][bno]['IncomeZones'][zno]['minz'] = bizvert[0].zmin
+						i['buildings'][bno]['IncomeZones'][zno]['maxz'] = bizvert[0].zmax
+						for vert in bizvert:
+							i['buildings'][bno]['IncomeZones'][zno]['vertices'].append( \
+								[vert.xCoord, vert.yCoord])
+						#сортировка вершин
+						a = sortVert(i['buildings'][bno]['IncomeZones'][zno]['vertices'])
+						i['buildings'][bno]['IncomeZones'][zno]['vertices'] = a
+						zno += 1
+					# BuildingExcludeZone добавляем id зон
+					bez = BuildingExcludeZone.objects.filter(Building_id=b.id)
+					zno = 0
+					for z in bez:
+						i['buildings'][bno]['ExcludeZones'].append({'id': z.ExcludeZone_id, \
+							'vertices': [], 'minz': 0, 'maxz': 0})
+						# BuildingExcludeZone добавляем вершины зон
+						bezvert = VerticesExcludeZone.objects.filter(ExcludeZone_id=z.ExcludeZone_id)
+						# минимальные и максимальные значения по высоте
+						i['buildings'][bno]['ExcludeZones'][zno]['minz'] = bezvert[0].zmin
+						i['buildings'][bno]['ExcludeZones'][zno]['maxz'] = bezvert[0].zmax
+						for vert in bezvert:
+							i['buildings'][bno]['ExcludeZones'][zno]['vertices'].append( \
+								[vert.xCoord, vert.yCoord])
+						#сортировка вершин
+						a = sortVert(i['buildings'][bno]['ExcludeZones'][zno]['vertices'])
+						i['buildings'][bno]['ExcludeZones'][zno]['vertices'] = a
+						zno += 1
 					#floor
 					floor = Floor.objects.filter(Building_id=b.id)
+					fno = 0
 					for f in floor:
-						i['objects'].append({'name': f.dae_FloorName, 'vertices': [], 'maxz': f.maxz, 'minz': f.minz})
+						i['buildings'][bno]['floors'].append({'id': f.id, \
+						 'name': f.dae_FloorName, 'kabinets':[], \
+						  'vertices': [], 'maxz': f.maxz, 'minz': f.minz, \
+						  'IncomeZones': [], 'ExcludeZones': []})
+						# добавляем вершины floor
 						verticesFloor = VerticesFloor.objects.filter(Floor_id=f.id)
 						for v in verticesFloor:
-							i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+							i['buildings'][bno]['floors'][fno]['vertices'].append([float(v.x), float(v.y)])
 						#сортировка вершин
-						pp = i['objects'][bno]['vertices']
-						cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
-						pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
-						i['objects'][bno]['vertices'] = pp
-						bno += 1
-						#kabinet
-						kabinet  = Kabinet_n_Outer.objects.filter(Floor_id=f.id)
-						for k in kabinet:
-							i['objects'].append({'name': k.dae_Kabinet_n_OuterName, 'vertices': [], 'maxz': k.maxz, 'minz': k.minz})
-							verticesKabinet_n_Outer = VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=k.id)
-							for v in verticesKabinet_n_Outer:
-								i['objects'][bno]['vertices'].append([float(v.x), float(v.y)])
+						a = sortVert(i['buildings'][bno]['floors'][fno]['vertices'])
+						i['buildings'][bno]['floors'][fno]['vertices'] = a
+						# FloorIncomeZone добавляем id зон
+						fiz = FloorIncomeZone.objects.filter(Floor_id=f.id)
+						zno = 0
+						for z in fiz:
+							i['buildings'][bno]['floors'][fno]['IncomeZones'].append({ \
+								'id': z.IncomeZone_id, 'vertices': [], 'minz': 0, 'maxz': 0})
+							#FloorIncomeZone добавляем вершины зон
+							fizvert = VerticesIncomeZone.objects.filter(IncomeZone_id=z.IncomeZone_id)
+							#минимальные и максимальные значения по высоте
+							i['buildings'][bno]['floors'][fno]['IncomeZones'][zno]['minz'] = \
+							 fizvert[0].zmin
+							i['buildings'][bno]['floors'][fno]['IncomeZones'][zno]['maxz'] = \
+							 fizvert[0].zmax
+							for vert in fizvert:
+								i['buildings'][bno]['floors'][fno]['IncomeZones' \
+								][zno]['vertices'].append([vert.xCoord, vert.yCoord])
 							#сортировка вершин
-							pp = i['objects'][bno]['vertices']
-							if len(pp) > 0:
-								cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
-								pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
-								i['objects'][bno]['vertices'] = pp
-							bno += 1
-		bno = 0
+							a = sortVert(i['buildings'][bno]['floors'][fno]['IncomeZones' \
+								][zno]['vertices'])
+							i['buildings'][bno]['floors'][fno]['IncomeZones'][zno]['vertices'] = a
+							zno += 1
+						# FloorExcludeZone добавляем id зон
+						fez = FloorExcludeZone.objects.filter(Floor_id=f.id)
+						zno = 0
+						for z in fez:
+							i['buildings'][bno]['floors'][fno]['ExcludeZones'].append({ \
+								'id': z.ExcludeZone_id, 'vertices': [], 'minz': 0, 'maxz': 0})
+							#FloorExcludeZone добавляем вершины зон
+							fezvert = VerticesExcludeZone.objects.filter(ExcludeZone_id=z.ExcludeZone_id)
+							#минимальные и максимальные значение по высоте
+							i['buildings'][bno]['floors'][fno]['ExcludeZones'][zno]['minz'] = \
+							 fezvert[0].zmin
+							i['buildings'][bno]['floors'][fno]['ExcludeZones'][zno]['maxz'] = \
+							 fezvert[0].zmax
+							for vert in fezvert:
+								i['buildings'][bno]['floors'][fno]['ExcludeZones' \
+								][zno]['vertices'].append([vert.xCoord, vert.yCoord])
+							# сортировка вершин
+							a = sortVert(i['buildings'][bno]['floors'][fno]['ExcludeZones' \
+								][zno]['vertices'])
+							i['buildings'][bno]['floors'][fno]['ExcludeZones'][zno]['vertices'] = a
+							zno += 1
+						#kabinet
+						kabinet  = Kabinet_n_Outer.objects.filter(Floor_id=f.id \
+							).exclude(dae_Kabinet_n_OuterName__icontains='outer')
+						kno = 0
+						for k in kabinet:
+							i['buildings'][bno]['floors'][fno]['kabinets']. \
+							append({'id': k.id, 'name': k.dae_Kabinet_n_OuterName, 'vertices': [], \
+							 'maxz': k.maxz, 'minz': k.minz, 'IncomeZones':[], 'ExcludeZones':[]})
+							verticesKabinet_n_Outer = \
+							 VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=k.id)
+							for v in verticesKabinet_n_Outer:
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['vertices'].append([float(v.x), float(v.y)])
+							#сортировка вершин
+							a = sortVert(i['buildings'][bno]['floors'][fno]['kabinets'][kno]['vertices'])
+							if a:
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['vertices'] = a
+							# KabinetIncomeZone добавляем id зон
+							kiz = KabinetIncomeZone.objects.filter(Kabinet_id=k.id)
+							zno = 0
+							for z in kiz:
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['IncomeZones'].append({ \
+									'id': z.IncomeZone_id, 'vertices': [], 'minz': 0, 'maxz': 0})
+								#KabinetIncomeZone добавляем вершины зон
+								kizvert = VerticesIncomeZone.objects.filter(IncomeZone_id=z.IncomeZone_id)
+								#минимальные и максимальные значения по высоте
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['IncomeZones'][zno]['minz'] = \
+								 kizvert[0].zmin
+							 	i['buildings'][bno]['floors'][fno]['kabinets'][kno]['IncomeZones'][zno]['maxz'] = \
+							 	 kizvert[0].zmax
+						 		for vert in kizvert:
+						 			i['buildings'][bno]['floors'][fno]['kabinets'][kno]['IncomeZones'][zno]['vertices'].append([vert.xCoord, vert.yCoord])
+								#сортировка вершин
+								a = sortVert(i['buildings'][bno]['floors'][fno]['kabinets'][kno]['IncomeZones'][zno]['vertices'])
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['IncomeZones'][zno]['vertices'] = a
+								zno += 1
+							# KabinetExcludeZone добавляем id зон
+							kez = KabinetExcludeZone.objects.filter(Kabinet_id=k.id)
+							zno = 0
+							for z in kez:
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['ExcludeZones'].append({ \
+									'id': z.ExcludeZone_id, 'vertices': [], 'minz':0, 'maxz': 0})
+								# KabinetExcludeZone добавляем вершины зон
+								kezvert = VerticesExcludeZone.objects.filter(ExcludeZone_id=z.ExcludeZone_id)
+								# минимальные и максимальные значения по высоте
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['ExcludeZones'][zno]['minz'] = \
+								 kezvert[0].zmin
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['ExcludeZones'][zno]['maxz'] = \
+								 kezvert[0].zmax
+								for vert in kezvert:
+									i['buildings'][bno]['floors'][fno]['kabinets'][kno]['ExcludeZones'][zno]['vertices'].append([vert.xCoord, vert.yCoord])
+								#сортировка вершин
+								a = sortVert(i['buildings'][bno]['floors'][fno]['kabinets'][kno]['ExcludeZones'][zno]['vertices'])
+								i['buildings'][bno]['floors'][fno]['kabinets'][kno]['ExcludeZones'][zno]['vertices'] = a
+								zno += 1
+							kno += 1
+						fno += 1
+					bno += 1
 
 #unique очистить
 def clearUnique(request):
@@ -222,79 +344,200 @@ def correctF():
 # определение принадлежности метки объекту сцены
 def UniqueToStatic():
 	for i in unique:
-		# наполняем building
-		if not('building' in i):
-			for s in static:
-				if s['landscape_id'] ==  i['zone_id']:
-					name = findMatchingStatic(i, i['zone_id'], 'building')
-					if name:
-						i['building'] = name
-						return False
-		#при изменении building
-		else:
-			for s in static:
-				if s['landscape_id'] == i['zone_id']:
-					name = findMatchingStatic(i, i['zone_id'], 'building')
-					if i['building'] and name and name != i['building']:
-						#запись в базу изменения building
-						try:
-							building = Building.objects.get(dae_BuildingName=name, LoadLandscape_id=s['landscape_id'])
-							tag = Tag.objects.get(TagId=i['tag_id'])
-							bldchange = BldChange(ChangeTime=datetime.datetime.now(), BldNew_id=building.id, Tag_id=tag.TagId)
-							bldchange.save()
-							i['building'] = name
-							return False
-						except:
-							return False
-		#наполняем floor
-		if not('floor' in i):
-			for s in static:
-				if s['landscape_id'] == i['zone_id']:
-					name = findMatchingStatic(i, i['zone_id'], 'floor')
-					if name:
-						i['floor'] = name
-						return False
-		# при изменении floor
-		else:
-			for s in static:
-				if s['landscape_id'] == i['zone_id']:
-					name = findMatchingStatic(i, i['zone_id'], 'floor')
-					if i['floor'] and name and name != i['floor']:
-						# запись в базу изменений floor
-						try:
-							floor = Floor.objects.get(dae_FloorName=name, LoadLandscape_id=s['landscape_id'])
-							tag = Tag.objects.get(TagId=i['tag_id'])
-							flrchange = FlrChange(ChangeTime=datetime.datetime.now(), FlrNew_id=floor.id, Tag_id=tag.TagId)
-							flrchange.save()
-							i['floor'] = name
-							return False
-						except:
-							return False
-		# наполняем kabinet
-		if not('kabinet' in i):
-			for s in static:
-				if s['landscape_id'] == i['zone_id']:
-					name = findMatchingStatic(i, i['zone_id'], 'kabinet')
-					if name:
-						i['kabinet'] = name
-						return False
-		# при изменении kabinet
-		else:
-			for s in static:
-				if s['landscape_id'] == i['zone_id']:
-					name = findMatchingStatic(i, i['zone_id'], 'kabinet')
-					if i['kabinet'] and name and name != i['kabinet']:
-						# запись в базу изменений kabinet
-						try:
-							kabinet = Kabinet_n_Outer.objects.get(dae_Kabinet_n_OuterName=name, LoadLandscape_id=s['landscape_id'])
-							tag = Tag.objects.get(TagId=i['tag_id'])
-							kbntchange = KbntChange(ChangeTime=datetime.datetime.now(), KbntNew_id=kabinet.id, Tag_id=tag.TagId)
-							kbntchange.save()
-							i['kabinet'] = name
-							return False
-						except:
-							return False
+		for s in static:
+			if s['landscape_id'] ==  i['zone_id']:
+				# создаем список подходящих зон входа
+				findMatchingIncomeZones(i, i['zone_id'])
+				# ищем подходящий кабинет
+				findMatchingKabinet(i, i['zone_id'])
 
+#ищем подходящий кабинет
+def findMatchingKabinet(obj, landscape_id):
+	# если отсутствует candidate
+	# включаем хронометраж
+	if not 'candidate' in obj or len(obj['candidate']) == 0:
+		if not 'noLocation' in obj:
+			obj['noLocation'] = {'cron': 0}
+		else:
+			obj['noLocation']['cron'] += 1
+	elif len(obj['candidate']) > 0 and 'candidate' in obj:
+		obj['noLocation']['cron'] = 0
+	# увеличиваем cron
+	if 'candidate' in obj:
+		#удаляем просроченные candidate
+		deleteFromListByKeyValueUpper(20, 'cron', obj['candidate'])
+		#увеличиваем хронометраж
+		for i in obj['candidate']:
+			i['cron'] += 1
+		#проверка есть ли candidate incomezone в списке incomezone если cron == 7,
+		# и matchCount > 4
+		for i in obj['candidate']:
+			if i['cron'] == 7 and i['matchCount'] > 4:
+				for caniz in i['IncomeZones']:
+					candidateincomezone = caniz['id']
+					for objiz in obj['IncomeZones']:
+						if objiz['id'] == candidateincomezone:
+							if 'location' in obj:
+								if obj['location']['id'] != i['id']:
+									obj['location']['id'] = i['id']
+									obj['location']['type'] = 'kabinet'
+									#очищаем Candidate и IncomeZones
+									del obj['candidate'][:]
+									del obj['IncomeZones'][:]
+							else:
+								obj['location'] = {'id': i['id'], 'type': 'kabinet'}
+								#очищаем Candidate и IncomeZones
+								del obj['candidate'][:]
+								del obj['IncomeZones'][:]
+		#проверка если candidate incomezone отсутствует в incomezone cron == 20, 
+		# matchCount > 15
+		for i in obj['candidate']:
+			if i['cron'] == 20 and i['matchCount']>15:
+				if 'location' in obj:
+					if obj['location']['id'] != i['id']:
+						obj['location']['id'] = i['id']
+						obj['location']['type'] = 'kabinet'
+						#очищаем Candidate и IncomeZones
+						del obj['candidate'][:]
+						del obj['IncomeZones'][:]
+				else:
+					obj['location'] = {'id': i['id'], 'type': 'kabinet'}
+					#очищаем Candidate и IncomeZones
+					del obj['candidate'][:]
+					del obj['IncomeZones'][:]
+	x = obj['x']
+	y = obj['y']
+	z = obj['z']
+	for s in static:
+		if s['landscape_id'] == landscape_id:
+			for building in s['buildings']:
+				for floor in building['floors']:
+					# если нет candidates, noLocation > 20
+					if obj['noLocation']['cron'] > 20:
+						minz = floor['minz']
+						maxz = floor['maxz']
+						vertices = floor['vertices']
+						vector = [(x, y)]
+						match = inPolygon(vertices, vector)
+						if (match and inInterval(z, minz, maxz)):
+							inZone = 0
+							for ez in floor['ExcludeZones']:
+								vertices = ez['vertices']
+								minz = ez['minz']
+								maxz = ez['maxz']
+								match = inPolygon(vertices, vector)
+								if (match and inInterval(z, minz, maxz)):
+									inZone = 1
+							if not inZone:
+								obj['location'] = {'id': floor['id'], 'type': 'floor'}
+								obj['noLocation']['cron'] = 0
+					for kabinet in floor['kabinets']:
+						vertices = kabinet['vertices']
+						vector = [(x, y)]
+						minz = kabinet['minz']
+						maxz = kabinet['maxz']
+						match = inPolygon(vertices, vector)
+						if (match and inInterval(z, minz, maxz)):
+							# проверяем входит ли в зону исключения
+							inZone = 0
+							for ez in kabinet['ExcludeZones']:
+								vertices = ez['vertices']
+								minz = ez['minz']
+								maxz = ez['maxz']
+								match = inPolygon(vertices, vector)
+								if (match and inInterval(z, minz, maxz)):
+									inZone = 1
+							if not inZone:
+							 	if not 'candidate' in obj:
+							 		obj['candidate'] = []
+						 		elif not(dictKeyInArray(kabinet['id'], 'id', obj['candidate'], 0)):
+									obj['candidate'].append({'id': kabinet['id'], 'cron': 0, \
+										'matchCount': 0, 'IncomeZones': kabinet['IncomeZones']})
+								#если есть кандидат, зафиксировать попадание в matchCount
+								else:
+									updateMatchCount(kabinet['id'], 'id', obj['candidate'])
+
+# отметить попадание MatchCount
+def updateMatchCount (value, dictKey, arr):
+	for i in arr:
+		if i[dictKey] == value:
+			i['matchCount'] += 1
+			return False
+
+# cоздаем список подходящих зона входа
+def findMatchingIncomeZones(obj, landscape_id):
+	x = obj['x']
+	y = obj['y']
+	z = obj['z']
+	matchingzones = []
+	#проверка наличия ключа
+	if not 'IncomeZones' in obj:
+		obj['IncomeZones'] = []
+	else:
+		#удаляем просроченные IncomeZones
+		deleteFromListByKeyValueUpper(5, 'cron', obj['IncomeZones'])
+	for s in static:
+		if s['landscape_id'] == landscape_id:
+			# заполняем зоны входа buildings
+			for building in s['buildings']:
+				for biz in building['IncomeZones']:
+					vertices = biz['vertices']
+					vector = [(x, y)]
+					minz = biz['minz']
+					maxz = biz['maxz']
+					match = inPolygon(vertices, vector)
+					if (match and inInterval(z, minz, maxz)):
+						# проверяем наличие id building в IncomeZones
+						if not dictKeyInArray(biz['id'], 'id', obj['IncomeZones'], 0):
+							# записываем id в словарь
+							obj['IncomeZones'].append({'id': biz['id'], 'cron': 0})
+						else:
+							dictKeyInArray(biz['id'], 'id', obj['IncomeZones'], 1)
+				# заполняем зоны входа floors
+				for floor in building['floors']:
+					for fiz in floor['IncomeZones']:
+						vertices = fiz['vertices']
+						vector = [(x, y)]
+						minz = fiz['minz']
+						maxz = fiz['maxz']
+						match = inPolygon(vertices, vector)
+						if (match and inInterval(z, minz, maxz)):
+							# проверяем наличие id floor в IncomeZones
+							if not dictKeyInArray(fiz['id'], 'id', obj['IncomeZones'], 0):
+								# записываем id в словарь
+								obj['IncomeZones'].append({'id': fiz['id'], 'cron': 0})
+							else:
+								dictKeyInArray(fiz['id'], 'id', obj['IncomeZones'], 1)
+					# заполняем зоны входа kabinets
+					for kabinet in floor['kabinets']:
+						for kiz in kabinet['IncomeZones']:
+							vertices = kiz['vertices']
+							vector = [(x, y)]
+							minz = kiz['minz']
+							maxz = kiz['maxz']
+							match = inPolygon(vertices, vector)
+							if (match and inInterval(z, minz, maxz)):
+								# проверяем наличие id kabinet в IncomeZones
+								if not dictKeyInArray(kiz['id'], 'id', obj['IncomeZones'], 0):
+									# записываем id в словарь
+									obj['IncomeZones'].append({'id': kiz['id'], 'cron': 0})
+								else:
+									dictKeyInArray(kiz['id'], 'id', obj['IncomeZones'], 1)
+
+# функци проверки значения в списке по ключу
+# (если cron, appendCron = 1, в других случаях 0)
+def dictKeyInArray(value, dictKey, arr, appendCron):
+	for i in arr:
+		if i[dictKey] == value:
+			if appendCron:
+				i['cron'] += 1
+			return True
+	return False
+# удалени из списка по значению ключа
+def deleteFromListByKeyValueUpper(value, key, arr):
+	for i in arr:
+		if i[key] > value:
+			arr.remove(i)
 # найти подходящий под вектор объект, типы искомых объектов в obj_type
 def findMatchingStatic(obj, landscape_id, obj_type):
 	x = obj['x']
@@ -317,19 +560,6 @@ def correctUniqueInMilisec():
 	if tumbler[0]:
 		set_interval(correctF, 0.1)
 		set_interval(UniqueToStatic, 1)
-
-# look to smooth node movement
-def values_server(request, landscape_id='0000'):
-	args = {}
-	landscape_id = landscape_id
-	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
-	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id)
-	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id)
-	args['kabinet_n_outer'] = Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id)
-	args['walls'] = Wall.objects.filter(LoadLandscape_id=landscape_id)
-	args['username'] = auth.get_user(request).id
-	args['landscape_id'] = landscape_id
-	return render(request, 'values_server.html', args)
 
 #receive coordinates
 def receive_slmp(request):
@@ -471,6 +701,28 @@ def children(request):
 
 def loadcollada(request):
 	return render(request, 'loadcollada.html')
+
+# look to smooth node movement
+def values_server(request, landscape_id='0000'):
+	args = {}
+	landscape_id = landscape_id
+	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
+	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
+	args['lcolor'] = LandscapeColor.objects.all()
+	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id)
+	args['bcolor'] = BuildingColor.objects.all()
+	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id)
+	args['fcolor'] = FloorColor.objects.all()
+	args['kabinet_n_outer'] = Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id)
+	args['kcolor'] = KabinetColor.objects.all()
+	args['walls'] = Wall.objects.filter(LoadLandscape_id=landscape_id)
+	args['username'] = auth.get_user(request).id
+	args['landscape_id'] = landscape_id
+	args['tags'] = Tag.objects.all()
+	args['taggroup'] = TagGroup_Tag.objects.filter(User_id=auth.get_user(request).id).values( \
+		'Tag_id', 'User_id', 'TagGroup__GroupName', 'TagGroup__MeshGeometry', 'TagGroup__MeshColor', \
+		'TagGroup__CircleColor')
+	return render(request, 'values_server.html', args)
 
 def values(request, landscape_id='0000'):
 	args = {}
@@ -760,12 +1012,19 @@ def minmaxtosession(request):
 				# наполняем вершинами x, y
 				for s in static:
 					if s['landscape_id'] == landscape_id:
-						for obj in s['objects']:
-							if obj['name'] == dae_elem:
-								for v in obj['vertices']:
-									i['vertices'].append(v)
-									# i['vertices'].append([float(v['x']), float(v['y'])])
+						i['vertices'] = lookUpElemInStatic(dae_elem, s['buildings'])
 		return JsonResponse({'properties': active_users})
+
+def lookUpElemInStatic(name, arr):
+	for b in arr:
+		if b['name'] == name:
+			return b['vertices']
+		for f in b['floors']:
+			if f['name'] == name:
+				return f['vertices']
+			for k in  f['kabinets']:
+				if k['name'] == name:
+					return k['vertices']
 
 def sendcoordsform(request):
 	return render(request, 'sendcoordsform.html')
@@ -1076,22 +1335,45 @@ def incomezonedefine(request, landscape_id='0000'):
 	args['username'] = auth.get_user(request).id
 	args['landscape_id'] = landscape_id
 	args['zones'] = IncomeZone.objects.filter(LoadLandscape_id=landscape_id)
+	args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 	args['vzones'] = VerticesIncomeZone.objects.all()
+	args['evzones'] = VerticesExcludeZone.objects.all()
 	args['bIncomeZone'] = BuildingIncomeZone.objects.all()
+	args['bExcludeZone'] =  BuildingExcludeZone.objects.all()
 	args['fIncomeZone'] = FloorIncomeZone.objects.all()
+	args['fExcludeZone'] = FloorExcludeZone.objects.all()
 	args['kIncomeZone'] = KabinetIncomeZone.objects.all()
+	args['kExcludeZone'] = KabinetExcludeZone.objects.all()
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
 		landscape_id = string['landscape_id']
+		#добавить зону входа
 		if string['method'] == 'add':
 			zone = IncomeZone.objects.create(LoadLandscape_id=landscape_id)
 			zoneId = zone.id
 			for i in string['vertices']:
 				VerticesIncomeZone.objects.create(xCoord = i['x'], yCoord = i['y'], \
 				 IncomeZone_id=zoneId)
+		#добавить зону исключения
+		if string['method'] == 'addexclude':
+			zone = ExcludeZone.objects.create(LoadLandscape_id=landscape_id)
+			zoneId = zone.id
+			for i in string['vertices']:
+				VerticesExcludeZone.objects.create(xCoord=i['x'], yCoord=i['y'], \
+					ExcludeZone_id=zoneId)
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		#удалить зону входа
 		if string['method'] == 'delete':
 			zoneid = string['zoneid']
 			IncomeZone.objects.filter(id=zoneid).delete()
+		#удалить зону исключения
+		if string['method'] == 'delete_exclude':
+			zoneid = string['zoneid']
+			ExcludeZone.objects.filter(id=zoneid).delete()
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		#привязать зону входа
 		if string['method'] == 'link':
 			zoneid = string['zoneid']
 			if string['type'] == 'building':
@@ -1103,7 +1385,7 @@ def incomezonedefine(request, landscape_id='0000'):
 				VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid).update(zmin=zmin, \
 				 zmax=zmax)
 				# удаляем ранние привязки
-				delZones(zoneid)
+				delZones(zoneid, 'income')
 				# сцепляем зону с объектом
 				BuildingIncomeZone.objects.create(Building_id=bid, IncomeZone_id=zoneid)
 			elif string['type'] == 'floor':
@@ -1115,7 +1397,7 @@ def incomezonedefine(request, landscape_id='0000'):
 				VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid).update(zmin=zmin, \
 					zmax=zmax)
 				# удаляем ранние привязки
-				delZones(zoneid)
+				delZones(zoneid, 'income')
 				# сцепляем зону с объектом
 				FloorIncomeZone.objects.create(Floor_id=fid, IncomeZone_id=zoneid)
 			elif string['type'] == 'kabinet':
@@ -1127,13 +1409,61 @@ def incomezonedefine(request, landscape_id='0000'):
 				VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid).update(zmin=zmin, \
 				 zmax=zmax)
 				# удаляем ранние привязки
-				delZones(zoneid)
+				delZones(zoneid, 'income')
 				# сцепляем зону с объектом
 				KabinetIncomeZone.objects.create(Kabinet_id=kid, IncomeZone_id=zoneid)
+		# привязать зону исключения
+		if string['method'] == 'link_exclude':
+			zoneid = string['zoneid']
+			if string['type'] == 'building':
+				bid = string['id']
+				b = Building.objects.get(id=bid)
+				zmin = b.minz
+				zmax = b.maxz
+				# устанавливаем z для зоны по привязанномуэлементу
+				VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid).update(zmin=zmin, \
+				 zmax=zmax)
+				# удаляем ранние привязки
+				delZones(zoneid, 'exclude')
+				# сцепляем зону с объектом
+				BuildingExcludeZone.objects.create(Building_id=bid, ExcludeZone_id=zoneid)
+			elif string['type'] == 'floor':
+				fid = string['id']
+				f = Floor.objects.get(id=fid)
+				zmin = f.minz
+				zmax = f.maxz
+				# устанавливаем z для зоны по привязанномуэлементу
+				VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid).update(zmin=zmin, \
+					zmax=zmax)
+				# удаляем ранние привязки
+				delZones(zoneid, 'exclude')
+				# сцепляем зону с объектом
+				FloorExcludeZone.objects.create(Floor_id=fid, ExcludeZone_id=zoneid)
+			elif string['type'] == 'kabinet':
+				kid = string['id']
+				k = Kabinet_n_Outer.objects.get(id=kid)
+				zmin = k.minz
+				zmax = k.maxz
+				# устанавливаем z для зоны по привязанномуэлементу
+				VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid).update(zmin=zmin, \
+				 zmax=zmax)
+				# удаляем ранние привязки
+				delZones(zoneid, 'exclude')
+				# сцепляем зону с объектом
+				KabinetExcludeZone.objects.create(Kabinet_id=kid, ExcludeZone_id=zoneid)
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		# отцепить incomezone
 		if string['method'] == 'unlink':
 			zoneid = string['zoneid']
-			delZones(zoneid)
-		# сохраняем максимальные или минимальные значения высоты зоны
+			delZones(zoneid, 'income')
+		# отцепить excludezone
+		if string['method'] == 'unlink_exclude':
+			zoneid = string['zoneid']
+			delZones(zoneid, 'exclude')
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		# сохраняем максимальные или минимальные значения высоты зоны incomezone
 		if string['method'] == 'savemin':
 			zoneid = string['zoneid']
 			value = string['value']
@@ -1142,7 +1472,20 @@ def incomezonedefine(request, landscape_id='0000'):
 			zoneid = string['zoneid']
 			value = string['value']
 			VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid).update(zmax=value)
-		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице
+		# сохраняем максимальные или минимальные значения высоты зоны excludezone
+		if string['method'] == 'savemin_exclude':
+			zoneid = string['zoneid']
+			value = string['value']
+			VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid).update(zmin=value)
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		if string['method'] == 'savemax_exclude':
+			zoneid = string['zoneid']
+			value = string['value']
+			VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid).update(zmax=value)
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице incomezone
 		if string['method'] == 'colored':
 			dae_name = string['dae_name']
 			if string['type'] == 'building':
@@ -1155,7 +1498,22 @@ def incomezonedefine(request, landscape_id='0000'):
 				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
 				 dae_Kabinet_n_OuterName=dae_name)
 				args['colored'] = KabinetIncomeZone.objects.filter(Kabinet_id=k.id)
-		# показываем запрашиваемую зону
+		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице excludezone
+		if string['method'] == 'colored_exclude':
+			dae_name = string['dae_name']
+			if string['type'] == 'building':
+				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
+				args['colored'] = BuildingExcludeZone.objects.filter(Building_id=b.id)
+			elif string['type'] == 'floor':
+				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
+				args['colored'] = FloorExcludeZone.objects.filter(Floor_id=f.id)
+			elif string['type'] == 'kabinet':
+				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
+				 dae_Kabinet_n_OuterName=dae_name)
+				args['colored'] = KabinetExcludeZone.objects.filter(Kabinet_id=k.id)
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		# показываем запрашиваемую зону incomezone
 		if string['method'] == 'show':
 			obj = {}
 			obj['izone']  = []
@@ -1165,6 +1523,18 @@ def incomezonedefine(request, landscape_id='0000'):
 			for v in vertices:
 				vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
 			obj['izone'].append({'id': zoneid, 'vertices': vToSend, \
+				'faces': getFacesFromVert(vToSend)})
+			return JsonResponse(obj)
+		# показываем запрашиваемую зону excludezone
+		if string['method'] == 'show_exclude':
+			obj = {}
+			obj['ezone']  = []
+			zoneid = string['zoneid']
+			vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
+			vToSend = []
+			for v in vertices:
+				vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+			obj['ezone'].append({'id': zoneid, 'vertices': vToSend, \
 				'faces': getFacesFromVert(vToSend)})
 			return JsonResponse(obj)
 		# формируем словарь с вершинами объекта
@@ -1192,6 +1562,18 @@ def incomezonedefine(request, landscape_id='0000'):
 						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
 					obj['izone'].append({'id': z.IncomeZone_id, 'vertices': vToSend, \
 					 'faces': getFacesFromVert(vToSend)})
+				# ищем зоны исключения для building
+				zones = BuildingExcludeZone.objects.filter(Building_id=b.id)
+				obj['ezone'] = []
+				for z in zones:
+					zoneid = z.ExcludeZone_id
+					# вершины
+					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
+					 'faces': getFacesFromVert(vToSend)})
 			elif string['type'] == 'floor':
 				obj['type'] = 'floor'
 				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
@@ -1211,6 +1593,18 @@ def incomezonedefine(request, landscape_id='0000'):
 					for v in vertices:
 						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
 					obj['izone'].append({'id': z.IncomeZone_id, 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны исключения для floor
+				zones = FloorExcludeZone.objects.filter(Floor_id=f.id)
+				obj['ezone'] = []
+				for z in zones:
+					zoneid = z.ExcludeZone_id
+					# вершины
+					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
 						'faces': getFacesFromVert(vToSend)})
 			elif string['type'] == 'kabinet':
 				obj['type'] = 'kabinet'
@@ -1232,6 +1626,18 @@ def incomezonedefine(request, landscape_id='0000'):
 					for v in vertices:
 						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
 					obj['izone'].append({'id': z.IncomeZone_id, 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны исключения для kabinet
+				zones = KabinetExcludeZone.objects.filter(Kabinet_id=k.id)
+				obj['ezone'] = []
+				for z in zones:
+					zoneid = z.ExcludeZone_id
+					# вершины
+					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
 						'faces': getFacesFromVert(vToSend)})
 			return JsonResponse(obj)
 		args['zones'] = IncomeZone.objects.filter(LoadLandscape_id=landscape_id)
@@ -1255,14 +1661,20 @@ def getFacesFromVert(arr):
 	return face		
 # сортировка вершин	
 def sortVert(arr):
-	pp = arr
-	cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
-	pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
-	return pp
-	
-
+	if len(arr) > 0:
+		pp = arr
+		cent  = (sum([p[0] for p in pp])/len(pp), sum([p[1] for p in pp])/len(pp))
+		pp.sort(key=lambda p: math.atan2(p[1]-cent[1], p[0]-cent[0]))
+		return pp
+	else:
+		return False
 # функция удаления зон
-def delZones(zoneid):
-	BuildingIncomeZone.objects.filter(IncomeZone_id=zoneid).delete()
-	FloorIncomeZone.objects.filter(IncomeZone_id=zoneid).delete()
-	KabinetIncomeZone.objects.filter(IncomeZone_id=zoneid).delete()
+def delZones(zoneid, text):
+	if text == 'income':
+		BuildingIncomeZone.objects.filter(IncomeZone_id=zoneid).delete()
+		FloorIncomeZone.objects.filter(IncomeZone_id=zoneid).delete()
+		KabinetIncomeZone.objects.filter(IncomeZone_id=zoneid).delete()
+	elif text == 'exclude':
+		BuildingExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
+		FloorExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
+		KabinetExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()

@@ -276,7 +276,7 @@
     scene.add( sky );
 
     //маркеры калибровки
-    var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
+    /*var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
     var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
     this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
     marker6004.position.set(39.682, 76.457, 7.6);
@@ -292,7 +292,7 @@
 
     this.marker6012 = new THREE.Mesh(markGeom, markMaterial);
     marker6012.position.set(28.649, 59.256, 8.7);
-    scene.add(marker6012);
+    scene.add(marker6012);*/
 
     /* add collada import */
     var loader = new THREE.ColladaLoader();
@@ -366,12 +366,48 @@
 
     	//gls.dae
     	var dae = collada.scene;
-    	dae.position.set(28.141,59.087,8.6);
-    	dae.scale.set(1,1,1);
-    	dae.rotation.z = 0;
-    	dae.rotation.x = Math.PI;
-        dae.rotation.y = Math.PI;
-    	scene.add(dae);
+        dae.position.x = {{sceneop.dae_position_x|stringformat:"f"}}
+        dae.position.y = {{sceneop.dae_position_y|stringformat:"f"}}
+        dae.position.z = {{sceneop.dae_position_z|stringformat:"f"}}
+        dae.scale.set(1,1,1);
+        dae.rotation.z = {{sceneop.dae_rotation_z|stringformat:"f"}};
+        dae.rotation.x = {{sceneop.dae_rotation_x|stringformat:"f"}};
+        dae.rotation.y = {{sceneop.dae_rotation_y|stringformat:"f"}};
+        scene.add(dae);
+
+        //наполняем именами объекты  building, floor, kabinet dae,
+        //наполняем цвета объектов из БД
+        {% for b in buildings %}
+            fillObjectName(dae.children[0], '{{b.dae_BuildingName}}', '{{b.BuildingName}}', '{% for bc in bcolor %}{% if bc.Building_id == b.id %}{{bc.bcolor}}{% endif %}{% endfor %}');
+        {% endfor %}
+
+        {% for f in floors %}
+            fillObjectName(dae.children[0], '{{f.dae_FloorName}}', '{{f.FloorName}}', '{% for fc in fcolor %}{% if fc.Floor_id == f.id%}{{fc.fcolor}}{%endif%}{% endfor %}');
+        {% endfor %}
+
+        {% for k in kabinet_n_outer %}
+            fillObjectName(dae.children[0], '{{k.dae_Kabinet_n_OuterName}}', '{{k.Kabinet_n_OuterName}}', '{% for kc in kcolor %}{% if kc.Kabinet_id == k.id %}{{kc.kcolor}}{% endif %}{% endfor %}');
+        {% endfor %}
+
+        function fillObjectName(dae, text, text2, dbColor){
+            if (dae.children){
+                for (var i = 0; i < dae.children.length; i++){
+                    if(dae.children[i].name == text){
+                        dae.children[i].dbName = text2;
+                        if (dbColor.length > 0){
+                            dae.children[i].dbColor = dbColor;
+                        } else if (dbColor.length == 0 && text.indexOf('floor') != -1){
+                            dae.children[i].dbColor = '008080';
+                        } else if (dbColor.length == 0 && text.indexOf('kabinet') != -1){
+                            dae.children[i].dbColor = '193434';
+                        } else if (dbColor.length == 0 && text.indexOf('building') != -1){
+                            dae.children[i].dbColor = '6b002b';
+                        }
+                    }
+                    fillObjectName(dae.children[i], text, text2, dbColor);
+                }
+            }
+        }
 
 
         //****************************
@@ -489,20 +525,21 @@
         //****************************
         //**настройки сцены по умолчанию
         //****************************
-
-    	//landscape 
-    	plane = colladaObjects['landscape'][0];
+        //landscape 
+        plane = colladaObjects['landscape'][0];
         /*plane.receiveShadow = true;*/
-    	setMaterialObject(plane, new THREE.MeshPhongMaterial({ color: 0x803131 }));
-    	//building
+        setMaterialObject(plane, new THREE.MeshBasicMaterial({ color: {% for lc in lcolor %}{% if lc.LoadLandscape_id == landscape_id %}parseInt('0x'+ '{{lc.lcolor}}'){% else %}0x803131{% endif %}{% endfor %}}));
+        //building
         $.each(colladaObjects['landscape'][0].children, function(value){
             if (colladaObjects['landscape'][0].children[value].name.indexOf('building') != -1){
                 building = colladaObjects['landscape'][0].children[value];
-                /*building.visible = false;*/
+                bcolor = building.parent['dbColor'];
+                building.visible = false;
                 $.each(building.children, function(value){
                     //floor
                     floor = building.children[value];
-                    setMaterialObject(floor, new THREE.MeshPhongMaterial({color: 0x008080, transparent:true}));
+                    fcolor = floor.parent['dbColor'];
+                    setMaterialObject(floor, new THREE.MeshBasicMaterial({color: parseInt('0x'+ fcolor), transparent:true}));
                     /*floor.receiveShadow = true;*/
                     /*floor.castShadow = true;*/
                     //kabinet n outer
@@ -510,15 +547,16 @@
                         if (floor.children[value].name.indexOf('outer') != -1){
                             outer = floor.children[value];
                             /*outer.castShadow = true;*/
-                            setMaterialObject(outer, new THREE.MeshLambertMaterial({color: 0x6b002b, transparent:true}));
+                            setMaterialObject(outer, new THREE.MeshLambertMaterial({color: parseInt('0x'+bcolor), transparent:true}));
                         } else if (floor.children[value].name.indexOf('kabinet') != -1){
                             kabinet = floor.children[value];
+                            kcolor = kabinet.parent['dbColor'];
                             kabinet.visible = false;
                             //wall
                             $.each(kabinet.children, function(value){
                                 wall = kabinet.children[value];
                                 /*wall.castShadow = true;*/
-                                setMaterialObject(wall, new THREE.MeshLambertMaterial({color: 0x193434, transparent:true}));
+                                setMaterialObject(wall, new THREE.MeshLambertMaterial({color: parseInt('0x'+kcolor), transparent:true}));
                             });
                         }
                     });
@@ -531,7 +569,8 @@
                 spotLight = new THREE.SpotLight(0xffffff);
                 spotLight.castShadow = true;
                 spotLight.position.set (a['x'], a['y'], a['z']);
-                spotLight.target.position.set(a['x'], a['y'], a['z']-60);
+                spotLight.target.position.set(a['x'], a['y'], a['z']{% if sceneop.light_target_symbol == 1 %}-{% else %}+{% endif%} 60);
+                /*spotLight.target.position.set(a['x'], a['y'], a['z']+60);*/
                 this.lightX = 20;
                 this.lightY = 35;
                 this.lightZ = 40;
@@ -975,22 +1014,22 @@
               
 	/* позиция камеры по умолчанию */
     /*camera.position.set(69, 69, -50);*/
-    camera.position.set(69, 69, 50);
-    camera.PozOld = new THREE.Vector3(69, 69, -50);
+    camera.position.set({{sceneop.camera_position_x|stringformat:"f"}}, {{sceneop.camera_position_y|stringformat:"f"}}, {{sceneop.camera_position_z|stringformat:"f"}});
+    camera.PozOld = new THREE.Vector3({{sceneop.camera_position_x|stringformat:"f"}}, {{sceneop.camera_position_y|stringformat:"f"}}, {{sceneop.camera_position_z|stringformat:"f"}});
     /* вверх - это Z*/
     /*camera.up.set( 0, 0, -1 );*/
-    camera.up.set( 0, 0, 1 );
+    camera.up.set({{sceneop.camera_up_x|stringformat:"f"}}, {{sceneop.camera_up_y|stringformat:"f"}}, {{sceneop.camera_up_z|stringformat:"f"}});
     scene.add(camera);
 
 
     /*камера. контроль за сменой позиции*/
     controls = new THREE.OrbitControls( camera, renderer.domElement );
     /* камера вращается вокруг данных координат*/
-    controls.target.copy(new THREE.Vector3(34.141, 67.862, 8.6));
-    controls.TarOld = new THREE.Vector3(34.141, 67.862, 8.6)
+    controls.target.copy(new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}}));
+    controls.TarOld = new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}})
     //камера смотрит
-    camera.lookAt(new THREE.Vector3(34.141, 67.862, 8.6));
-    camera.LookAt = new THREE.Vector3(34.141, 67.862, 8.6);
+    camera.lookAt(new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}}));
+    camera.LookAt = new THREE.Vector3({{sceneop.controls_target_x|stringformat:"f"}}, {{sceneop.controls_target_y|stringformat:"f"}}, {{sceneop.controls_target_z|stringformat:"f"}});
     controls.addEventListener( 'change', render );
     hemi = new THREE.HemisphereLight(0xbbbbbb, 0x0099FF);
     scene.add(hemi);
@@ -1061,8 +1100,8 @@
         if (camera.LookAtNew){
             oldCam = camera.LookAt;
             newCam = camera.LookAtNew;
-            if (oldCam != newCam){
-                var step = 0.52;
+            if (oldCam.x != newCam.x || oldCam.y != newCam.y || oldCam.z != newCam.z){
+                var step = 0.50;
 
                 xCur = oldCam.x;
                 yCur = oldCam.y;
@@ -1072,35 +1111,34 @@
                 yNew = newCam.y;
                 zNew = newCam.z;
 
-                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
                     camera.lookAt(new THREE.Vector3(xCur += step, yCur, zCur));
-                    oldCam.x = xCur += step;
+                    oldCam.x += step;
                 }
 
-                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                else if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur += step, zCur));
-                    oldCam.y = yCur += step;
+                    oldCam.y += step;
                 }
 
-                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                else if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur, zCur += step));
-                    oldCam.z = zCur += step;
+                    oldCam.z += step;
                 }
 
-
-                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                else if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
                     camera.lookAt(new THREE.Vector3(xCur -= step, yCur, zCur));
-                    oldCam.x = xCur -= step;
+                    oldCam.x -= step;
                 }
 
-                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                else if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur -= step, zCur));
-                    oldCam.y = yCur -= step;
+                    oldCam.y -= step;
                 }
 
-                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                else if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
                     camera.lookAt(new THREE.Vector3(xCur, yCur, zCur -= step));
-                    oldCam.z = zCur -= step
+                    oldCam.z -= step
                 }    
             }
         }
@@ -1109,8 +1147,8 @@
         if (controls.TarNew){
             oldCam = controls.TarOld;
             newCam = controls.TarNew;
-            if (oldCam != newCam){
-                var step = 0.52;
+            if (oldCam.x != newCam.x || oldCam.y != newCam.y || oldCam.z != newCam.z){
+                var step = 0.50;
 
                 xCur = oldCam.x;
                 yCur = oldCam.y;
@@ -1120,35 +1158,35 @@
                 yNew = newCam.y;
                 zNew = newCam.z;
 
-                if((xCur < xNew + step) && ((xNew - xCur) > 0)){
+                if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
                     controls.target.copy(new THREE.Vector3(xCur += step, yCur, zCur));
-                    oldCam.x = xCur += step;
+                    oldCam.x += step;
                 }
 
-                if((yCur < yNew + step) && ((yNew - yCur) > 0)){
+                if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur += step, zCur));
-                    oldCam.y = yCur += step;
+                    oldCam.y += step;
                 }
 
-                if((zCur < zNew + step) && ((zNew - zCur) > 0)){
+                if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur, zCur += step));
-                    oldCam.z = zCur += step;
+                    oldCam.z += step;
                 }
 
 
-                if((xCur > xNew + step) && ((xNew - xCur) < 0)){
+                if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
                     controls.target.copy(new THREE.Vector3(xCur -= step, yCur, zCur));
-                    oldCam.x = xCur -= step;
+                    oldCam.x -= step;
                 }
 
-                if((yCur > yNew + step) && ((yNew - yCur) < 0)){
+                if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur -= step, zCur));
-                    oldCam.y = yCur -= step;
+                    oldCam.y -= step;
                 }
 
-                if((zCur > zNew + step) && ((zNew - zCur) < 0)){
+                if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
                     controls.target.copy(new THREE.Vector3(xCur, yCur, zCur -= step));
-                    oldCam.z = zCur -= step
+                    oldCam.z -= step
                 }    
             }
         }
