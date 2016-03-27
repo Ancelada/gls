@@ -302,7 +302,7 @@ def correctFast(i):
 #плавная unique корректировка
 def correctF():
 	for i in unique:
-		if i['cron'] > 20:
+		if 'cron' in i and i['cron'] > 20:
 			try:
 				t = Tag.objects.get(TagId=i['tag_id'])
 				TurnOnOffTag(OnOff=0, OnOffTime=datetime.datetime.now(), Tag_id=t.TagId).save()
@@ -310,30 +310,31 @@ def correctF():
 			except:
 				unique.remove(i)
 	for i in unique:
-		i['cron'] += 0.1
+		if 'cron' in i:
+			i['cron'] += 0.1
 
-		xCur = i['x']
-		yCur = i['y']
-		zCur = i['z']
+			xCur = i['x']
+			yCur = i['y']
+			zCur = i['z']
 
-		xNew = i['xNew']
-		yNew = i['yNew']
-		zNew = i['zNew']
+			xNew = i['xNew']
+			yNew = i['yNew']
+			zNew = i['zNew']
 
-		step = 0.07
-		if (xCur != xNew or yCur != yNew or zCur != zNew):
-			if (xCur < xNew + step) and ((xNew - xCur) > 0):
-				i['x'] += step
-	        if (yCur < yNew + step) and ((yNew - yCur) > 0):
-	        	i['y'] += step
-	        if (zCur < zNew + step) and ((zNew - zCur) > 0):
-	        	i['z'] += step
-	        if (xCur > xNew + step) and ((xNew - xCur) < 0):
-	            i['x'] -= step
-	        if (yCur > yNew + step) and ((yNew - yCur) < 0):
-	        	i['y'] -= step
-	        if (zCur > zNew + step) and ((zNew - zCur) < 0):
-	        	i['z'] -= step
+			step = 0.07
+			if (xCur != xNew or yCur != yNew or zCur != zNew):
+				if (xCur < xNew + step) and ((xNew - xCur) > 0):
+					i['x'] += step
+		        if (yCur < yNew + step) and ((yNew - yCur) > 0):
+		        	i['y'] += step
+		        if (zCur < zNew + step) and ((zNew - zCur) > 0):
+		        	i['z'] += step
+		        if (xCur > xNew + step) and ((xNew - xCur) < 0):
+		            i['x'] -= step
+		        if (yCur > yNew + step) and ((yNew - yCur) < 0):
+		        	i['y'] -= step
+		        if (zCur > zNew + step) and ((zNew - zCur) < 0):
+		        	i['z'] -= step
 	#send coordinates to usersession
 	for i in active_users:
 		try:
@@ -412,42 +413,41 @@ def findMatchingKabinet(obj, landscape_id):
 		if s['landscape_id'] == landscape_id:
 			for building in s['buildings']:
 				for floor in building['floors']:
-					# если нет candidates, noLocation > 20
-					if obj['noLocation']['cron'] > 20:
-						minz = floor['minz']
-						maxz = floor['maxz']
-						vertices = floor['vertices']
-						vector = [(x, y)]
-						match = inPolygon(vertices, vector)
-						if (match and inInterval(z, minz, maxz)):
-							inZone = 0
-							for ez in floor['ExcludeZones']:
-								vertices = ez['vertices']
-								minz = ez['minz']
-								maxz = ez['maxz']
-								match = inPolygon(vertices, vector)
-								if (match and inInterval(z, minz, maxz)):
+					#если нет candidates, есть зона входа floor, noLocation.cron = 6
+					if (obj['noLocation']['cron'] == 6 and 'candidate' in obj and \
+					 len(obj['candidate']) == 0) or (obj['noLocation']['cron'] == 6 and \
+					  not 'candidate' in obj):
+						floorincomezone = floor['IncomeZones']
+						inZone = 0
+						for oiz in obj['IncomeZones']:
+							for fiz in floorincomezone:
+								if oiz['id'] == fiz['id']:
 									inZone = 1
-							if not inZone:
-								obj['location'] = {'id': floor['id'], 'type': 'floor'}
+						if inZone:
+							if not(inExcludeZone(floor, x, y, z)) and inObject(floor, x, y, z):
+								if 'location' in obj and obj['location']['id'] != floor['id']:  
+									obj['location'] = {'id': floor['id'], 'type': 'floor'}
+								elif 'location' not in obj:
+									obj['location'] = {'id': floor['id'], 'type': 'floor'}
+								obj['noLocation']['cron'] = 0
+					# если нет candidates, нет зоны входа floor, noLocation.cron > 20
+					if (obj['noLocation']['cron'] > 20 and 'candidate' in obj and \
+					 len(obj['candidate']) == 0) or (obj['noLocation']['cron'] > 20 and \
+					  not 'candidate' in obj):
+						# проверяем, входит ли вектор во floor
+						if inObject(floor, x, y, z):
+							# проверяем входит ли в зону исключения
+							if not(inExcludeZone(floor, x, y, z)):
+								if 'location' in obj and obj['location']['id'] != floor['id']:
+									obj['location'] = {'id': floor['id'], 'type': 'floor'}
+								else:
+									obj['location'] = {'id': floor['id'], 'type': 'floor'}
 								obj['noLocation']['cron'] = 0
 					for kabinet in floor['kabinets']:
-						vertices = kabinet['vertices']
-						vector = [(x, y)]
-						minz = kabinet['minz']
-						maxz = kabinet['maxz']
-						match = inPolygon(vertices, vector)
-						if (match and inInterval(z, minz, maxz)):
+						#проверяем, входит ли вектор в kabinet
+						if inObject(kabinet, x, y, z):
 							# проверяем входит ли в зону исключения
-							inZone = 0
-							for ez in kabinet['ExcludeZones']:
-								vertices = ez['vertices']
-								minz = ez['minz']
-								maxz = ez['maxz']
-								match = inPolygon(vertices, vector)
-								if (match and inInterval(z, minz, maxz)):
-									inZone = 1
-							if not inZone:
+							if not (inExcludeZone(kabinet, x, y, z)):
 							 	if not 'candidate' in obj:
 							 		obj['candidate'] = []
 						 		elif not(dictKeyInArray(kabinet['id'], 'id', obj['candidate'], 0)):
@@ -457,8 +457,36 @@ def findMatchingKabinet(obj, landscape_id):
 								else:
 									updateMatchCount(kabinet['id'], 'id', obj['candidate'])
 
+# проверка входит ли вектор в объект, без проверки ExcludeZone
+def inObject(obj, x, y, z):
+	vertices = obj['vertices']
+	vector = [(x, y)]
+	minz = obj['minz']
+	maxz = obj['maxz']
+	match = inPolygon(vertices, vector)
+	if (match and inInterval(z, minz, maxz)):
+		return True
+	else:
+		return False
+
+# проверка входит ли объект в зону исключения
+def inExcludeZone(obj, x, y, z):
+	inZone = 0
+	vector = [(x, y)]
+	for ez in obj['ExcludeZones']:
+		vertices = ez['vertices']
+		minz = ez['minz']
+		maxz = ez['maxz']
+		match = inPolygon(vertices, vector)
+		if (match and inInterval(z, minz, maxz)):
+			inZone = 1
+	if inZone:
+		return True
+	else:
+		return False
+
 # отметить попадание MatchCount
-def updateMatchCount (value, dictKey, arr):
+def updateMatchCount(value, dictKey, arr):
 	for i in arr:
 		if i[dictKey] == value:
 			i['matchCount'] += 1
@@ -573,7 +601,6 @@ def receive_slmp(request):
 			line = line.split(',')
 			for i in line:
 				dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
-				spisok.append(dictionary)
 				getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
 		# second and other lines
 		else:

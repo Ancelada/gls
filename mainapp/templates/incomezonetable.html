@@ -11,19 +11,19 @@
           <td class="subheader">
             {% for bz in bIncomeZone %}
               {% if bz.IncomeZone_id == z.id %}
-                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}} id:{{z.id}}{% else %}{{b.BuildingName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
               {% endif %}
 	          {% endfor %}
 
 	          {% for fz in fIncomeZone %}
               {% if fz.IncomeZone_id == z.id %}
-                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for f in floors %}{% if f.id == fz.Floor_id%}{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for f in floors %}{% if f.id == fz.Floor_id%}{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}} id:{{z.id}}{% else %}{{f.FloorName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
               {% endif %}
 	          {% endfor %}
 
 	          {% for kz in kIncomeZone %}
               {% if kz.IncomeZone_id == z.id %}
-                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for k in kabinet_n_outer %}{% if k.id == kz.Kabinet_id %}{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for k in kabinet_n_outer %}{% if k.id == kz.Kabinet_id %}{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}} id:{{z.id}}{% else %}{{k.Kabinet_n_OuterName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
               {% endif %}
 	          {% endfor %}
           </td>
