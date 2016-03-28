@@ -52,12 +52,41 @@
                 </div>
             </div>
         </div>
-        <button class="button large show_hide_button">Панель инструментов</button>
+        <button class="button large show_hide_button">Cтатика</button>
+        <button class="button large show_hide_static_button">Динамика</button>
         <div class="large-3 small-3 columns popup" style="padding-left:0px;padding-right:0px;">
             <ul class="tabs vertical" id="example-vert-tabs" data-tabs>
 
 
             </ul>
+        </div>
+        <div class="static_instrument_block large-3 small-4 columns" style="right:-100%;">
+            <fieldset class="large-12 small-12 columns">
+                <button class="close-button close_static_panel" aria-label="Close menu" type="button">
+                    <span aria-hidden="true">x</span>
+                </button>
+                <br>
+                <h3 class="subheader">Метки</h3>
+                <div class="large-12 small-12 columns" id="tagtable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Идентификатор</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in unique %}
+                                <tr>
+                                    <td class="subheader">
+                                        <span>{{i.tag_id}}</span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </fieldset>
         </div>
         <div class="instrument_block large-3 small-4 columns" style="right:-100%;">
             <fieldset class="large-12 small-12 columns">
@@ -200,7 +229,7 @@
         socket_connect();
 
         function socket_connect(){
-            socket = new SockJS('http://192.168.1.78:8989/orders');
+            socket = new SockJS('http://{{hostname}}:8989/orders');
             socket.onmessage = function(msg){
                 var channel = msg.data.type;
                 if (channel == 'lock'){

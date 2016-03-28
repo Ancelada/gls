@@ -141,3 +141,22 @@ li.tabs-title a{
 	-webkit-transition: right 1s;
 	transition: right 1s;	
 }
+
+.show_hide_static_button{
+	font-size:100%;
+	position:fixed;
+	top:56px;
+	right:0;
+	background-color:rgba(33, 153, 232, 0.3);
+}
+
+.static_instrument_block{
+	position:fixed;
+	top:0;
+	right:0;
+	height: 100%;
+	overflow:auto;
+	background-color:#fff;
+	-webkit-transition: right 1s;
+	transition: right 1s;
+}

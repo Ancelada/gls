@@ -171,7 +171,7 @@
         socket_connect();
 
         function socket_connect(){
-            socket = new SockJS('http://192.168.1.78:8989/orders');
+            socket = new SockJS('http://{{hostname}}:8989/orders');
 
             socket.onmessage = function(msg){
                 var channel = msg.data.type;

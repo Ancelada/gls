@@ -411,7 +411,35 @@ def findMatchingKabinet(obj, landscape_id):
 	z = obj['z']
 	for s in static:
 		if s['landscape_id'] == landscape_id:
+			inBld = 0
 			for building in s['buildings']:
+				#проверка попадание в здание
+				#если нет candidates
+				if not(inExcludeZone(building, x, y, z)) and inObject(building, x, y,z ):
+					inBld = 1
+				if 'notInBuild' in obj:
+					# фиксируем выход из здания
+					# 5 секунд, если есть попадание в incomezone building 4 раза
+					if obj['notInBuild']['cron'] == 5 and obj['notInBuild']['match'] > 4:
+						buildingincomezone = building['IncomeZones']
+						for iz in obj['IncomeZones']:
+							for biz in buildingincomezone:
+								if iz['id'] == biz['id']:
+									if 'location' in obj and obj['location']['type'] != 'street':
+										obj['location'] = {'type': 'street', 'id': 0}
+									else:
+										obj['location'] = {'type': 'street', 'id': 0}
+									obj['notInBuild'] = {'cron':0, 'match': 0}
+									obj['noLocation'] = {'cron': 0}
+					# фиксируем выход из здания
+					# 20 секунд, если есть попадание в incomezone building 15 раз
+					if obj['notInBuild']['cron'] == 19 and obj['notInBuild']['match'] > 15:
+						if 'location' in obj and obj['location']['type'] != 'street':
+							obj['location'] = {'type': 'street', 'id': 0}
+						else:
+							obj['location'] = {'type': 'street', 'id': 0}
+						obj['notInBuild'] = {'cron': 0, 'match': 0}
+						obj['noLocation'] = {'cron': 0}
 				for floor in building['floors']:
 					#если нет candidates, есть зона входа floor, noLocation.cron = 6
 					if (obj['noLocation']['cron'] == 6 and 'candidate' in obj and \
@@ -456,7 +484,19 @@ def findMatchingKabinet(obj, landscape_id):
 								#если есть кандидат, зафиксировать попадание в matchCount
 								else:
 									updateMatchCount(kabinet['id'], 'id', obj['candidate'])
-
+			# фиксация попаданий в здание
+			if inBld == 0:
+				if not 'notInBuild' in obj:
+					obj['notInBuild'] = {'cron': 0, 'match': 0}
+				else:
+					obj['notInBuild']['match'] += 1
+					obj['notInBuild']['cron'] += 1
+			elif inBld == 1:
+				if 'notInBuild' in obj:
+					obj['notInBuild']['cron'] += 1
+			if 'notInBuild' in obj and obj['notInBuild']['cron'] == 20:
+				obj['notInBuild']['cron'] = 0
+				obj['notInBuild']['match'] = 0
 # проверка входит ли вектор в объект, без проверки ExcludeZone
 def inObject(obj, x, y, z):
 	vertices = obj['vertices']
@@ -733,6 +773,8 @@ def loadcollada(request):
 def values_server(request, landscape_id='0000'):
 	args = {}
 	landscape_id = landscape_id
+	a = request.get_host().split(':')
+	args['hostname'] = a[0]
 	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
 	args['lcolor'] = LandscapeColor.objects.all()
@@ -754,6 +796,12 @@ def values_server(request, landscape_id='0000'):
 def values(request, landscape_id='0000'):
 	args = {}
 	landscape_id = landscape_id
+	a = request.get_host().split(':')
+	args['hostname'] = a[0]
+	args['unique'] = []
+	for i in unique:
+		if i['zone_id'] == landscape_id:
+			args['unique'].append(i)
 	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
 	args['lcolor'] = LandscapeColor.objects.all()

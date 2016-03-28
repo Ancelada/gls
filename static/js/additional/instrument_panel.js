@@ -9,6 +9,17 @@ $('body').delegate('.show_hide_button', 'click', function(){
 $('body').delegate('.close_panel', 'click', function(){
 	$('.instrument_block').css('right', '-100%');
 });
+
+//*******************************************
+// панель инструментов статики
+//*******************************************
+$('body').delegate('.show_hide_static_button', 'click', function(){
+	$('.static_instrument_block').css('right', 0);
+});
+
+$('body').delegate('.close_static_panel', 'click', function(){
+	$('.static_instrument_block').css('right', '-100%');
+});
 //панель зоны входа
 //**********************************************
 $('.income_zone_button').on('click', function(){

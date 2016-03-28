@@ -48,7 +48,6 @@
 			var x = parseFloat($('#x-position').val()) + Math.floor(Math.random() * -step) +step;
 			var y = parseFloat($('#y-position').val()) + Math.floor(Math.random() * -step) +step;
 			var z = parseFloat($('#z-position').val());
-			id = $('#mark1').val();
 			landscape_id = $('#landscape_id').val();
 			var value = "LabR,Std0,0000," + mark1 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038," + landscape_id;
 			$.ajax({
@@ -76,7 +75,6 @@
 			var x = parseFloat($('#x-position2').val()) + Math.floor(Math.random() * -step) +step;
 			var y = parseFloat($('#y-position2').val()) + Math.floor(Math.random() * -step) +step;
 			var z = parseFloat($('#z-position2').val());
-			id = $('#mark2').val();
 			landscape_id2 = $('#landscape_id2').val();
 			var value2 = "LabR,Std0,0000," + mark2 +"," + x + "," + y + "," + z + ",7,2016-01-1" + y +"T13:52:31:239+1,2,0038,"+ landscape_id2;
 			$.ajax({
