@@ -1,0 +1,18 @@
+<tr data-id="{{tag_id}}">
+    <td class="subheader">
+        <span>{{tag_id}}</span>
+    </td>
+    <td>
+        <button class="button" data-toggle="dropdown{{tag_id}}">Действие</button>
+        <div class="dropdown-pane left" id="dropdown{{tag_id}}" data-dropdown style="width:200px;">
+            <ul class="vertical dropdown menu" data-dropdown-menu>
+                <li>
+                    <a href="#" id="belong" data-id="{{tag_id}}">Показывать принадлежность</a>
+                </li>
+            </ul>
+        </div> 
+    </td>
+</tr>
+<script type="text/javascript">
+	$(document).foundation();
+</script>

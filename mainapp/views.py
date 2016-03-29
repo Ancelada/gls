@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+from django.template.loader import render_to_string
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from mainapp.models import *
@@ -299,10 +300,28 @@ def correctFast(i):
 		    if (zCur > zNew + step) and ((zNew - zCur) < 0):
 		        j['z'] -= step
 
+#отправка сообщения unique удалить или добавить метку
+def updateUnique(unique, msgtype):
+	for i in active_users:
+		try:
+			if msgtype == 'delete':
+				service_queue('update_unique', \
+				 json({'user': i['id'],'data': {'tag': unique, 'type': 'delete'}}))
+			elif msgtype == 'add':
+				rendered = render_to_string('addlineuniquetodynamic.html', {'tag_id': unique['tag_id']})
+				service_queue('update_unique', json({'user': i['id'], \
+				 'data': {'tag': unique, 'type': 'add', \
+					'rendered': rendered}}))
+		except:
+			pass
+
+
+
 #плавная unique корректировка
 def correctF():
 	for i in unique:
 		if 'cron' in i and i['cron'] > 20:
+			updateUnique(i, 'delete')
 			try:
 				t = Tag.objects.get(TagId=i['tag_id'])
 				TurnOnOffTag(OnOff=0, OnOffTime=datetime.datetime.now(), Tag_id=t.TagId).save()
@@ -628,6 +647,43 @@ def correctUniqueInMilisec():
 	if tumbler[0]:
 		set_interval(correctF, 0.1)
 		set_interval(UniqueToStatic, 1)
+		set_interval(lightUpTagBelongTo, 1)
+
+# подсвечиваем принадлежность метки, если запрос пользователя
+def lightUpTagBelongTo():
+	for a in active_users:
+		if 'belong' in a:
+			tag_id = a['belong']['tag_id']
+			for i in unique:
+				if i['tag_id'] == tag_id:
+					if 'location' in i:
+						if not 'id' in a['belong']:
+							a['belong']['type'] = i['location']['type']
+							a['belong']['id'] = i['location']['id']
+							sendToUserElemForLightUp(i['location']['type'], i['location']['id'], a['id'])
+						elif a['belong']['id'] != i['location']['id']:
+							a['belong']['type'] = i['location']['type']
+							a['belong']['id'] = i['location']['id']
+							sendToUserElemForLightUp(i['location']['type'], i['location']['id'], a['id'])
+
+def sendToUserElemForLightUp(elemtype, elemid, user_id):
+	#определение dae_name и рассылка пользователю для подсветки
+	if elemtype == 'floor':
+		fid = elemid
+		dae = Floor.objects.get(id=fid)
+		dae_name = dae.dae_FloorName
+		dae_id = dae.id
+		vertices = list(VerticesFloor.objects.filter(Floor_id=dae_id).values('x', 'y'))
+		service_queue('show_location', json({'user': user_id, 'data': {'type': \
+			'floor', 'location': dae_name, 'vertices': json(vertices) }}))
+	elif elemtype == 'kabinet':
+		kid = elemid
+		dae = Kabinet_n_Outer.objects.get(id=kid)
+		dae_name = dae.dae_Kabinet_n_OuterName
+		dae_id = dae.id
+		vertices = list(VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=dae_id).values('x', 'y'))
+		service_queue('show_location', json({'user': user_id, 'data': {'type': \
+			'kabinet', 'location': dae_name, 'vertices': json(vertices)}}))
 
 #receive coordinates
 def receive_slmp(request):
@@ -669,6 +725,7 @@ def receive_slmp(request):
 							TurnOnOffTag(Tag_id=t.TagId, OnOff=1, OnOffTime=datetime.datetime.now()).save()
 						except:
 							pass
+						updateUnique(dictionary, 'add')
 						unique.append(dictionary)
 		# включаем функцию корректировки по милисекундам
 		if len(tumbler) == 0:
@@ -1753,3 +1810,20 @@ def delZones(zoneid, text):
 		BuildingExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
 		FloorExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
 		KabinetExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
+
+# принадлежность метки
+def getbelong(request):
+	string = simplejson.loads(request.body)
+	user_id = string['user_id']
+	tag_id = string['tag_id']
+	if string['type'] == 'start':
+		for a in active_users:
+			if a['id'] == user_id:
+				a['belong'] = {'tag_id': tag_id}
+				return JsonResponse(string)
+	if string['type'] == 'stop':
+		for a in active_users:
+			if a['id'] == user_id:
+				if 'belong' in a:
+					del a['belong']
+				return JsonResponse(string)

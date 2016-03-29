@@ -77,9 +77,19 @@
                         </thead>
                         <tbody>
                             {% for i in unique %}
-                                <tr>
+                                <tr data-id="{{i.tag_id}}">
                                     <td class="subheader">
                                         <span>{{i.tag_id}}</span>
+                                    </td>
+                                    <td>
+                                        <button class="button" data-toggle="dropdown{{i.tag_id}}">Действие</button>
+                                        <div class="dropdown-pane left" id="dropdown{{i.tag_id}}" data-dropdown style="width:200px;">
+                                            <ul class="vertical dropdown menu" data-dropdown-menu>
+                                                <li>
+                                                    <a href="#" id="belong" data-id="{{i.tag_id}}">Показывать принадлежность</a>
+                                                </li>
+                                            </ul>
+                                        </div> 
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -194,6 +204,10 @@
 <!--***********буфер**************-->
 		<!--************************-->
 	<script>
+    //многоугольник подсветки объектов, в которые попадает метка
+    var lightedUpPlane;
+    //username
+    var username = parseInt({{username}})
     //панель инструментов
     $.getScript("/static/js/additional/instrument_panel.js");
 	var unique = {};
@@ -232,7 +246,68 @@
             socket = new SockJS('http://{{hostname}}:8989/orders');
             socket.onmessage = function(msg){
                 var channel = msg.data.type;
-                if (channel == 'lock'){
+                //show_location подсветить принадлежащий метке объект - комната или этаж
+                if (channel == 'location'){
+                    //вершины в json
+                    a = JSON.parse(msg.data.data['data']['vertices']);
+                    msg.data.data['data']['vertices'] = a;
+                    //элемет будет храниться в loc[0]
+                    loc = [];
+                    dae_name = msg.data.data['data']['location'];
+                    ElemLookUp(colladaObjects['landscape'][0], dae_name, loc);
+                    dae_elem = loc[0];
+                    minz = dae_elem.parent['BoxMin']['z'];
+
+                    //показываем объект
+                    scene.remove(lightedUpPlane);
+                    var lightedUpPlaneGeometry = new THREE.Geometry();
+                    varr = msg.data.data['data']['vertices']
+                    $.each(varr, function(index){
+                        x = varr[index]['x'];
+                        y = varr[index]['y'];
+                        z = minz + 0.2;
+                        lightedUpPlaneGeometry.vertices.push(
+                            new THREE.Vector3(x, y, z)
+                        )
+                    });
+                    $.each(dae_elem.geometry.faces, function(index){
+                        face = dae_elem.geometry.faces[index];
+                        a = face['a'];
+                        b = face['b'];
+                        c = face['c']
+                        lightedUpPlaneGeometry.faces.push(
+                            new THREE.Face3(a, b, c)
+                        )
+                    });
+                    lightedUpPlaneGeometry.computeBoundingSphere();
+                    var lightedUpPlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xe0ff85, side: THREE.DoubleSide, transparent: true, opacity:0.8});
+                    lightedUpPlane = new THREE.Mesh(lightedUpPlaneGeometry, lightedUpPlaneMaterial);
+                    scene.add(lightedUpPlane);
+                }
+                function ElemLookUp(node, dae_name, arr){
+                    if (node.children){
+                        for(var i = 0; i < node.children.length; i++){
+                            if(node.children[i].name == dae_name){
+                                arr.push(node.children[i]);
+                            }
+                            ElemLookUp(node.children[i], dae_name, arr);
+                        }
+                    }
+                }
+                //удалить или добавить метку в панель управления "динамика"
+                if (channel == 'unique'){
+                    var data = msg.data.data['data'];
+                    if (data['type'] == 'delete'){
+                        tag = data['tag']['tag_id'];
+                        $('#tagtable table tbody tr[data-id="'+tag+'"]').remove();
+                    } else if (data['type'] == 'add') {
+                        if (data['tag']['zone_id'] == '{{sceneop.landscape_id}}'){
+                            $('#tagtable table tbody').append(data['rendered']);
+                        }
+                    }
+                }
+                //пачка координат
+                else if (channel == 'lock'){
                     var data = msg.data.data['data'];
                     if (marks){
                         //проверка на повторение пачки

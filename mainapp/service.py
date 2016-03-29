@@ -49,7 +49,9 @@ class Connection(SockJSConnection):
 		yield tornado.gen.Task(self.redis_client.subscribe, [
 			'coords_lock',
 			'coords_server_lock',
-			'order_done'
+			'order_done',
+			'update_unique',
+			'show_location'
 		])
 		self.redis_client.listen(self.on_redis_queue)
 
@@ -66,6 +68,7 @@ class Connection(SockJSConnection):
 	def on_message(self):
 		pass
 
+	# message channel redirection
 	def on_redis_queue(self, message):
 		if message.kind == 'message':
 			message_body =  unjson(message.body)
@@ -75,7 +78,11 @@ class Connection(SockJSConnection):
 				self.on_server_lock(message_body)
 			if message.channel == 'order_done':
 				self.on_done(message_body)
-
+			if message.channel == 'update_unique':
+				self.on_unique(message_body)
+			if message.channel == 'show_location':
+				self.on_location(message_body)
+	#send to user messages
 	def on_lock(self, message):
 		if message['user'] == self.user.pk:
 			self.send('lock', message)
@@ -83,6 +90,15 @@ class Connection(SockJSConnection):
 	def on_server_lock(self, message):
 		if message['user'] == self.user.pk:
 			self.send('server_lock', message)
+
+	def on_unique(self, message):
+		if message['user'] == self.user.pk:
+			self.send('unique', message)
+
+	def on_location(self, message):
+		if message['user'] == self.user.pk:
+			self.send('location', message)
+
 
 	def on_done(self, message):
 		if message['user'] != self.user.pk:

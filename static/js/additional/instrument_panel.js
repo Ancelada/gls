@@ -9,6 +9,38 @@ $('body').delegate('.show_hide_button', 'click', function(){
 $('body').delegate('.close_panel', 'click', function(){
 	$('.instrument_block').css('right', '-100%');
 });
+//*******************************************
+// панель интструментов динамики
+//*******************************************
+
+//показывать принадлежность
+$('body').delegate('.static_instrument_block #belong', 'click', function(){
+	tag_id = $(this).attr('data-id');
+	txt = $(this).text();
+	if (txt == 'Показывать принадлежность'){
+		$(this).text('Остановить');
+		belong('start', tag_id, username);
+		console.log($('#belong').length);
+	} else {
+		scene.remove(lightedUpPlane);
+		$(this).text('Показывать принадлежность');
+		belong('stop', tag_id, username);
+	}
+});
+
+function belong(type, tag_id, username){
+	$.ajax({
+		type: "POST",
+		url: "/getbelong",
+		data: JSON.stringify({'tag_id': tag_id, 'user_id': username, 'type': type}),
+		contentType: "application/json; charset=utf-8",
+    	dataType: "html",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		console.log(data);
+    	}	
+	});
+}
 
 //*******************************************
 // панель инструментов статики
