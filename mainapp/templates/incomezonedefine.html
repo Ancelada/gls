@@ -190,7 +190,7 @@
                                                                 {% for f in floors %}
                                                                 {% if f.Building_id == b.id %}
                                                                 <li><a href="#" data-type="floor" data-id="{{f.id}}" id="link" data-zoneid="{{z.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
-                                                                    <ul class="menu">
+                                                                    <ul class="menu" style="max-height:200px;overflow-y:scroll;">
                                                                     {% for k in kabinet_n_outer %}
                                                                     {% if k.Floor_id = f.id %}
                                                                     <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="link" data-zoneid="{{z.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
@@ -297,7 +297,7 @@
                                                                 {% for f in floors %}
                                                                 {% if f.Building_id == b.id %}
                                                                 <li><a href="#" data-type="floor" data-id="{{f.id}}" id="link_exclude" data-zoneid="{{z.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
-                                                                    <ul class="menu">
+                                                                    <ul class="menu" style="max-height:200px;overflow-y:scroll;">
                                                                     {% for k in kabinet_n_outer %}
                                                                     {% if k.Floor_id = f.id %}
                                                                     <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="link_exclude" data-zoneid="{{z.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>

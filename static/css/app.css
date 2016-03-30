@@ -46,6 +46,8 @@ li.tabs-title a{
 }
 
 .popup{
+	max-height:600px;
+	overflow-y:scroll;
 	background-color:#fff;
 	bottom:0;
 	left:0;
@@ -159,4 +161,9 @@ li.tabs-title a{
 	background-color:#fff;
 	-webkit-transition: right 1s;
 	transition: right 1s;
+}
+
+#excludezonetable{
+	max-height: 400px;
+	overflow-y:scroll;
 }

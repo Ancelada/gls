@@ -694,18 +694,18 @@
 		    		}
 		    	}
 		    	//записываем результат в БД
-				/*$.ajax({
+				$.ajax({
 					type:"POST",
 					url:"/landscape_save",
         			data: JSON.stringify({'landscape_id': '{{landscape_id}}'.toString(), colladaObjects, verticesDict, sceneOptions}),
        				contentType: "application/json; charset=utf-8",
 		            dataType: 'json',
 		          	async: true,
-		          	success: function(data, textStatus, jqXHR){*/
-		          		/*window.location = '/landscapeloadform/success';*/
-		          		/*console.log(data);
+		          	success: function(data, textStatus, jqXHR){
+		          		window.location = '/landscapeloadform/success';
+		          		console.log(data);
 		          	}
-				});*/
+				});
 				//ищу floor
 	    		var floorVert = [];
 	    		var floorFaces = [];
