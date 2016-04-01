@@ -9,7 +9,7 @@ body{
 	top:0;
 	right:0;
 	height: 100%;
-	overflow:auto;
+	overflow:visible;
 	background-color:#fff;
 	-webkit-transition: right 1s;
 	transition: right 1s;
@@ -157,7 +157,7 @@ li.tabs-title a{
 	top:0;
 	right:0;
 	height: 100%;
-	overflow:auto;
+	overflow:visible;
 	background-color:#fff;
 	-webkit-transition: right 1s;
 	transition: right 1s;
@@ -166,4 +166,22 @@ li.tabs-title a{
 #excludezonetable{
 	max-height: 400px;
 	overflow-y:scroll;
+}
+
+.user_zone_button{
+	position:fixed;
+	right: 0;
+	top: 169px;
+}
+
+
+.userzone_panel{
+	position:fixed;
+	top:0;
+	right:0;
+	height: 100%;
+	overflow:auto;
+	background-color:#fff;
+	-webkit-transition: right 1s;
+	transition: right 1s;
 }

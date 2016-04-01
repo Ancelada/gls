@@ -1468,14 +1468,22 @@ def incomezonedefine(request, landscape_id='0000'):
 	args['landscape_id'] = landscape_id
 	args['zones'] = IncomeZone.objects.filter(LoadLandscape_id=landscape_id)
 	args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+	args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
+	 User_id=auth.get_user(request).id)
 	args['vzones'] = VerticesIncomeZone.objects.all()
 	args['evzones'] = VerticesExcludeZone.objects.all()
+	args['uvzones'] = VerticesUserZone.objects.all()
+	args['uzonegroups'] = GroupUserZone.objects.filter(User_id=auth.get_user(request).id)
+	args['lUserZone'] = LoadLandscapeUserZone.objects.all()
 	args['bIncomeZone'] = BuildingIncomeZone.objects.all()
 	args['bExcludeZone'] =  BuildingExcludeZone.objects.all()
+	args['bUserZone'] = BuildingUserZone.objects.all()
 	args['fIncomeZone'] = FloorIncomeZone.objects.all()
 	args['fExcludeZone'] = FloorExcludeZone.objects.all()
+	args['fUserZone'] = FloorUserZone.objects.all()
 	args['kIncomeZone'] = KabinetIncomeZone.objects.all()
 	args['kExcludeZone'] = KabinetExcludeZone.objects.all()
+	args['kUserZone'] = KabinetUserZone.objects.all()
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
 		landscape_id = string['landscape_id']
@@ -1495,6 +1503,15 @@ def incomezonedefine(request, landscape_id='0000'):
 					ExcludeZone_id=zoneId)
 			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 			return render(request, 'excludezonetable.html', args)
+		#добавить зону пользователя
+		if string['method'] == 'adduzone':
+			user_id = string['user_id']
+			zone = UserZone.objects.create(User_id=user_id, LoadLandscape_id=landscape_id)
+			for i in string['vertices']:
+				VerticesUserZone.objects.create(xCoord=i['x'], yCoord=i['y'], \
+					UserZone_id=zone.id)
+			args['uzones'] = UserZone.objects.filter(User_id=user_id, LoadLandscape_id=landscape_id)
+			return render(request, 'userzonetable.html', args) 
 		#удалить зону входа
 		if string['method'] == 'delete':
 			zoneid = string['zoneid']
@@ -1505,6 +1522,21 @@ def incomezonedefine(request, landscape_id='0000'):
 			ExcludeZone.objects.filter(id=zoneid).delete()
 			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 			return render(request, 'excludezonetable.html', args)
+		#удалить зону пользователя
+		if string['method'] == 'delete_userzone':
+			zoneid = string['zoneid']
+			UserZone.objects.filter(id=zoneid).delete()
+			args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
+			 User_id=auth.get_user(request).id)
+			return render(request, 'userzonetable.html', args)
+		# переименовать зону пользователя
+		if string['method'] == 'rename_userzone':
+			zoneid = string['zoneid']
+			name = string['name']
+			UserZone.objects.filter(id=zoneid).update(UserZoneName=name)
+			args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
+			 User_id=auth.get_user(request).id)
+			return render(request, 'userzonetable.html', args)
 		#привязать зону входа
 		if string['method'] == 'link':
 			zoneid = string['zoneid']
@@ -1585,6 +1617,60 @@ def incomezonedefine(request, landscape_id='0000'):
 				KabinetExcludeZone.objects.create(Kabinet_id=kid, ExcludeZone_id=zoneid)
 			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 			return render(request, 'excludezonetable.html', args)
+		# привязать зону пользователя
+		if string['method'] == 'link_uzone':
+			zoneid = string['zoneid']
+			if string['type'] == 'landscape':
+				lid = string['id']
+				l = LoadLandscape.objects.get(landscape_id=landscape_id)
+				zmin = 0
+				zmax = 3
+				# устанавливаем z для зоны по привязанномуэлементу
+				VerticesUserZone.objects.filter(UserZone_id=zoneid).update(zmin=zmin, \
+				 zmax=zmax)
+				# удаляем ранние привязки
+				delZones(zoneid, 'uzones')
+				# сцепляем зону с объектом
+				LoadLandscapeUserZone.objects.create(LoadLandscape_id=landscape_id, UserZone_id=zoneid)
+			if string['type'] == 'building':
+				bid = string['id']
+				b = Building.objects.get(id=bid)
+				zmin = b.minz
+				zmax = b.maxz
+				# устанавливаем z для зоны по привязанномуэлементу
+				VerticesUserZone.objects.filter(UserZone_id=zoneid).update(zmin=zmin, \
+				 zmax=zmax)
+				# удаляем ранние привязки
+				delZones(zoneid, 'uzones')
+				# сцепляем зону с объектом
+				BuildingUserZone.objects.create(Building_id=bid, UserZone_id=zoneid)
+			elif string['type'] == 'floor':
+				fid = string['id']
+				f = Floor.objects.get(id=fid)
+				zmin = f.minz
+				zmax = f.maxz
+				# устанавливаем z для зоны по привязанномуэлементу
+				VerticesUserZone.objects.filter(UserZone_id=zoneid).update(zmin=zmin, \
+					zmax=zmax)
+				# удаляем ранние привязки
+				delZones(zoneid, 'uzones')
+				# сцепляем зону с объектом
+				FloorUserZone.objects.create(Floor_id=fid, UserZone_id=zoneid)
+			elif string['type'] == 'kabinet':
+				kid = string['id']
+				k = Kabinet_n_Outer.objects.get(id=kid)
+				zmin = k.minz
+				zmax = k.maxz
+				# устанавливаем z для зоны по привязанномуэлементу
+				VerticesUserZone.objects.filter(UserZone_id=zoneid).update(zmin=zmin, \
+				 zmax=zmax)
+				# удаляем ранние привязки
+				delZones(zoneid, 'uzones')
+				# сцепляем зону с объектом
+				KabinetUserZone.objects.create(Kabinet_id=kid, UserZone_id=zoneid)
+			args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
+			 User_id=auth.get_user(request).id)
+			return render(request, 'userzonetable.html', args)
 		# отцепить incomezone
 		if string['method'] == 'unlink':
 			zoneid = string['zoneid']
@@ -1595,6 +1681,13 @@ def incomezonedefine(request, landscape_id='0000'):
 			delZones(zoneid, 'exclude')
 			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 			return render(request, 'excludezonetable.html', args)
+		# отыепить userzone
+		if string['method'] == 'unlink_uzone':
+			zoneid = string['zoneid']
+			delZones(zoneid, 'uzones')
+			args['uzones'] =UserZone.objects.filter(LoadLandscape_id=landscape_id, \
+				 User_id=auth.get_user(request).id)
+			return render(request, 'userzonetable.html', args)
 		# сохраняем максимальные или минимальные значения высоты зоны incomezone
 		if string['method'] == 'savemin':
 			zoneid = string['zoneid']
@@ -1617,6 +1710,21 @@ def incomezonedefine(request, landscape_id='0000'):
 			VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid).update(zmax=value)
 			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 			return render(request, 'excludezonetable.html', args)
+		# сохраняем максимальные или минимальные значения высоты зоны userzone
+		if string['method'] == 'savemin_uzone':
+			zoneid = string['zoneid']
+			value = string['value']
+			VerticesUserZone.objects.filter(UserZone_id=zoneid).update(zmin=value)
+			args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
+				 User_id=auth.get_user(request).id)
+			return render(request, 'userzonetable.html', args)
+		if string['method'] == 'savemax_uzone':
+			zoneid = string['zoneid']
+			value = string['value']
+			VerticesUserZone.objects.filter(UserZone_id=zoneid).update(zmax=value)
+			args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
+				User_id=auth.get_user(request).id)
+			return render(request, 'userzonetable.html', args)
 		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице incomezone
 		if string['method'] == 'colored':
 			dae_name = string['dae_name']
@@ -1645,6 +1753,21 @@ def incomezonedefine(request, landscape_id='0000'):
 				args['colored'] = KabinetExcludeZone.objects.filter(Kabinet_id=k.id)
 			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 			return render(request, 'excludezonetable.html', args)
+		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице userzone
+		if string['method'] == 'colored_uzone':
+			dae_name = string['dae_name']
+			if string['type'] == 'building':
+				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
+				args['colored'] = BuildingUserZone.objects.filter(Building_id=b.id)
+			elif string['type'] == 'floor':
+				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
+				args['colored'] = FloorUserZone.objects.filter(Floor_id=f.id)
+			elif string['type'] == 'kabinet':
+				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
+					 dae_Kabinet_n_OuterName=dae_name)
+				args['colored'] = KabinetUserZone.objects.filter(Kabinet_id=k.id)
+			args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'userzonetable.html', args)
 		# показываем запрашиваемую зону incomezone
 		if string['method'] == 'show':
 			obj = {}
@@ -1669,6 +1792,24 @@ def incomezonedefine(request, landscape_id='0000'):
 			obj['ezone'].append({'id': zoneid, 'vertices': vToSend, \
 				'faces': getFacesFromVert(vToSend)})
 			return JsonResponse(obj)
+		# показываем запрашиваемую зону userzone
+		if string['method'] == 'show_uzone':
+			obj = {}
+			obj['uzone'] = []
+			zoneid = string['zoneid']
+			vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
+			vToSend = []
+			for v in vertices:
+				vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+			obj['uzone'].append({'id': zoneid, 'vertices': vToSend, \
+				'faces': getFacesFromVert(vToSend)})
+			return JsonResponse(obj)
+		# создаем новую uzonegroup
+		if string['method'] == 'adduzonegroup':
+			username = string['user']
+			GroupUserZone.objects.create(User_id=username)
+			args['uzonegroups'] = GroupUserZone.objects.filter(User_id=username)
+			return render(request, 'userzonegrouptable.html', args)
 		# формируем словарь с вершинами объекта
 		if string['method'] == 'objvertices':
 			obj = {}
@@ -1706,6 +1847,18 @@ def incomezonedefine(request, landscape_id='0000'):
 						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
 					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
 					 'faces': getFacesFromVert(vToSend)})
+				# ищем зоны пользователя для building
+				zones = BuildingUserZone.objects.filter(Building_id=b.id)
+				obj['uzone'] = []
+				for z in zones:
+					zoneid = z.UserZone_id
+					# вершины
+					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['uzone'].append({'id': z.UserZone_id, 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
 			elif string['type'] == 'floor':
 				obj['type'] = 'floor'
 				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
@@ -1738,6 +1891,18 @@ def incomezonedefine(request, landscape_id='0000'):
 						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
 					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
 						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны пользователя для floor
+				zones = FloorUserZone.objects.filter(Floor_id=f.id)
+				obj['uzone'] = []
+				for z in zones:
+					zoneid = z.UserZone_id
+					# вершины
+					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['uzone'].append({'id': z.UserZone_id, 'vertices': vToSend, \
+						 'faces': getFacesFromVert(vToSend)})
 			elif string['type'] == 'kabinet':
 				obj['type'] = 'kabinet'
 				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
@@ -1771,6 +1936,18 @@ def incomezonedefine(request, landscape_id='0000'):
 						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
 					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
 						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны пользователя для kabinet
+				zones = KabinetUserZone.objects.filter(Kabinet_id=k.id)
+				obj['uzone'] = []
+				for z in zones:
+					zoneid = z.UserZone_id
+					# вершины
+					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['uzone'].append({'id': z.UserZone_id, 'vertices': vToSend, \
+						 'faces': getFacesFromVert(vToSend)})
 			return JsonResponse(obj)
 		args['zones'] = IncomeZone.objects.filter(LoadLandscape_id=landscape_id)
 		return render(request, 'incomezonetable.html', args)
@@ -1810,6 +1987,11 @@ def delZones(zoneid, text):
 		BuildingExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
 		FloorExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
 		KabinetExcludeZone.objects.filter(ExcludeZone_id=zoneid).delete()
+	elif text == 'uzones':
+		LoadLandscapeUserZone.objects.filter(UserZone_id=zoneid).delete()
+		BuildingUserZone.objects.filter(UserZone_id=zoneid).delete()
+		FloorUserZone.objects.filter(UserZone_id=zoneid).delete()
+		KabinetUserZone.objects.filter(UserZone_id=zoneid).delete()
 
 # принадлежность метки
 def getbelong(request):

@@ -1,0 +1,16 @@
+<table>
+  <thead>
+    <tr>
+      <th>Наименование</th>
+      <th>Действие</th>
+    </tr>
+  </thead>
+  <tbody>
+	{% for u in uzonegroups %}
+    <tr>
+      <td>{{u.GroupName}}</td>
+      <td><button class="button" data-toggle="uzonegroup{{u.id}}">Действие</button></td>
+    </tr>
+	{% endfor %}
+  </tbody>
+</table>

@@ -1,0 +1,111 @@
+<table>
+                        <thead>
+                        <tr>
+                            <th>Наименование</th>
+                            <th>Действие</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in uzones %}
+                                <tr {% for c in colored%}{% if c.ExcludeZone_id == z.id %}style="background-color:bisque;"{% endif %}{% endfor %}>
+                                    <td>
+                                        {% for lz in lUserZone %}
+                                            {% if lz.UserZone_id == u.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{{sceneop.landscape_name}} id:{{u.id}}">Привязана</span> <a href="#" id="unlink_uzone" data-id="{{u.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for bz in bUserZone %}
+                                            {% if bz.UserZone_id == u.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}} id:{{u.id}}{% else %}{{b.BuildingName}} id:{{u.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_uzone" data-id="{{u.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for fz in fUserZone %}
+                                            {% if fz.UserZone_id == u.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for f in floors %}{% if f.id == fz.Floor_id%}{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}} id:{{u.id}}{% else %}{{f.FloorName}} id:{{u.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_uzone" data-id="{{u.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for kz in kUserZone %}
+                                            {% if kz.UserZone_id == u.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for k in kabinet_n_outer %}{% if k.id == kz.Kabinet_id %}{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}} id:{{u.id}}{% else %}{{k.Kabinet_n_OuterName}} id:{{u.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_uzone" data-id="{{u.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <button class="button" data-toggle="dropdownuserzone{{u.id}}">Действие</button>
+                                        <div class="dropdown-pane left" id="dropdownuserzone{{u.id}}" data-dropdown style="width:200px;">
+                                            <ul class="vertical dropdown menu" data-dropdown-menu>
+                                                <li><a href="#" href="#" id="show_uzone" data-id="{{u.id}}">Показать</a>
+                                                </li>
+                                                <li><a href="#" id="rename_userzone" data-id="{{u.id}}">Переименовать</a>
+                                                    <ul class="menu">
+                                                        <li>
+                                                            <input type="text" {% if not u.UserZoneName  or u.UserZoneName == '' %}placeholder="Наименование"{% else %}value="{{u.UserZoneName}}"{% endif %}>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                                <li><a href="#" id="delete_userzone" data-id="{{u.id}}">Удалить</a></li>
+                                                <li>
+                                                    <a href="#">Привязать</a>
+                                                    <ul class="menu">
+                                                        <li><a href="#" data-type="landscape" data-id="{{landscape_id}}" id="link_uzone" data-zoneid="{{u.id}}">Сцена</a>
+<ul class="menu">
+{% for b in buildings %}
+    <li><a href="#" data-type="building" data-id="{{b.id}}" id="link_uzone" data-zoneid="{{u.id}}">{% if not b.BuildingName or b.BuildingName == '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{%endif%}</a>
+        <ul class="menu">
+            {% for f in floors %}
+            {% if f.Building_id == b.id %}
+            <li><a href="#" data-type="floor" data-id="{{f.id}}" id="link_uzone" data-zoneid="{{u.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
+                <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+                {% for k in kabinet_n_outer %}
+                {% if k.Floor_id = f.id %}
+                <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="link_uzone" data-zoneid="{{u.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
+                {% endif %}
+                {% endfor %}
+                </ul>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </li>
+{% endfor %}        
+</ul>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Откорректировать высоту</a>
+                                                    <ul class="menu">
+                                                        <li><a href="#">Минимум</a>
+                                                            <ul class="menu">
+                                                                <li>
+<label for="">Значение
+    <input type="number" step="0.01" data-type="min" data-id="{{u.id}}" placeholder="{% for lz in lUserZone%}{% if lz.UserZone_id == u.id %}0{% endif %}{% for bz in bUserZone %}{% if bz.UserZone_id == u.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.minz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fUserZone %}{% if fz.UserZone_id == u.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.minz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kUserZone %}{% if kz.UserZone_id == u.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.minz}}{%endif%}{%endfor%}{%endif%}{% endfor %}{% endfor %}"></li>    
+</label>
+<button class="button" id="savemin_uzone" data-id="{{u.id}}">Сохранить</button>
+                                                            </ul>
+                                                        </li>
+                                                        <li><a href="#" >Максимум</a>
+                                                            <ul class="menu">
+                                                                <li>
+<label for="">Значение
+    <input type="number" step="0.01" data-type="max" data-id="{{u.id}}" placeholder="{% for lz in lUserZone%}{% if lz.UserZone_id == u.id%}3{% endif %}{% for bz in bUserZone %}{% if bz.UserZone_id == u.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.maxz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fUserZone %}{% if fz.UserZone_id == u.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.maxz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kUserZone %}{% if kz.UserZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.maxz}}{%endif%}{%endfor%}{%endif%}{% endfor %}{% endfor %}">
+</label>
+<button class="button" id="savemax_uzone" data-id="{{z.id}}">Сохранить</button>
+                                                                </li>
+                                                            </ul>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+<script>
+		$(document).foundation();
+</script>

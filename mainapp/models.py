@@ -226,7 +226,7 @@ class TagGroup(models.Model):
 	MeshGeometry = jsonfield.JSONField(null=True, blank=True)
 	MeshColor = models.CharField(max_length=50, null=True, blank=True)
 	CircleColor = models.CharField(max_length=50, null=True, blank=True)
-	User = models.ForeignKey(User)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
 	def __str__(self):
 		return self.GroupName.encode('utf-8')
 
@@ -251,7 +251,7 @@ class TagGroup_Tag(models.Model):
 		db_table = 'TagGroup_Tag'
 	TagGroup = models.ForeignKey(TagGroup)
 	Tag = models.ForeignKey(Tag)
-	User = models.ForeignKey(User)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
 ######################
 ### События
 ######################
@@ -300,28 +300,28 @@ class TurnOnOffTag(models.Model):
 class LandscapeColor(models.Model):
 	class Meta():
 		db_table = 'LandscapeColor'
-	User = models.ForeignKey(User)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
 	lcolor = models.CharField(max_length=50, null=True, blank=True)
 	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 class BuildingColor(models.Model):
 	class Meta():
 		db_table = 'BuildingColor'
-	User = models.ForeignKey(User)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
 	bcolor = models.CharField(max_length=50, null=True, blank=True)
 	Building = models.ForeignKey(Building,  on_delete=models.CASCADE)
 
 class FloorColor(models.Model):
 	class Meta():
 		db_table = "FloorColor"
-	User = models.ForeignKey(User)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
 	fcolor = models.CharField(max_length=50, null=True, blank=True)
 	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
 
 class KabinetColor(models.Model):
 	class Meta():
 		db_table = "KabinetColor"
-	User = models.ForeignKey(User)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
 	kcolor = models.CharField(max_length=50, null=True, blank=True)
 	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
 
@@ -394,3 +394,59 @@ class KabinetExcludeZone(models.Model):
 		db_table = 'KabinetExcludeZone'
 	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
 	ExcludeZone = models.ForeignKey(ExcludeZone, on_delete=models.CASCADE)
+
+####################
+# Пользовательские зоны
+####################
+class UserZone(models.Model):
+	class Meta():
+		db_table = "UserZone"
+	UserZoneName = models.CharField(max_length=200, blank=True, null=True)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+
+class VerticesUserZone(models.Model):
+	class Meta():
+		db_table = "VerticesUserZone"
+	xCoord = models.FloatField()
+	yCoord = models.FloatField()
+	zmin = models.FloatField(blank=True, null=True)
+	zmax = models.FloatField(blank=True, null=True)
+	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
+
+class LoadLandscapeUserZone(models.Model):
+	class Meta():
+		db_table = "LoadLandscapeUserZone"
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
+
+class BuildingUserZone(models.Model):
+	class Meta():
+		db_table = "BuildingUserZone"
+	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
+	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
+
+class FloorUserZone(models.Model):
+	class Meta():
+		db_table = "FloorUserZone"
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
+
+class KabinetUserZone(models.Model):
+	class Meta():
+		db_table = "KabinetUserZone"
+	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
+
+class GroupUserZone(models.Model):
+	class Meta():
+		db_table = 'GroupUserZone'
+	GroupName = models.CharField(max_length=200)
+	GroupDescription = models.TextField()
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
+
+class GroupUserZoneUserZone(models.Model):
+	class Meta():
+		db_table = 'GroupUserZoneUserZone'
+	GroupUserZone = models.ForeignKey(GroupUserZone, on_delete=models.CASCADE)
+	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
