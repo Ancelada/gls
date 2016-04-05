@@ -450,3 +450,15 @@ class GroupUserZoneUserZone(models.Model):
 		db_table = 'GroupUserZoneUserZone'
 	GroupUserZone = models.ForeignKey(GroupUserZone, on_delete=models.CASCADE)
 	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
+
+class IncomeZoneUserZone(models.Model):
+	class Meta():
+		db_table = 'IncomeZoneUserZone'
+	IncomeZone = models.ForeignKey(IncomeZone)
+	UserZone = models.ForeignKey(UserZone)
+
+class ExcludeZoneUserZone(models.Model):
+	class Meta():
+		db_table = 'ExcludeZoneUserZone'
+	ExcludeZone = models.ForeignKey(ExcludeZone)
+	UserZone = models.ForeignKey(UserZone)

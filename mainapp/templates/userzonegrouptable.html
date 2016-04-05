@@ -1,16 +1,59 @@
 <table>
-  <thead>
-    <tr>
-      <th>Наименование</th>
-      <th>Действие</th>
-    </tr>
-  </thead>
-  <tbody>
-	{% for u in uzonegroups %}
-    <tr>
-      <td>{{u.GroupName}}</td>
-      <td><button class="button" data-toggle="uzonegroup{{u.id}}">Действие</button></td>
-    </tr>
-	{% endfor %}
-  </tbody>
-</table>
+                        <thead>
+                            <tr>
+                                <th>Наименование</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in uzonegroups %}
+                            <tr>
+                                <td>{{u.GroupName}}</td>
+                                <td>
+                                    <button class="button" data-toggle="uzonegroup{{u.id}}">Действие</button>
+                                    <div class="dropdown-pane left" id="uzonegroup{{u.id}}" data-dropdown style="width:200px;">
+                                        <ul class="vertical dropdown menu" data-dropdown-menu>
+                                            <li>
+                                                <a href="#" id="showzonegroup" data-id="{{u.id}}">Показать</a>
+                                            </li>
+                                            <li>
+                                                <a href="#" id="renamezonegroup" data-id="{{u.id}}">Переименовать</a>
+                                                <ul class="menu">
+                                                    <li>
+                                                        <input type="text" {% if not u.GroupName  or u.GroupName == '' %}placeholder="Наименование"{% else %}value="{{u.GroupName}}"{% endif %}>
+                                                    </li>
+                                                </ul>
+                                            </li>
+                                            <li><a href="#" id="deleteuzonegroup" data-id="{{u.id}}">Удалить</a></li>
+                                            <li>
+                                                <a href="#">Привязать зону пользователя</a>
+                                                <ul class="menu">
+                                                    {% for uz in uzoneswithoutgroups %}
+                                                        <li><a href="#" data-id="{{uz.id}}" data-group="{{u.id}}" id="linkuzonetogroup">{% if uz.UserZoneName %}{{uz.UserZoneName}}{% else %}{{uz.id}}{% endif %}</a></li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </li>
+                                            <li>
+                                                <a href="#">Отвязать зону пользователя</a>
+                                                <ul class="menu">
+                                                    {% for guz in uzonegroupuzones %}
+                                                        {% if guz.GroupUserZone_id == u.id %}
+{% for uz in uzones %}                                                            
+    {% if uz.id == guz.UserZone_id%}
+        <li><a href="#" data-id="{{uz.id}}" data-group="{{guz.GroupUserZone_id}}" id="unlinkuzonetogroup">{% if uz.UserZoneName%}{{uz.UserZoneName}}{% else %}{{uz.id}}{% endif %}</a></li>
+    {% endif %}
+{%endfor%}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+<script>
+	$('#uzonegrouptable').foundation();
+</script>

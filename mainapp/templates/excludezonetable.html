@@ -9,6 +9,13 @@
 		{% for z in ezones %}
 			<tr {% for c in colored%}{% if c.ExcludeZone_id == z.id %}style="background-color:bisque;"{% endif %}{% endfor %}>
           <td class="subheader">
+            {% for ezuz in ezoneuzone %}
+              {% if ezuz.ExcludeZone_id == z.id %}
+                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for uz in uzones %}{% if uz.id == ezuz.UserZone_id%}{% if not uz.UserZoneName %}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif %}{% endif %}{% endfor %}">Привязана к ЗП
+                </span><a href="#" id="unlinkExcludeZoneToUserZone" data-ezuz="{{ezuz.id}}">Отвязать</a>
+              {% endif %}
+            {% endfor %}
+
             {% for bz in bExcludeZone %}
               {% if bz.ExcludeZone_id == z.id %}
                 <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}} id:{{z.id}}{% else %}{{b.BuildingName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_exclude" data-id="{{z.id}}">Отвязать</a>
@@ -57,6 +64,14 @@
                       </ul>
                     </li>
                   {% endfor %}        
+                  </ul>
+                </li>
+                <li>
+                  <a href="#">Привязать к зоне пользователя</a>
+                  <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+    {% for uz in uzones %}
+            <li><a href="#" data-uzone="{{uz.id}}" data-ezone="{{z.id}}" id="linkExcludeZoneToUserZone">{% if not uz.UserZoneName%}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif%}</a></li>
+    {% endfor %}
                   </ul>
                 </li>
                 <li>

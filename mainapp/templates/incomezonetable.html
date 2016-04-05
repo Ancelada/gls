@@ -1,74 +1,89 @@
 <table>
-	<thead>
-		<tr>
-			<th>Наименовние</th>
-			<th>Деиствие</th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for z in zones %}
-			<tr {% for c in colored%}{% if c.IncomeZone_id == z.id %}style="background-color:bisque;"{% endif %}{% endfor %}>
-          <td class="subheader">
-            {% for bz in bIncomeZone %}
-              {% if bz.IncomeZone_id == z.id %}
-                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}} id:{{z.id}}{% else %}{{b.BuildingName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
-              {% endif %}
-	          {% endfor %}
+                        <thead>
+                            <tr>
+                                <th>Статус</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for z in zones %}
+                                <tr {% for c in colored%}{% if c.IncomeZone_id == z.id %}style="background-color:bisque;"{% endif %}{% endfor %}>
+                                    <td class="subheader">
+                                        {% for izuz in izoneuzone %}
+                                          {% if izuz.IncomeZone_id == z.id %}
+                                            <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for uz in uzones %}{% if uz.id == izuz.UserZone_id%}{% if not uz.UserZoneName %}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif %}{% endif %}{% endfor %}">Привязана к ЗП
+                                            </span><a href="#" id="unlinkIncomeZoneToUserZone" data-izuz="{{izuz.id}}">Отвязать</a>
+                                          {% endif %}
+                                        {% endfor %}
 
-	          {% for fz in fIncomeZone %}
-              {% if fz.IncomeZone_id == z.id %}
-                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for f in floors %}{% if f.id == fz.Floor_id%}{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}} id:{{z.id}}{% else %}{{f.FloorName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
-              {% endif %}
-	          {% endfor %}
+                                        {% for bz in bIncomeZone %}
+                                            {% if bz.IncomeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}} id:{{z.id}}{% else %}{{b.BuildingName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
 
-	          {% for kz in kIncomeZone %}
-              {% if kz.IncomeZone_id == z.id %}
-                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for k in kabinet_n_outer %}{% if k.id == kz.Kabinet_id %}{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}} id:{{z.id}}{% else %}{{k.Kabinet_n_OuterName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
-              {% endif %}
-	          {% endfor %}
-          </td>
-          <td>
-            <button class="button" data-toggle="dropdown{{z.id}}">Действие</button>
-            <div class="dropdown-pane left" id="dropdown{{z.id}}" data-dropdown style="width:200px;">
-              <ul class="vertical dropdown menu" data-dropdown-menu>
-              	<li><a href="#" id="show" data-id="{{z.id}}">Показать</a></li>
-                <li>
-                  <a href="#" id="delete" data-id="{{z.id}}">Удалить</a>
-                </li>
-                <li>
-                  <a href="#">Привязать</a>
-                  <ul class="menu">
-                  {% for b in buildings %}
-                    <li><a href="#" data-type="building" data-id="{{b.id}}" id="link" data-zoneid="{{z.id}}">{% if not b.BuildingName or b.BuildingName == '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{%endif%}</a>
-                      <ul class="menu">
-                        {% for f in floors %}
-                          {% if f.Building_id == b.id %}
-                          	<li><a href="#" data-type="floor" data-id="{{f.id}}" id="link" data-zoneid="{{z.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
-	                            <ul class="menu" style="max-height:200px;overflow-y:scroll;">
-	                              {% for k in kabinet_n_outer %}
-	                        	      {% if k.Floor_id = f.id %}
-	                          		    <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="link" data-zoneid="{{z.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
-	                              	{% endif %}
-	                              {% endfor %}
-	                            </ul>
-                         		</li>
-                          {% endif %}
-                        {% endfor %}
-                      </ul>
-                    </li>
-                  {% endfor %}        
-                  </ul>
-                </li>
-                <li>
-                  <a href="#">Откорректировать высоту</a>
-                  <ul class="menu">
-                      <li><a href="#">Минимум</a>
-                          <ul class="menu">
-                              <li>
+                                        {% for fz in fIncomeZone %}
+                                            {% if fz.IncomeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for f in floors %}{% if f.id == fz.Floor_id%}{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}} {{z.id}}{% else %}{{f.FloorName}} {{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for kz in kIncomeZone %}
+                                            {% if kz.IncomeZone_id == z.id %}
+                                                <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for k in kabinet_n_outer %}{% if k.id == kz.Kabinet_id %}{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}} {{z.id}}{% else %}{{k.Kabinet_n_OuterName}} {{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <button class="button" data-toggle="dropdown{{z.id}}">Действие</button>
+                                        <div class="dropdown-pane left" id="dropdown{{z.id}}" data-dropdown style="width:200px;">
+                                            <ul class="vertical dropdown menu" data-dropdown-menu>
+                                                <li><a href="#" id="show" data-id="{{z.id}}">Показать</a></li>
+                                                <li>
+                                                    <a href="#" id="delete" data-id="{{z.id}}">Удалить</a>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Привязать</a>
+                                                    <ul class="menu">
+                                                    {% for b in buildings %}
+                                                        <li><a href="#" data-type="building" data-id="{{b.id}}" id="link" data-zoneid="{{z.id}}">{% if not b.BuildingName or b.BuildingName == '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{%endif%}</a>
+                                                            <ul class="menu">
+                                                                {% for f in floors %}
+                                                                {% if f.Building_id == b.id %}
+                                                                <li><a href="#" data-type="floor" data-id="{{f.id}}" id="link" data-zoneid="{{z.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
+                                                                    <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+                                                                    {% for k in kabinet_n_outer %}
+                                                                    {% if k.Floor_id = f.id %}
+                                                                    <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="link" data-zoneid="{{z.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
+                                                                    {% endif %}
+                                                                    {% endfor %}
+                                                                    </ul>
+                                                                </li>
+                                                                {% endif %}
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </li>
+                                                    {% endfor %}        
+                                                    </ul>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Привязать к зоне пользователя</a>
+                                                    <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+{% for uz in uzones %}
+        <li><a href="#" data-uzone="{{uz.id}}" data-izone="{{z.id}}" id="linkIncomeZoneToUserZone">{% if not uz.UserZoneName%}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif%}</a></li>
+{% endfor %}
+                                                    </ul>
+                                                </li>
+                                                <li>
+                                                    <a href="#">Откорректировать высоту</a>
+                                                    <ul class="menu">
+                                                        <li><a href="#">Минимум</a>
+                                                            <ul class="menu">
+                                                                <li>
 <label for="">Значение
     <input type="number" step="0.01" data-type="min" data-id="{{z.id}}" placeholder="{% for bz in bIncomeZone %}{% if bz.IncomeZone_id == z.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.minz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fIncomeZone %}{% if fz.IncomeZone_id == z.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.minz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kIncomeZone %}{% if kz.IncomeZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.minz}}{%endif%}{%endfor%}{%endif%}{% endfor %}"></li>    
 </label>
-<button class="button" id="savemin">Сохранить</button>
+<button class="button" id="savemin" data-id="{{z.id}}">Сохранить</button>
                                                             </ul>
                                                         </li>
                                                         <li><a href="#" >Максимум</a>
@@ -77,19 +92,19 @@
 <label for="">Значение
     <input type="number" step="0.01" data-type="max" data-id="{{z.id}}" placeholder="{% for bz in bIncomeZone %}{% if bz.IncomeZone_id == z.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.maxz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fIncomeZone %}{% if fz.IncomeZone_id == z.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.maxz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kIncomeZone %}{% if kz.IncomeZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.maxz}}{%endif%}{%endfor%}{%endif%}{% endfor %}">
 </label>
-<button class="button" id="savemax">Сохранить</button>
-	                              </li>
-	                          </ul>
-	                      </li>
-	                  </ul>
-	              </li>
-              </ul>
-            </div>
-          </td>
-      </tr>
-		{% endfor %}
-	</tbody>
-</table>
+<button class="button" id="savemax" data-id="{{z.id}}">Сохранить</button>
+                                                                </li>
+                                                            </ul>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
 <script>
 	$(document).foundation();
 </script>

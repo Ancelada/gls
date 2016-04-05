@@ -156,6 +156,14 @@
                             {% for z in zones %}
                                 <tr>
                                     <td class="subheader">
+
+                                        {% for izuz in izoneuzone %}
+                                          {% if izuz.IncomeZone_id == z.id %}
+                                            <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for uz in uzones %}{% if uz.id == izuz.UserZone_id%}{% if not uz.UserZoneName %}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif %}{% endif %}{% endfor %}">Привязана к ЗП
+                                            </span><a href="#" id="unlinkIncomeZoneToUserZone" data-izuz="{{izuz.id}}">Отвязать</a>
+                                          {% endif %}
+                                        {% endfor %}
+
                                         {% for bz in bIncomeZone %}
                                             {% if bz.IncomeZone_id == z.id %}
                                                 <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}} id:{{z.id}}{% else %}{{b.BuildingName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink" data-id="{{z.id}}">Отвязать</a>
@@ -208,8 +216,10 @@
                                                 </li>
                                                 <li>
                                                     <a href="#">Привязать к зоне пользователя</a>
-                                                    <ul class="menu">
-                                                        
+                                                    <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+{% for uz in uzones %}
+        <li><a href="#" data-uzone="{{uz.id}}" data-izone="{{z.id}}" id="linkIncomeZoneToUserZone">{% if not uz.UserZoneName%}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif%}</a></li>
+{% endfor %}
                                                     </ul>
                                                 </li>
                                                 <li>
@@ -269,6 +279,13 @@
                             {% for z in ezones %}
                                 <tr>
                                     <td class="subheader">
+                                        {% for ezuz in ezoneuzone %}
+                                          {% if ezuz.ExcludeZone_id == z.id %}
+                                            <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for uz in uzones %}{% if uz.id == ezuz.UserZone_id%}{% if not uz.UserZoneName %}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif %}{% endif %}{% endfor %}">Привязана к ЗП
+                                            </span><a href="#" id="unlinkExcludeZoneToUserZone" data-ezuz="{{ezuz.id}}">Отвязать</a>
+                                          {% endif %}
+                                        {% endfor %}                          
+
                                         {% for bz in bExcludeZone %}
                                             {% if bz.ExcludeZone_id == z.id %}
                                                 <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{% for b in buildings %}{% if b.id == bz.Building_id%}{% if not b.BuildingName or b.BuildingName = '' %}{{b.dae_BuildingName}} id:{{z.id}}{% else %}{{b.BuildingName}} id:{{z.id}}{% endif %}{% endif %}{% endfor %}">Привязана</span> <a href="#" id="unlink_exclude" data-id="{{z.id}}">Отвязать</a>
@@ -320,6 +337,14 @@
                                                     </ul>
                                                 </li>
                                                 <li>
+                                                    <a href="#">Привязать к зоне пользователя</a>
+                                                    <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+    {% for uz in uzones %}
+            <li><a href="#" data-uzone="{{uz.id}}" data-ezone="{{z.id}}" id="linkExcludeZoneToUserZone">{% if not uz.UserZoneName%}{{uz.id}}{% else %}{{uz.UserZoneName}}{% endif%}</a></li>
+    {% endfor %}
+                                                    </ul>
+                                                </li>
+                                                <li>
                                                     <a href="#">Откорректировать высоту</a>
                                                     <ul class="menu">
                                                         <li><a href="#">Минимум</a>
@@ -360,8 +385,6 @@
             <button class="close-button close_userzone_panel" aria-label="Close menu" type="button">
                 <span aria-hidden="true">x</span>
             </button>
-            <br>
-            <br>
             <fieldset class="large-12 small-12 columns">
                 <h3 class="subheader">Список зон пользователя</h3>
                 <div class="large-12 small-12 columns" id="userzonetable">
@@ -376,6 +399,7 @@
                             {% for u in uzones %}
                                 <tr>
                                     <td>
+                                        {{u.UserZoneName}}
                                         {% for lz in lUserZone %}
                                             {% if lz.UserZone_id == u.id %}
                                                 <span data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{{sceneop.landscape_name}} id:{{u.id}}">Привязана</span> <a href="#" id="unlink_uzone" data-id="{{u.id}}">Отвязать</a>
@@ -460,7 +484,7 @@
 <label for="">Значение
     <input type="number" step="0.01" data-type="max" data-id="{{u.id}}" placeholder="{% for lz in lUserZone%}{% if lz.UserZone_id == u.id%}3{% endif %}{% for bz in bUserZone %}{% if bz.UserZone_id == u.id %}{% for b in buildings%}{% if b.id == bz.Building_id%}{{b.maxz}}{% endif %}{%endfor%}{% endif %}{%endfor%}{% for fz in fUserZone %}{% if fz.UserZone_id == u.id%}{% for f in floors%}{% if f.id == fz.Floor_id%}{{f.maxz}}{%endif%} {%endfor%}{% endif %}{%endfor%}{% for kz in kUserZone %}{% if kz.UserZone_id == z.id%}{% for k in kabinet_n_outer%}{% if k.id == kz.Kabinet_id%}{{k.maxz}}{%endif%}{%endfor%}{%endif%}{% endfor %}{% endfor %}">
 </label>
-<button class="button" id="savemax_uzone" data-id="{{z.id}}">Сохранить</button>
+<button class="button" id="savemax_uzone" data-id="{{u.id}}">Сохранить</button>
                                                                 </li>
                                                             </ul>
                                                         </li>
@@ -494,7 +518,40 @@
                                     <button class="button" data-toggle="uzonegroup{{u.id}}">Действие</button>
                                     <div class="dropdown-pane left" id="uzonegroup{{u.id}}" data-dropdown style="width:200px;">
                                         <ul class="vertical dropdown menu" data-dropdown-menu>
+                                            <li>
+                                                <a href="#" id="showzonegroup" data-id="{{u.id}}">Показать</a>
+                                            </li>
+                                            <li>
+                                                <a href="#" id="renamezonegroup" data-id="{{u.id}}">Переименовать</a>
+                                                <ul class="menu">
+                                                    <li>
+                                                        <input type="text" {% if not u.GroupName  or u.GroupName == '' %}placeholder="Наименование"{% else %}value="{{u.GroupName}}"{% endif %}>
+                                                    </li>
+                                                </ul>
+                                            </li>
                                             <li><a href="#" id="deleteuzonegroup" data-id="{{u.id}}">Удалить</a></li>
+                                            <li>
+                                                <a href="#">Привязать зону пользователя</a>
+                                                <ul class="menu">
+                                                    {% for uz in uzoneswithoutgroups %}
+                                                        <li><a href="#" data-id="{{uz.id}}" data-group="{{u.id}}" id="linkuzonetogroup">{% if uz.UserZoneName %}{{uz.UserZoneName}}{% else %}{{uz.id}}{% endif %}</a></li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </li>
+                                            <li>
+                                                <a href="#">Отвязать зону пользователя</a>
+                                                <ul class="menu">
+                                                    {% for guz in uzonegroupuzones %}
+                                                        {% if guz.GroupUserZone_id == u.id %}
+{% for uz in uzones %}                                                            
+    {% if uz.id == guz.UserZone_id%}
+        <li><a href="#" data-id="{{uz.id}}" data-group="{{guz.GroupUserZone_id}}" id="unlinkuzonetogroup">{% if uz.UserZoneName%}{{uz.UserZoneName}}{% else %}{{uz.id}}{% endif %}</a></li>
+    {% endif %}
+{%endfor%}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </ul>
+                                            </li>
                                         </ul>
                                     </div>
                                 </td>
@@ -574,6 +631,7 @@
 
     /*сцена, камера */
     scene = new THREE.Scene();
+    /*camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, 1, 1000 );*/
     camera =  new THREE.PerspectiveCamera(85, window.innerWidth/window.innerHeight, .1, 1000);
     renderer = new THREE.WebGLRenderer({antialias:true});
     
@@ -1217,7 +1275,6 @@
                             //отметка привязанных зон в таблице
                             colored(building);
                             coloredexclude(building);
-                            coloreduzone(building)
                             //запрос вершин здания и вершин привязанных к нему объектов
                             getVertices(building, node.children[i]);
                         }
@@ -1270,7 +1327,6 @@
                                         //отметка привязанных зон в таблице
                                         colored(cur['curName']);
                                         coloredexclude(cur['curName']);
-                                        coloreduzone(cur['curName']);
                                         //запрос вершин здания и вершин привязанных к нему объектов
                                         getVertices(cur['curName'], node.children[i]);
                                 }
@@ -1310,7 +1366,6 @@
                                     //отметка привязанных зон в таблице
                                     colored(curName);
                                     coloredexclude(curName);
-                                    coloreduzone(curName);
                                     //запрос вершин здания и вершин привязанных к нему объектов
                                     getVertices(curName, node.children[i]);
                             });

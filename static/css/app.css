@@ -180,8 +180,22 @@ li.tabs-title a{
 	top:0;
 	right:0;
 	height: 100%;
-	overflow:auto;
+	overflow-y:scroll;
 	background-color:#fff;
 	-webkit-transition: right 1s;
 	transition: right 1s;
+}
+
+#userzonetable{
+	max-height: 200px;
+	overflow-y:scroll;
+	padding-left:0;
+	padding-right:0;
+}
+
+#uzonegrouptable{
+	min-height: 200px;
+	overflow-y:scroll;
+	padding-left:0;
+	padding-right: 0;
 }
