@@ -86,13 +86,96 @@ def clearstatic(request):
 	del static[:]
 	return HttpResponse('static list cleared')
 
+# фунцкия проверки правильности заолнения словаря userzones
+def getuzones(request, parameters=''):
+	landscape_id = parameters
+	for i in static:
+		if i['landscape_id'] == parameters:
+			return HttpResponse(i['userzones'])
+
+def filluzones(user_id, landscape_id):
+	uzones = UserZone.objects.all()
+	vuzones = VerticesUserZone.objects.all()
+	izuzones = IncomeZoneUserZone.objects.all()
+	ezuzones = ExcludeZoneUserZone.objects.all()
+	vizones = VerticesIncomeZone.objects.all()
+	vezones = VerticesExcludeZone.objects.all()
+	arr = []
+	no = 0
+	for uzone in uzones:
+		if uzone.LoadLandscape_id==landscape_id and uzone.User_id==user_id:
+			arr.append({'id': uzone.id, 'vertices': [], 'minz': 0, 'maxz': 0, \
+			 'IncomeZones': [], 'ExcludeZones': []})
+			# maxz minz
+			for vuzone in vuzones:
+				if vuzone.UserZone_id == uzone.id:
+					minz = vuzone.zmin
+					maxz = vuzone.zmax
+					arr[no]['minz'] = minz
+					arr[no]['maxz'] = maxz
+					break
+			# наполняем uzone вершинами
+			for vuzone in vuzones:
+				if vuzone.UserZone_id == arr[no]['id']:
+					arr[no]['vertices'].append([float(vuzone.xCoord), float(vuzone.yCoord)])
+					#сортировка вершин
+					a = sortVert(arr[no]['vertices'])
+					arr[no]['vertices'] = a
+			# наполняем IncomeZones
+			izno = 0
+			for izuz in izuzones:
+				if izuz.UserZone_id == uzone.id:
+					arr[no]['IncomeZones'].append({'id': izuz.IncomeZone_id, 'vertices': [], \
+					 'minz': 0, 'maxz': 0})
+					# наполняем vertices incomezone
+					for v in vizones:
+						if v.IncomeZone_id == izuz.IncomeZone_id:
+							arr[no]['IncomeZones'][izno]['vertices'].append([float(v.xCoord), float(v.yCoord)])
+							minz = v.zmin
+							maxz = v.zmax
+					a = sortVert(arr[no]['IncomeZones'][izno]['vertices'])
+					arr[no]['IncomeZones'][izno]['vertices'] = a
+					# minz maxz
+					arr[no]['IncomeZones'][izno]['minz'] = minz
+					arr[no]['IncomeZones'][izno]['maxz'] = maxz
+					izno += 1
+			ezno = 0
+			# наполняем ExcludeZones
+			for ezuz in ezuzones:
+				if ezuz.UserZone_id == uzone.id:
+					arr[no]['ExcludeZones'].append({'id': ezuz.ExcludeZone_id, 'vertices': [], \
+						'minz': 0, 'maxz': 0})
+					# наполняем vertices excludezone
+					for v in vezones:
+						if v.ExcludeZone_id == ezuz.ExcludeZone_id:
+							arr[no]['ExcludeZones'][ezno]['vertices'].append([float(v.xCoord), float(v.yCoord)])
+							minz = v.zmin
+							maxz = v.zmax
+					a = sortVert(arr[no]['ExcludeZones'][ezno]['vertices'])
+					arr[no]['ExcludeZones'][ezno]['vertices'] = a
+					# minz maxz
+					arr[no]['ExcludeZones'][ezno]['minz'] = minz
+					arr[no]['ExcludeZones'][ezno]['maxz'] = maxz
+					ezno += 1
+			no += 1
+	return arr
+
 # наполняем статику
 def fillStatic():
 	landscape = LoadLandscape.objects.all()
+	users = User.objects.all()
 	for l in landscape:
-		static.append({'landscape_id': l.landscape_id, 'buildings': []})
+		static.append({'landscape_id': l.landscape_id, 'buildings': [], 'userzones': []})
 		for i in static:
 			if i['landscape_id'] == l.landscape_id:
+				#прежде чем заполнить статику, заполняем зоны пользователя на каждой сцене
+				#filluserzones at each landscape
+				uzno = 0
+				for u in users:
+					i['userzones'].append({'user_id': u.id, 'uzones': []})
+					#наполняем uzones
+					i['userzones'][uzno]['uzones'] = filluzones(u.id, l.landscape_id)
+					uzno+=1
 				#building
 				building = Building.objects.filter(LoadLandscape_id=l.landscape_id)
 				bno = 0
@@ -266,6 +349,12 @@ def clearUnique(request):
 def getuniquevalues(request):
 	return HttpResponse(unique)
 
+def getuniquevalues2(request, parameters=''):
+	for i in unique:
+		if i['tag_id'] == parameters:
+			return HttpResponse(i['userzone'])
+	return HttpResponse('something is wrong')
+
 # функция setInterval
 import threading
 def set_interval(func, sec):
@@ -370,7 +459,101 @@ def UniqueToStatic():
 				findMatchingIncomeZones(i, i['zone_id'])
 				# ищем подходящий кабинет
 				findMatchingKabinet(i, i['zone_id'])
+				# ищем подходящие зоны пользователя
+				findMatchingUserZone(i, i['zone_id'])
 
+#ищем подходящую userzone
+def findMatchingUserZone(obj, landscape_id):
+	x = obj['x']
+	y = obj['y']
+	z = obj['z']
+	# добавляем словарь userzone к объекту
+	if not 'userzone' in obj:
+		obj['userzone'] = []
+		# к словарю добавляем всех пользователей
+		for uzone in static[0]['userzones']:
+			obj['userzone'].append({'user_id': uzone['user_id'], 'noUserZoneLocation': {'cron': 0}, \
+				 'candidate': [], 'UserZoneLocation': {'type': 'outofzone', 'id': 0}})
+	# если отсутствует candidate
+	# включаем хронометраж
+	objno = 0
+	for user in obj['userzone']:
+		if not 'candidate' in user or len(user['candidate']) == 0:
+			if not 'noUserZoneLocation' in user:
+				user['noUserZoneLocation'] = {'cron': 0}
+			else:
+				user['noUserZoneLocation']['cron'] += 1
+			# проверка достигнуто ли noUserZoneLocation cron значения 10
+			# если достигнуло , то UserZoneLocation очищаем
+			if user['noUserZoneLocation']['cron'] == 10 and \
+			 user['UserZoneLocation']['type'] == 'inuzone':
+				user['UserZoneLocation'] = {'type': 'outofzone', 'id': 0}
+			elif user['noUserZoneLocation']['cron'] == 100:
+				user['noUserZoneLocation']['cron'] = 0
+		elif len(user['candidate']) > 0 and 'candidate' in user:
+			user['noUserZoneLocation']['cron'] = 0
+		if 'candidate' in user:
+			#удаляем просроченные candidate
+			deleteFromListByKeyValueUpper(20, 'cron', user['candidate'])
+			# увеличиваем cron
+			for i in user['candidate']:
+				i['cron'] += 1
+			#проверка есть ли candidate incomezone в списке incomezone если cron == 7,
+			# и matchCount > 4
+			for i in user['candidate']:
+				if i['cron'] == 7 and i['matchCount'] > 4:
+					for caniz in i['IncomeZones']:
+						candidateincomezone = caniz['id']
+						for objiz in obj['IncomeZones']:
+							if objiz['id'] == candidateincomezone:
+								if 'UserZoneLocation' in user:
+									if user['UserZoneLocation']['id'] != i['id']:
+										user['UserZoneLocation']['id'] = i['id']
+										user['UserZoneLocation']['type'] = 'inuzone'
+										#очищаем Candidate и IncomeZones
+										del user['candidate'][:]
+								else:
+									user['UserZoneLocation'] = {'id': i['id'], 'type': 'inuzone'}
+									#очищаем Candidate и IncomeZones
+									del user['candidate'][:]
+				#проверка если candidate incomezone отсутствует в incomezone cron == 20, 
+				# matchCount > 15
+				elif i['cron'] == 20 and i['matchCount']>15:
+					if 'UserZoneLocation' in user:
+						if user['UserZoneLocation']['id'] != i['id']:
+							user['UserZoneLocation']['id'] = i['id']
+							user['UserZoneLocation']['type'] = 'inuzone'
+							#очищаем Candidate и IncomeZones
+							del user['candidate'][:]
+					else:
+						user['UserZoneLocation'] = {'id': i['id'], 'type': 'inuzone'}
+						#очищаем Candidate и IncomeZones
+						del user['candidate'][:]
+		# добавить userzones в candidate
+		user_id = user['user_id']
+		for s in static:
+			for uz in s['userzones']:
+				if uz['user_id'] == user_id:
+					inuz = 0
+					for userzone in uz['uzones']:
+						# проверка попадания точки в userzone
+						if not(inExcludeZone(userzone, x, y, z)) and inObject(userzone, x, y, z):
+							inuz = 1
+						# проверить есть ли userzone в candidate
+						if inuz:
+							if 'candidate' in user:
+								doubled = 0
+								for c in user['candidate']:
+									if c['id'] == userzone['id']:
+										doubled = 1
+									# увеличиваем matchCount
+									c['matchCount'] += 1
+								if not doubled:
+									user['candidate'].append({'id': userzone['id'], \
+										 'cron': 0, 'matchCount': 0, 'IncomeZones': \
+										  userzone['IncomeZones']})
+							break
+		objno += 1
 #ищем подходящий кабинет
 def findMatchingKabinet(obj, landscape_id):
 	# если отсутствует candidate
@@ -565,6 +748,22 @@ def findMatchingIncomeZones(obj, landscape_id):
 		deleteFromListByKeyValueUpper(5, 'cron', obj['IncomeZones'])
 	for s in static:
 		if s['landscape_id'] == landscape_id:
+			# заполняем зоны входа userzones
+			for user in s['userzones']:
+				for uzone in user['uzones']:
+					for izone in uzone['IncomeZones']:
+						vertices = izone['vertices']
+						vector = [(x, y)]
+						minz = izone['minz']
+						maxz = izone['maxz']
+						match = inPolygon(vertices, vector)
+						if (match and inInterval(z, minz, maxz)):
+							# проверяем наличие id в IncomeZones
+							if not dictKeyInArray(izone['id'], 'id', obj['IncomeZones'], 0):
+								# записываем id в словарь
+								obj['IncomeZones'].append({'id': izone['id'], 'cron': 0})
+							else:
+								dictKeyInArray(izone['id'], 'id', obj['IncomeZones'], 1)
 			# заполняем зоны входа buildings
 			for building in s['buildings']:
 				for biz in building['IncomeZones']:
@@ -648,6 +847,7 @@ def correctUniqueInMilisec():
 		set_interval(correctF, 0.1)
 		set_interval(UniqueToStatic, 1)
 		set_interval(lightUpTagBelongTo, 1)
+		set_interval(lightUpTagBelongToUzone, 1)
 
 # подсвечиваем принадлежность метки, если запрос пользователя
 def lightUpTagBelongTo():
@@ -666,6 +866,34 @@ def lightUpTagBelongTo():
 							a['belong']['id'] = i['location']['id']
 							sendToUserElemForLightUp(i['location']['type'], i['location']['id'], a['id'])
 
+# подсвечиваем принадлежность метки зоне пользователя, если запрос пользователя
+def lightUpTagBelongToUzone():
+	for a in active_users:
+		if 'belonguzone' in a:
+			tag_id = a['belonguzone']['tag_id']
+			if not 'type' in a['belonguzone']:
+				a['belonguzone']['type'] = '' 
+			for i in unique:
+				if i['tag_id'] == tag_id:
+					for user in i['userzone']:
+						if user['user_id'] == a['id']:
+							if user['UserZoneLocation']['type'] == 'inuzone':
+								if not 'id' in a['belonguzone']:
+									a['belonguzone']['id'] = user['UserZoneLocation']['id']
+									a['belonguzone']['type'] = user['UserZoneLocation']['type']
+									sendToUserUzoneForLightUp('inuzone', \
+										 user['UserZoneLocation']['id'], a['id'], i['zone_id'])
+								elif a['belonguzone']['id'] != user['UserZoneLocation']['id']:
+									a['belonguzone']['id'] = user['UserZoneLocation']['id']
+									a['belonguzone']['type'] = user['UserZoneLocation']['type']
+									sendToUserUzoneForLightUp('inuzone', \
+										 user['UserZoneLocation']['id'], a['id'], i['zone_id'])
+							elif user['UserZoneLocation']['type'] == 'outofzone' \
+							 and a['belonguzone']['type'] == 'inuzone':
+							 	a['belonguzone']['type'] = 'outofzone'
+							 	a['belonguzone']['id'] = 0
+							 	sendToUserUzoneForLightUp('outofzone', 0, a['id'], i['zone_id'])
+
 def sendToUserElemForLightUp(elemtype, elemid, user_id):
 	#определение dae_name и рассылка пользователю для подсветки
 	if elemtype == 'floor':
@@ -675,16 +903,31 @@ def sendToUserElemForLightUp(elemtype, elemid, user_id):
 		dae_id = dae.id
 		vertices = list(VerticesFloor.objects.filter(Floor_id=dae_id).values('x', 'y'))
 		service_queue('show_location', json({'user': user_id, 'data': {'type': \
-			'floor', 'location': dae_name, 'vertices': json(vertices) }}))
+			'floor', 'location': dae_name, 'vertices': json(vertices)}}))
 	elif elemtype == 'kabinet':
 		kid = elemid
 		dae = Kabinet_n_Outer.objects.get(id=kid)
 		dae_name = dae.dae_Kabinet_n_OuterName
 		dae_id = dae.id
-		vertices = list(VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=dae_id).values('x', 'y'))
+		vertices = list(VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=dae_id).values('x', \
+		 'y'))
 		service_queue('show_location', json({'user': user_id, 'data': {'type': \
 			'kabinet', 'location': dae_name, 'vertices': json(vertices)}}))
 
+def sendToUserUzoneForLightUp(elemtype, elemid, user_id, landscape_id):
+	if elemid != 0:
+		uzoneid = elemid
+		vertices = list(VerticesUserZone.objects.filter(UserZone_id=elemid).values('xCoord', 'yCoord', 'zmin'))
+		vxy = []
+		zmin = vertices[0]['zmin']
+		for v in vertices:
+			vxy.append([v['xCoord'], v['yCoord']])
+		service_queue('show_location', json({'user': user_id, 'data': {'type': elemtype, \
+		 'vertices': vxy, 'faces': getFacesFromVert(vertices), 'id': elemid, 'zmin': zmin, \
+		  'landscape_id': landscape_id}}))
+	elif elemid == 0:
+		service_queue('show_location', json({'user': user_id, 'data': {'type': elemtype, \
+			'vertices':0, 'id': 0}}))
 #receive coordinates
 def receive_slmp(request):
 	if request.method == 'POST':
@@ -2200,4 +2443,21 @@ def getbelong(request):
 			if a['id'] == user_id:
 				if 'belong' in a:
 					del a['belong']
+				return JsonResponse(string)
+
+# принадлежность метки зоне пользователя
+def getbelonguzone(request):
+	string = simplejson.loads(request.body)
+	user_id = string['user_id']
+	tag_id = string['tag_id']
+	if string['type'] == 'start':
+		for a in active_users:
+			if a['id'] == user_id:
+				a['belonguzone'] = {'tag_id': tag_id}
+				return JsonResponse(string)
+	if string['type'] == 'stop':
+		for a in active_users:
+			if a['id'] == user_id:
+				if 'belonguzone' in a:
+					del a['belonguzone']
 				return JsonResponse(string)

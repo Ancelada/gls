@@ -13,6 +13,34 @@ $('body').delegate('.close_panel', 'click', function(){
 // панель интструментов динамики
 //*******************************************
 
+//показвать принадлежность зоне пользователя userzone
+$('body').delegate('.static_instrument_block #belongtouzone', 'click', function(){
+	tag_id = $(this).attr('data-id');
+	txt = $(this).text();
+	if (txt == 'Показывать принадлежность зоне пользователя'){
+		$(this).text('Остановить');
+		belongToUsone('start', tag_id, username);
+	} else {
+		scene.remove(lightedUpUzonePlane);
+		$(this).text('Показывать принадлежность зоне пользователя');
+		belongToUsone('stop', tag_id, username);
+	}
+});
+
+function belongToUsone(type, tag_id, uname){
+	$.ajax({
+		type: "POST",
+		url: "/getbelonguzone",
+		data: JSON.stringify({'tag_id': tag_id, 'user_id': uname, 'type': type}),
+		contentType: "application/json; charset=utf-8",
+		dataType: "html",
+		async: true,
+		success: function(data, textStatus, jqXHR){
+			console.log(data);
+		}
+	})
+}
+
 //показывать принадлежность
 $('body').delegate('.static_instrument_block #belong', 'click', function(){
 	tag_id = $(this).attr('data-id');

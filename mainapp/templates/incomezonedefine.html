@@ -974,17 +974,17 @@
         //функция добавить вершну к зоне входа
         function onVerticeAdd(event){
             if ($('#new').text()== 'Остановить'){
-                addVertice(vertices);
+                addVertice(vertices, event);
             }
             if ($('#new_exclude').text()=='Остановить'){
-                addVertice(vertices);
+                addVertice(vertices, event);
             }
             if ($('#new_user').text()=='Остановить'){
-                addVertice(vertices);
+                addVertice(vertices, event);
             }
         }
 
-        function addVertice(arr){
+        function addVertice(arr, event){
             event.preventDefault();
             mouse.x = (event.clientX/ renderer.domElement.width) * 2 - 1;
             mouse.y = -(event.clientY/ renderer.domElement.height) * 2 + 1;

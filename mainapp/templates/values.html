@@ -88,6 +88,9 @@
                                                 <li>
                                                     <a href="#" id="belong" data-id="{{i.tag_id}}">Показывать принадлежность</a>
                                                 </li>
+                                                <li>
+                                                    <a href="#" id="belongtouzone" data-id="{{i.tag_id}}">Показывать принадлежность зоне пользователя</a>
+                                                </li>
                                             </ul>
                                         </div> 
                                     </td>
@@ -206,6 +209,8 @@
 	<script>
     //многоугольник подсветки объектов, в которые попадает метка
     var lightedUpPlane;
+    //многоугольник подсветки зон пользователя userzone, в которые попадает метка
+    var lightedUpUzonePlane;
     //username
     var username = parseInt({{username}})
     //панель инструментов
@@ -246,43 +251,79 @@
             socket = new SockJS('http://{{hostname}}:8989/orders');
             socket.onmessage = function(msg){
                 var channel = msg.data.type;
-                //show_location подсветить принадлежащий метке объект - комната или этаж
                 if (channel == 'location'){
-                    //вершины в json
-                    a = JSON.parse(msg.data.data['data']['vertices']);
-                    msg.data.data['data']['vertices'] = a;
-                    //элемет будет храниться в loc[0]
-                    loc = [];
-                    dae_name = msg.data.data['data']['location'];
-                    ElemLookUp(colladaObjects['landscape'][0], dae_name, loc);
-                    dae_elem = loc[0];
-                    minz = dae_elem.parent['BoxMin']['z'];
+                    if (msg.data.data['data']['type'] != 'inuzone' && msg.data.data['data']['type'] != 'outofzone'){
+                        //show_location подсветить принадлежащий метке объект - комната или этаж
+                        //вершины в json
+                        a = JSON.parse(msg.data.data['data']['vertices']);
+                        msg.data.data['data']['vertices'] = a;
+                        //элемет будет храниться в loc[0]
+                        loc = [];
+                        dae_name = msg.data.data['data']['location'];
+                        ElemLookUp(colladaObjects['landscape'][0], dae_name, loc);
+                        dae_elem = loc[0];
+                        minz = dae_elem.parent['BoxMin']['z'];
 
-                    //показываем объект
-                    scene.remove(lightedUpPlane);
-                    var lightedUpPlaneGeometry = new THREE.Geometry();
-                    varr = msg.data.data['data']['vertices']
-                    $.each(varr, function(index){
-                        x = varr[index]['x'];
-                        y = varr[index]['y'];
-                        z = minz + 0.2;
-                        lightedUpPlaneGeometry.vertices.push(
-                            new THREE.Vector3(x, y, z)
-                        )
-                    });
-                    $.each(dae_elem.geometry.faces, function(index){
-                        face = dae_elem.geometry.faces[index];
-                        a = face['a'];
-                        b = face['b'];
-                        c = face['c']
-                        lightedUpPlaneGeometry.faces.push(
-                            new THREE.Face3(a, b, c)
-                        )
-                    });
-                    lightedUpPlaneGeometry.computeBoundingSphere();
-                    var lightedUpPlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xe0ff85, side: THREE.DoubleSide, transparent: true, opacity:0.8});
-                    lightedUpPlane = new THREE.Mesh(lightedUpPlaneGeometry, lightedUpPlaneMaterial);
-                    scene.add(lightedUpPlane);
+                        //показываем объект
+                        scene.remove(lightedUpPlane);
+                        var lightedUpPlaneGeometry = new THREE.Geometry();
+                        varr = msg.data.data['data']['vertices']
+                        $.each(varr, function(index){
+                            x = varr[index]['x'];
+                            y = varr[index]['y'];
+                            z = minz + 0.2;
+                            lightedUpPlaneGeometry.vertices.push(
+                                new THREE.Vector3(x, y, z)
+                            )
+                        });
+                        $.each(dae_elem.geometry.faces, function(index){
+                            face = dae_elem.geometry.faces[index];
+                            a = face['a'];
+                            b = face['b'];
+                            c = face['c']
+                            lightedUpPlaneGeometry.faces.push(
+                                new THREE.Face3(a, b, c)
+                            )
+                        });
+                        lightedUpPlaneGeometry.computeBoundingSphere();
+                        var lightedUpPlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xe0ff85, side: THREE.DoubleSide, transparent: true, opacity:0.8});
+                        lightedUpPlane = new THREE.Mesh(lightedUpPlaneGeometry, lightedUpPlaneMaterial);
+                        scene.add(lightedUpPlane);
+                    } else {
+                        //show_location подсветить принадлежащую метке зону пользователя
+                        console.log(msg.data.data['data']['landscape_id']);
+                        console.log('{{landscape_id}}');
+                        if (msg.data.data['data']['type'] == 'inuzone' && msg.data.data['data']['landscape_id'] == '{{landscape_id}}'){
+                            //элемет будет храниться в loc[0]
+                            loc = [];
+                            //показываем объект
+                            scene.remove(lightedUpUzonePlane);
+                            var lightedUpUzonePlaneGeometry = new THREE.Geometry();
+                            varr = msg.data.data['data']['vertices'];
+                            $.each(varr, function(index){
+                                x = varr[index][0];
+                                y = varr[index][1];
+                                lightedUpUzonePlaneGeometry.vertices.push(
+                                    new THREE.Vector3(x, y, msg.data.data['data']['zmin']+0.25)
+                                )
+                            });
+                            $.each(msg.data.data['data']['faces'], function(index){
+                                face = msg.data.data['data']['faces'][index];
+                                a = face['a'];
+                                b = face['b'];
+                                c = face['c']
+                                lightedUpUzonePlaneGeometry.faces.push(
+                                    new THREE.Face3(a, b, c)
+                                )
+                            });
+                            lightedUpUzonePlaneGeometry.computeBoundingSphere();
+                            var lightedUpUzonePlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xff1493, side: THREE.DoubleSide, transparent: true, opacity:0.8});
+                            lightedUpUzonePlane = new THREE.Mesh(lightedUpUzonePlaneGeometry, lightedUpUzonePlaneMaterial);
+                            scene.add(lightedUpUzonePlane);
+                        } else {
+                            scene.remove(lightedUpUzonePlane);
+                        }
+                    }
                 }
                 function ElemLookUp(node, dae_name, arr){
                     if (node.children){

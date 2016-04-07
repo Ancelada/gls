@@ -54,6 +54,8 @@ urlpatterns = patterns('',
 	#unique
 	url(r'clearunique', 'mainapp.views.clearUnique'),
 	url(r'getuniquevalues', 'mainapp.views.getuniquevalues'),
+	url(ur'getuval/(?P<parameters>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.getuniquevalues2'),
+
 	url(ur'values_server/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.values_server'),
 
 	#static
@@ -89,5 +91,11 @@ urlpatterns = patterns('',
 	url(ur'incomezonedefine/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.incomezonedefine'),
 
 	#unique belong
-	url(r'getbelong', 'mainapp.views.getbelong'),
+	url(r'getbelong$', 'mainapp.views.getbelong'),
+
+	#unique belong to uzone
+	url(r'getbelonguzone$', 'mainapp.views.getbelonguzone'),
+
+	#show userzones by landscape_id
+	url(r'getuzones/(?P<parameters>[0-9]+)', 'mainapp.views.getuzones'),
 )
