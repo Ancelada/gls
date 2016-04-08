@@ -291,8 +291,6 @@
                         scene.add(lightedUpPlane);
                     } else {
                         //show_location подсветить принадлежащую метке зону пользователя
-                        console.log(msg.data.data['data']['landscape_id']);
-                        console.log('{{landscape_id}}');
                         if (msg.data.data['data']['type'] == 'inuzone' && msg.data.data['data']['landscape_id'] == '{{landscape_id}}'){
                             //элемет будет храниться в loc[0]
                             loc = [];
@@ -347,102 +345,48 @@
                         }
                     }
                 }
-                //пачка координат
-                else if (channel == 'lock'){
+                //*********************************
+                //прием координат
+                //*********************************
+                else if (channel == 'server_lock'){
                     var data = msg.data.data['data'];
-                    if (marks){
-                        //проверка на повторение пачки
-                        function verify(){
-                            var doubled = 0;
-                            $.each(data, function(index){
+                    $.each(data, function(index){
+                        if (data[index]['zone_id'] == '{{landscape_id}}'){
+                            //первая запись в буфере
+                            if(unique[0] == undefined){
+                                unique[0] = data[index];
+                                unum += 1;
+                            } else {
+                                //проверка на уникальность id в буфере
+                                //если нет, записать в массив
                                 tag_id_new = data[index]['tag_id'];
-                                zone_new = data[index]['zone'];
-                                $.each(marks, function(index){
-                                    tag_id_old = marks[index]['tag_id'];
-                                    zone_old = marks[index]['zone'];
-                                    if(tag_id_old == tag_id_new && zone_old == zone_new){
+                                datacoords = data[index];
+                                doubled = 0;
+                                $.each(unique, function(index){
+                                    tag_id_unique = unique[index]['tag_id'];
+                                    if (tag_id_new == tag_id_unique){
+                                        unique[index].x = datacoords.x;
+                                        unique[index].y = datacoords.y;
+                                        unique[index].z = datacoords.z;
+                                        unique[index].xNew = datacoords.xNew;
+                                        unique[index].yNew = datacoords.yNew;
+                                        unique[index].zNew = datacoords.zNew;
+                                        unique[index].cron = 0;
                                         doubled = 1;
                                         return false;
                                     }
                                 });
-                            });
-                            return doubled;
-                        }
-                        result = verify();
-                        //если пачка не повторяется записываем в буфер
-                        if(result == 0){
-                            $.each(data, function(index){
-                                //первая запись в буфере
-                                if(unique[0] == undefined){
-                                    //проверка совпадает ли зона
-                                    zone_id = data[index]['zone_id'];
-                                    if (zone_id == '{{sceneop.landscape_id}}'){
-                                        unique[0] = data[index];
-                                        unique[0]['cron'] = 0;
-                                        unum += 1;
-                                    }
-                                } else {
-                                    //проверка на уникальность id в буфере
-                                    //если нет, записать в массив
-                                    tag_id_new = data[index]['tag_id'];
-                                    doubled = 0;
-                                    $.each(unique, function(index){
-                                        tag_id_unique = unique[index]['tag_id'];
-                                        if (tag_id_new == tag_id_unique){
-                                            doubled = 1;
-                                            return false;
-                                        }
-                                    });
-                                    if (doubled==0){
-                                        //проверка совпадает ли зона
-                                        zone_id = data[index]['zone_id'];
-                                        if (zone_id == '{{sceneop.landscape_id}}'){
-                                            unique[unum] = data[index];
-                                            unique[unum]['cron'] = 0;
-                                            unum += 1;
-                                        }
-                                    }
+                                if (doubled==0){
+                                    unique[unum] = data[index];
+                                    unum += 1;
                                 }
-                            });
-                            //запись в буфер позиций метки
-                            //в том числе повторяющихся
-                            //меток с разными позициями
-                            $.each(data, function(index){
-                                tag_id_new = data[index]['tag_id'];
-                                var ind = index;
-                                $.each(unique, function(index){
-                                    tag_id_unique = unique[index]['tag_id'];
-                                    if (tag_id_new == tag_id_unique){
-                                        //при совпадении создаем таймер
-                                        unique[index]['cron'] = 0;
-                                        //при совпадении задаем список
-                                        //записываем все повторяющиеся значения 
-                                        unique[index]['data'] = [];
-                                        uind = index;
-                                        no=0;
-                                        $.each(data, function(index){
-                                            if (unique[uind]['tag_id'] == data[index]['tag_id']){
-                                                unique[uind]['data'][no] = data[index];
-                                                //количество позиций в пачке
-                                                unique[uind]['count'] = no;
-                                                no+=1;  
-                                            }
-                                        });
-                                        return false;
-                                    }
-                                });
-                            });
-                            
-                            //передача буфера в рендер
-                            /*console.log(unique);*/
+                            }
                         }
-
-                        marks = data;//не удалять
-                    } else {
-                        marks = data;
-                    }
-                    /*console.log(unique);*/
+                    });
                 }
+                //*************************
+                //**конец приема координат
+                //**************************
             }
 
             socket.onclose = function(e){
@@ -1451,6 +1395,28 @@
                     unique[index]['circle'].rotation.x = -1* Math.PI
                     scene.add(unique[index]['circle']);
                     unique[index]['mesh'].add(unique[index]['circle']);
+                    x = unique[index].x;
+                    y = unique[index].y;
+                    z = unique[index].z;
+                    unique[index]['mesh'].position.set(x, y, z);
+                    //для радиуса окружности
+                    vecCur = new THREE.Vector2(unique[index].x, unique[index].y);
+                    vecNew = new THREE.Vector2(unique[index].xNew, unique[index].yNew);
+                    var radiusNew = vecCur.distanceTo(vecNew);
+                    radiusNew = parseFloat(radiusNew.toFixed(2));
+                    var radiusOld = unique[index]['mesh'].children[0].geometry.boundingSphere.radius
+                    var step = 0.2;
+                    if(parseFloat(radiusOld.toFixed(2)) < radiusNew && radiusNew < 10.00){
+                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
+                    }
+                    if(parseFloat(radiusOld.toFixed(2)) > radiusNew && radiusNew < 10.00){
+                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
+                    }
+                    //поднять cylinder
+                    upCircle(colladaObjects['landscape'][0], 'wall', unique[index]['mesh'].children[0], unique[index]['mesh']);
+                    //откорректировать cilinder по z
+                    unique[index]['circle'].position.z {% if sceneop.circle_step_symbol == 1%}-{%else%}+{%endif%}= circleStep;
+                    circleStep += 0.01;
 				}
                 noUnq += 1;
 			});
@@ -1460,103 +1426,25 @@
             }
 			$.each(unique, function(index){
 				var timeOut = 5000;
-				ind = index;
-				//прохождение позиций координат
-				$.each(unique[ind]['data'], function(index){
-					if (unique[ind]['data'][index] != undefined){
-                        //новый элемент на сцене
-                        if (first == 1) {
-                            $.each(unique, function(i){
-                                if (unique[i]['data'][0]){
-                                    x = unique[i]['data'][0]['x'];
-                                    y = unique[i]['data'][0]['y'];
-                                    z = unique[i]['data'][0]['z'];
-                                    unique[i]['mesh'].position.set(parseFloat(x), parseFloat(y), parseFloat(z));
-                                    unique[i]['circle'].position = unique[i]['mesh'].position;
-                                    //поднять cylinder
-                                    upCircle(colladaObjects['landscape'][0], 'wall', unique[i]['mesh'].children[0], unique[i]['mesh']);
-                                    //откорректировать cilinder по z
-                                    unique[i]['circle'].position.z {% if sceneop.circle_step_symbol == 1%}-{%else%}+{%endif%}= circleStep;
-                                    circleStep += 0.01;
-                                }
-                            })
-                            first = 0;
-                        } else {
-                            //плавные перемещения
-							x = unique[ind]['data'][index]['x'];
-							y = unique[ind]['data'][index]['y'];
-							z = unique[ind]['data'][index]['z'];
-
-                            unique[ind].xnew = x;
-                            unique[ind].ynew = y;
-                            unique[ind].znew = z;
-
-                            xCur = parseFloat(unique[ind].x);
-                            yCur = parseFloat(unique[ind].y);
-                            zCur = parseFloat(unique[ind].z);
-
-                            xNew = parseFloat(unique[ind].xnew);
-                            yNew = parseFloat(unique[ind].ynew);
-                            zNew = parseFloat(unique[ind].znew);
-
-                                //для радиуса окружности
-                                vecCur = new THREE.Vector2(xCur, yCur);
-                                vecNew = new THREE.Vector2(xNew, yNew);
-                                var radiusNew = vecCur.distanceTo(vecNew);
-                                radiusNew = parseFloat(radiusNew.toFixed(2));
-                                var radiusOld = unique[ind]['mesh'].children[0].geometry.boundingSphere.radius
-                                //плавное изменение окружности
-                                var step = 0.2;
-                                if(parseFloat(radiusOld.toFixed(2)) < radiusNew && radiusNew < 10.00){
-                                    unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
-                                }
-                                if(parseFloat(radiusOld.toFixed(2)) > radiusNew && radiusNew < 10.00){
-                                    unique[ind]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
-                                }
-                            var step = 0.3;
-                            if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
-                                unique[ind]['mesh'].position.x += step;
-                                unique[ind].x = unique[ind]['mesh'].position.x;
-                            }
-
-                            else if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
-                                unique[ind]['mesh'].position.y += step;
-                                unique[ind].y = unique[ind]['mesh'].position.y;
-                            }
-
-                            else if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
-                                unique[ind]['mesh'].position.z += step;
-                                unique[ind].z = unique[ind]['mesh'].position.z;
-                            }
-
-
-                            else if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
-                                unique[ind]['mesh'].position.x -= step;
-                                unique[ind].x = unique[ind]['mesh'].position.x;
-                            }
-
-                            else if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
-                                unique[ind]['mesh'].position.y -= step;
-                                unique[ind].y = unique[ind]['mesh'].position.y;
-                            }
-
-                            else if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
-                                unique[ind]['mesh'].position.z -= step;
-                                unique[ind].z = unique[ind]['mesh'].position.z;
-                            }
-                        }
-
-						timeOut += timeOut;
-						//удаление пройденных координат из буфера
-						unique[ind]['data'] = jQuery.grep(unique[ind]['data'], function(value){
-							return value != unique[ind]['data'][index];
-						});
-					}
-				});
+                x = unique[index].x;
+                y = unique[index].y;
+                z = unique[index].z;
+                unique[index]['mesh'].position.set(x, y, z);
+                //для радиуса окружности
+                vecCur = new THREE.Vector2(unique[index].x, unique[index].y);
+                vecNew = new THREE.Vector2(unique[index].xNew, unique[index].yNew);
+                var radiusNew = vecCur.distanceTo(vecNew);
+                radiusNew = parseFloat(radiusNew.toFixed(2));
+                var radiusOld = unique[index]['mesh'].children[0].geometry.boundingSphere.radius
+                var step = 0.2;
+                if(parseFloat(radiusOld.toFixed(2)) < radiusNew && radiusNew < 10.00){
+                    unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
+                }
+                if(parseFloat(radiusOld.toFixed(2)) > radiusNew && radiusNew < 10.00){
+                    unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
+                }
                 //наполняем таймер cron
-                unique[ind]['cron'] += 1;
-				//oчищаем count
-				unique[ind]['count'] = 0;
+                unique[index]['cron'] += 1;
 			});
             //скрываем видимость тех, от кого нет сигнала за обозначенное время
             $.each(unique, function(index){
@@ -1569,60 +1457,6 @@
                     unique[index]['mesh'].visible = true;
                     unique[index]['invisible'] = 0;
                     clearInterval(unique[index]['timerid']);
-                }
-            });
-            //плавное перемещение между посылками
-            $.each(unique, function(index){
-                xCur = parseFloat(unique[index].x);
-                yCur = parseFloat(unique[index].y);
-                zCur = parseFloat(unique[index].z);
-
-                xNew = parseFloat(unique[index].xnew);
-                yNew = parseFloat(unique[index].ynew);
-                zNew = parseFloat(unique[index].znew);
-                    //для радиуса окружности
-                    vecCur = new THREE.Vector2(xCur, yCur);
-                    vecNew = new THREE.Vector2(xNew, yNew);
-                    var radiusNew = vecCur.distanceTo(vecNew);
-                    var radiusOld = unique[index]['mesh'].children[0].geometry.boundingSphere.radius
-                    //плавное изменение окружности
-                    var step = 0.07;
-                    if(radiusOld < radiusNew && radiusNew < 10){
-                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld += step, 24);    
-                    }
-                    if(radiusOld > radiusNew && radiusNew < 10){
-                        unique[index]['mesh'].children[0].geometry = new THREE.CircleGeometry(radiusOld -= step, 24);
-                    }
-                var step = 0.07;
-                if((xCur <= xNew + step) && ((xNew - xCur) > 0)){
-                    unique[index]['mesh'].position.x += step;
-                    unique[index].x = unique[index]['mesh'].position.x;
-                }
-
-                if((yCur <= yNew + step) && ((yNew - yCur) > 0)){
-                    unique[index]['mesh'].position.y += step;
-                    unique[index].y = unique[index]['mesh'].position.y;
-                }
-
-                if((zCur <= zNew + step) && ((zNew - zCur) > 0)){
-                    unique[index]['mesh'].position.z += step;
-                    unique[index].z = unique[index]['mesh'].position.z;
-                }
-
-
-                if((xCur >= xNew + step) && ((xNew - xCur) < 0)){
-                    unique[index]['mesh'].position.x -= step;
-                    unique[index].x = unique[index]['mesh'].position.x;
-                }
-
-                if((yCur >= yNew + step) && ((yNew - yCur) < 0)){
-                    unique[index]['mesh'].position.y -= step;
-                    unique[index].y = unique[index]['mesh'].position.y;
-                }
-
-                if((zCur >= zNew + step) && ((zNew - zCur) < 0)){
-                    unique[index]['mesh'].position.z -= step;
-                    unique[index].z = unique[index]['mesh'].position.z;
                 }
             });
     	}

@@ -462,3 +462,41 @@ class ExcludeZoneUserZone(models.Model):
 		db_table = 'ExcludeZoneUserZone'
 	ExcludeZone = models.ForeignKey(ExcludeZone)
 	UserZone = models.ForeignKey(UserZone)
+
+############################
+## Отчеты пользователей
+############################
+class TagFloorOrder(models.Model):
+	class Meta():
+		db_table = 'TagFloorOrder'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+	WriteTime = models.DateTimeField()
+
+class TagKabinetOrder(models.Model):
+	class Meta():
+		db_table = 'TagKabinetOrder'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	Kabinet_n_Outer = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+	WriteTime = models.DateTimeField()
+
+class TagUzoneUserOrder(models.Model):
+	class Meta():
+		db_table = 'TagUzoneUserOrder'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	UserZone = models.ForeignKey(UserZone, on_delete=models.CASCADE)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
+	WriteTime = models.DateTimeField()
+
+class TagOutOfBuilding(models.Model):
+	class Meta():
+		db_table = 'TagOutOfBuilding'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	WriteTime = models.DateTimeField()
+
+class TagNoUzone(models.Model):
+	class Meta():
+		db_table = 'TagNoUzone'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
+	WriteTime = models.DateTimeField()

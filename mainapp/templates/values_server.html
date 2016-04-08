@@ -178,35 +178,33 @@
                 var data = msg.data.data['data'];
                 if (channel == 'server_lock'){
                     $.each(data, function(index){
-                        $.each(data, function(index){
-                            if (data[index]['zone_id'] == '{{landscape_id}}'){
-                                //первая запись в буфере
-                                if(unique[0] == undefined){
-                                    unique[0] = data[index];
-                                    unum += 1;
-                                } else {
-                                    //проверка на уникальность id в буфере
-                                    //если нет, записать в массив
-                                    tag_id_new = data[index]['tag_id'];
-                                    datacoords = data[index];
-                                    doubled = 0;
-                                    $.each(unique, function(index){
-                                        tag_id_unique = unique[index]['tag_id'];
-                                        if (tag_id_new == tag_id_unique){
-                                            unique[index].x = datacoords.x;
-                                            unique[index].y = datacoords.y;
-                                            unique[index].z = datacoords.z;
-                                            doubled = 1;
-                                            return false;
-                                        }
-                                    });
-                                    if (doubled==0){
-                                        unique[unum] = data[index];
-                                        unum += 1;
+                        if (data[index]['zone_id'] == '{{landscape_id}}'){
+                            //первая запись в буфере
+                            if(unique[0] == undefined){
+                                unique[0] = data[index];
+                                unum += 1;
+                            } else {
+                                //проверка на уникальность id в буфере
+                                //если нет, записать в массив
+                                tag_id_new = data[index]['tag_id'];
+                                datacoords = data[index];
+                                doubled = 0;
+                                $.each(unique, function(index){
+                                    tag_id_unique = unique[index]['tag_id'];
+                                    if (tag_id_new == tag_id_unique){
+                                        unique[index].x = datacoords.x;
+                                        unique[index].y = datacoords.y;
+                                        unique[index].z = datacoords.z;
+                                        doubled = 1;
+                                        return false;
                                     }
+                                });
+                                if (doubled==0){
+                                    unique[unum] = data[index];
+                                    unum += 1;
                                 }
                             }
-                        });
+                        }
                     })
                 }
             }

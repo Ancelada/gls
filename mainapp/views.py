@@ -55,8 +55,6 @@ def recieve_json(request):
 	if request.method == 'POST':
 		Metka(text=json.loads(request.body)).save()
 
-
-
 def send_simple_location_message(request):
 # 	slmp = """LabR,Std0,0000,00000a5,21.681625,55.457092,10.803710,7,2016-01-12T13:52:31:239+1,2,0038,0000
 # 	LabR,Std0,0000,00000a6,29.681625,49.457092,13.503710,7,2016-01-12T13:52:31:239+1,2,0038,00000a6
@@ -70,9 +68,6 @@ def send_simple_location_message(request):
 		url = 'http://localhost:8000/receive_slmp'
 		r = requests.post(url, data=value)
 		return JsonResponse({'value': value})
-
-# def getmarks(request):
-# 	return HttpResponse(marks)
 
 #static получить
 def getstatic(request):
@@ -417,6 +412,7 @@ def correctF():
 				unique.remove(i)
 			except:
 				unique.remove(i)
+			break
 	for i in unique:
 		if 'cron' in i:
 			i['cron'] += 0.1
@@ -445,8 +441,13 @@ def correctF():
 		        	i['z'] -= step
 	#send coordinates to usersession
 	for i in active_users:
+		arr = []
+		for j in unique:
+			if 'vertices' in i:
+				if inObject(i, j['x'], j['y'], j['z']):
+					arr.append(j)
 		try:
-			service_queue('coords_server_lock', json({'user': i['id'],'data': unique}))
+			service_queue('coords_server_lock', json({'user': i['id'],'data': arr}))
 		except:
 			pass
 
@@ -485,9 +486,12 @@ def findMatchingUserZone(obj, landscape_id):
 				user['noUserZoneLocation']['cron'] += 1
 			# проверка достигнуто ли noUserZoneLocation cron значения 10
 			# если достигнуло , то UserZoneLocation очищаем
-			if user['noUserZoneLocation']['cron'] == 10 and \
-			 user['UserZoneLocation']['type'] == 'inuzone':
-				user['UserZoneLocation'] = {'type': 'outofzone', 'id': 0}
+			if user['noUserZoneLocation']['cron'] == 10:
+				if user['UserZoneLocation']['type'] == 'inuzone':
+					user['UserZoneLocation'] = {'type': 'outofzone', 'id': 0}
+					# записываем в БД выход из зон TagNoUzone
+					TagNoUzone.objects.create(User_id=user['user_id'], Tag_id=obj['tag_id'], \
+						 WriteTime=datetime.datetime.now())
 			elif user['noUserZoneLocation']['cron'] == 100:
 				user['noUserZoneLocation']['cron'] = 0
 		elif len(user['candidate']) > 0 and 'candidate' in user:
@@ -510,6 +514,11 @@ def findMatchingUserZone(obj, landscape_id):
 									if user['UserZoneLocation']['id'] != i['id']:
 										user['UserZoneLocation']['id'] = i['id']
 										user['UserZoneLocation']['type'] = 'inuzone'
+										# записываем в БД TagUzoneUserOrder событие
+										TagUzoneUserOrder.objects.create(Tag_id=obj['tag_id'], \
+											User_id=user['user_id'], \
+											 UserZone_id=user['UserZoneLocation']['id'], \
+											 WriteTime=datetime.datetime.now())
 										#очищаем Candidate и IncomeZones
 										del user['candidate'][:]
 								else:
@@ -523,6 +532,11 @@ def findMatchingUserZone(obj, landscape_id):
 						if user['UserZoneLocation']['id'] != i['id']:
 							user['UserZoneLocation']['id'] = i['id']
 							user['UserZoneLocation']['type'] = 'inuzone'
+							# записываем в БД TagUzoneUserOrder событие
+							TagUzoneUserOrder.objects.create(Tag_id=obj['tag_id'], \
+								User_id=user['user_id'], \
+								 UserZone_id=user['UserZoneLocation']['id'], \
+								 WriteTime=datetime.datetime.now())
 							#очищаем Candidate и IncomeZones
 							del user['candidate'][:]
 					else:
@@ -584,11 +598,20 @@ def findMatchingKabinet(obj, landscape_id):
 								if obj['location']['id'] != i['id']:
 									obj['location']['id'] = i['id']
 									obj['location']['type'] = 'kabinet'
+									# записываем в отчеты БД TagKabinetOrder
+									TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+										 Kabinet_n_Outer_id=obj['location']['id'], \
+										  WriteTime=datetime.datetime.now())
 									#очищаем Candidate и IncomeZones
 									del obj['candidate'][:]
 									del obj['IncomeZones'][:]
 							else:
-								obj['location'] = {'id': i['id'], 'type': 'kabinet'}
+								obj['location'] = {'id': i['id'], 'type': 'kabinet'
+								}
+								# записываем в отчеты БД TagKabinetOrder 
+								TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+									 Kabinet_n_Outer_id=obj['location']['id'], \
+									  WriteTime=datetime.datetime.now())
 								#очищаем Candidate и IncomeZones
 								del obj['candidate'][:]
 								del obj['IncomeZones'][:]
@@ -600,11 +623,19 @@ def findMatchingKabinet(obj, landscape_id):
 					if obj['location']['id'] != i['id']:
 						obj['location']['id'] = i['id']
 						obj['location']['type'] = 'kabinet'
+						# записываем в отчеты БД TagKabinetOrder
+						TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+							 Kabinet_n_Outer_id=obj['location']['id'], \
+							  WriteTime=datetime.datetime.now())
 						#очищаем Candidate и IncomeZones
 						del obj['candidate'][:]
 						del obj['IncomeZones'][:]
 				else:
 					obj['location'] = {'id': i['id'], 'type': 'kabinet'}
+					# записываем в отчеты БД TagKabinetOrder
+					TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+						 Kabinet_n_Outer_id=obj['location']['id'], \
+						  WriteTime=datetime.datetime.now())
 					#очищаем Candidate и IncomeZones
 					del obj['candidate'][:]
 					del obj['IncomeZones'][:]
@@ -627,21 +658,36 @@ def findMatchingKabinet(obj, landscape_id):
 						for iz in obj['IncomeZones']:
 							for biz in buildingincomezone:
 								if iz['id'] == biz['id']:
-									if 'location' in obj and obj['location']['type'] != 'street':
-										obj['location'] = {'type': 'street', 'id': 0}
+									if 'location' in obj:
+										if obj['location']['type'] != 'street':
+											obj['location'] = {'type': 'street', 'id': 0}
+											# записываем событие в БД TagOutOfBuilding
+											TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+												WriteTime=datetime.datetime.now())
 									else:
 										obj['location'] = {'type': 'street', 'id': 0}
+										# записываем событие в БД TagOutOfBuilding
+										TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+											WriteTime=datetime.datetime.now())
 									obj['notInBuild'] = {'cron':0, 'match': 0}
 									obj['noLocation'] = {'cron': 0}
 					# фиксируем выход из здания
 					# 20 секунд, если есть попадание в incomezone building 15 раз
 					if obj['notInBuild']['cron'] == 19 and obj['notInBuild']['match'] > 15:
-						if 'location' in obj and obj['location']['type'] != 'street':
-							obj['location'] = {'type': 'street', 'id': 0}
+						if 'location' in obj:
+							if obj['location']['type'] != 'street':
+								obj['location'] = {'type': 'street', 'id': 0}
+								# записываем событие в БД TagOutOfBuilding
+								TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+									WriteTime=datetime.datetime.now())
 						else:
 							obj['location'] = {'type': 'street', 'id': 0}
+							# записываем событие в БД TagOutOfBuilding
+							TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+								WriteTime=datetime.datetime.now())
 						obj['notInBuild'] = {'cron': 0, 'match': 0}
 						obj['noLocation'] = {'cron': 0}
+				# фиксация попадания floor на этаж, если отсутствует kabinet
 				for floor in building['floors']:
 					#если нет candidates, есть зона входа floor, noLocation.cron = 6
 					if (obj['noLocation']['cron'] == 6 and 'candidate' in obj and \
@@ -655,10 +701,16 @@ def findMatchingKabinet(obj, landscape_id):
 									inZone = 1
 						if inZone:
 							if not(inExcludeZone(floor, x, y, z)) and inObject(floor, x, y, z):
-								if 'location' in obj and obj['location']['id'] != floor['id']:  
+								if 'location' in obj and obj['location']['id'] != floor['id']:
 									obj['location'] = {'id': floor['id'], 'type': 'floor'}
+									# записываем событие входа на этаж TagFloorOrder
+									TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+										 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
 								elif 'location' not in obj:
 									obj['location'] = {'id': floor['id'], 'type': 'floor'}
+									# записываем событие входа на этаж TagFloorOrder
+									TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+										 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
 								obj['noLocation']['cron'] = 0
 					# если нет candidates, нет зоны входа floor, noLocation.cron > 20
 					if (obj['noLocation']['cron'] > 20 and 'candidate' in obj and \
@@ -668,10 +720,17 @@ def findMatchingKabinet(obj, landscape_id):
 						if inObject(floor, x, y, z):
 							# проверяем входит ли в зону исключения
 							if not(inExcludeZone(floor, x, y, z)):
-								if 'location' in obj and obj['location']['id'] != floor['id']:
-									obj['location'] = {'id': floor['id'], 'type': 'floor'}
+								if 'location' in obj:
+									if obj['location']['id'] != floor['id']:
+										obj['location'] = {'id': floor['id'], 'type': 'floor'}
+										# записываем событие входа на этаж TagFloorOrder
+										TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+											 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
 								else:
 									obj['location'] = {'id': floor['id'], 'type': 'floor'}
+									# записываем событие входа на этаж TagFloorOrder
+									TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+										 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
 								obj['noLocation']['cron'] = 0
 					for kabinet in floor['kabinets']:
 						#проверяем, входит ли вектор в kabinet
@@ -940,7 +999,6 @@ def receive_slmp(request):
 			line = line.split(',')
 			for i in line:
 				dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
-				getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
 		# second and other lines
 		else:
 			line = line[0].split('\r\n')
@@ -948,14 +1006,13 @@ def receive_slmp(request):
 				line = i.split(',')
 				if len(line) > 0 and len(line) > 4:
 					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
-					getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
 					#наполняем unique
 					doubled = 0
 					for i in unique:
 						if i['tag_id'] == line[3]:
-							i['xNew'] = float(dictionary['x'])
-							i['yNew'] = float(dictionary['y'])
-							i['zNew'] = float(dictionary['z'])
+							i['xNew'] = dictionary['x']
+							i['yNew'] = dictionary['y']
+							i['zNew'] = dictionary['z']
 							i['time'] = dictionary['zone']
 							i['zone_id'] = dictionary['zone_id']
 							i['cron'] = 0
@@ -979,13 +1036,13 @@ def receive_slmp(request):
 			static_tumbler.append(1)
 			fillStatic()
 		#send coordinates to usersession
-		for i in active_users:
-			try:
-				if len(i['data']) > 0:
-					service_queue('coords_lock', json({'user': i['id'],'data': i['data']}))
-					i['data'] = []
-			except:
-				pass	
+		# for i in active_users:
+		# 	try:
+		# 		if len(i['data']) > 0:
+		# 			service_queue('coords_lock', json({'user': i['id'],'data': i['data']}))
+		# 			i['data'] = []
+		# 	except:
+		# 		pass	
 		return HttpResponse('ok')
 	return HttpResponse('ok')
 
@@ -997,6 +1054,7 @@ def testing(request):
 	x = getMarksByInterval(line[4], line[5], line[6], line[11], dictionary)
 	return JsonResponse({'active_users': active_users})
 
+
 def inInterval(i, imin, imax):
 	if (float(i) >= float(imin) and float(i) <= float(imax)):
 		return True
@@ -1007,27 +1065,6 @@ def inPolygon(vertices, vector):
 	poly = Polygon(vertices)
 	point = MultiPoint(vector).convex_hull
 	return point.within(poly)
-
-def getMarksByInterval(x, y, z, zone, dictionary):
-	for i in active_users:
-		try:
-			if i['max']:
-				xmax = i['max'].get('x')
-				xmin = i['min'].get('x')
-
-				ymax = i['max'].get('y')
-				ymin = i['min'].get('y')
-
-				zmax = i['max'].get('z')
-				zmin = i['min'].get('z')
-
-				landscape_id = i['landscape_id']
-				if len(i['vertices']) > 0:
-					match = inPolygon(i['vertices'], [(float(x), float(y))])
-					if (match and inInterval(z, zmin, zmax) and zone ==landscape_id):
-						i['data'].append(dictionary)
-		except:
-			pass
 
 def landscape(request):
 	return render(request, 'landscape.html')
@@ -1380,6 +1417,8 @@ def minmaxtosession(request):
 			if i['id'] == username:
 				i['max'] = strmax
 				i['min'] = strmin
+				i['maxz'] = strmax['z']
+				i['minz'] = strmin['z']
 				i['landscape_id'] = landscape_id
 				i['dae_elem'] = dae_elem
 				i['data'] = []
