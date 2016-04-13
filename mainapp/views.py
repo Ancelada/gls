@@ -490,8 +490,11 @@ def findMatchingUserZone(obj, landscape_id):
 				if user['UserZoneLocation']['type'] == 'inuzone':
 					user['UserZoneLocation'] = {'type': 'outofzone', 'id': 0}
 					# записываем в БД выход из зон TagNoUzone
-					TagNoUzone.objects.create(User_id=user['user_id'], Tag_id=obj['tag_id'], \
-						 WriteTime=datetime.datetime.now())
+					try:
+						TagNoUzone.objects.create(User_id=user['user_id'], Tag_id=obj['tag_id'], \
+							 WriteTime=datetime.datetime.now())
+					except:
+						pass
 			elif user['noUserZoneLocation']['cron'] == 100:
 				user['noUserZoneLocation']['cron'] = 0
 		elif len(user['candidate']) > 0 and 'candidate' in user:
@@ -515,10 +518,13 @@ def findMatchingUserZone(obj, landscape_id):
 										user['UserZoneLocation']['id'] = i['id']
 										user['UserZoneLocation']['type'] = 'inuzone'
 										# записываем в БД TagUzoneUserOrder событие
-										TagUzoneUserOrder.objects.create(Tag_id=obj['tag_id'], \
-											User_id=user['user_id'], \
-											 UserZone_id=user['UserZoneLocation']['id'], \
-											 WriteTime=datetime.datetime.now())
+										try:
+											TagUzoneUserOrder.objects.create(Tag_id=obj['tag_id'], \
+												User_id=user['user_id'], \
+												 UserZone_id=user['UserZoneLocation']['id'], \
+												 WriteTime=datetime.datetime.now())
+										except:
+											pass
 										#очищаем Candidate и IncomeZones
 										del user['candidate'][:]
 								else:
@@ -533,10 +539,13 @@ def findMatchingUserZone(obj, landscape_id):
 							user['UserZoneLocation']['id'] = i['id']
 							user['UserZoneLocation']['type'] = 'inuzone'
 							# записываем в БД TagUzoneUserOrder событие
-							TagUzoneUserOrder.objects.create(Tag_id=obj['tag_id'], \
-								User_id=user['user_id'], \
-								 UserZone_id=user['UserZoneLocation']['id'], \
-								 WriteTime=datetime.datetime.now())
+							try:
+								TagUzoneUserOrder.objects.create(Tag_id=obj['tag_id'], \
+									User_id=user['user_id'], \
+									 UserZone_id=user['UserZoneLocation']['id'], \
+									 WriteTime=datetime.datetime.now())
+							except:
+								pass
 							#очищаем Candidate и IncomeZones
 							del user['candidate'][:]
 					else:
@@ -599,9 +608,12 @@ def findMatchingKabinet(obj, landscape_id):
 									obj['location']['id'] = i['id']
 									obj['location']['type'] = 'kabinet'
 									# записываем в отчеты БД TagKabinetOrder
-									TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
-										 Kabinet_n_Outer_id=obj['location']['id'], \
-										  WriteTime=datetime.datetime.now())
+									try:
+										TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+											 Kabinet_n_Outer_id=obj['location']['id'], \
+											  WriteTime=datetime.datetime.now())
+									except:
+										pass
 									#очищаем Candidate и IncomeZones
 									del obj['candidate'][:]
 									del obj['IncomeZones'][:]
@@ -609,9 +621,12 @@ def findMatchingKabinet(obj, landscape_id):
 								obj['location'] = {'id': i['id'], 'type': 'kabinet'
 								}
 								# записываем в отчеты БД TagKabinetOrder 
-								TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
-									 Kabinet_n_Outer_id=obj['location']['id'], \
-									  WriteTime=datetime.datetime.now())
+								try:
+									TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+										 Kabinet_n_Outer_id=obj['location']['id'], \
+										  WriteTime=datetime.datetime.now())
+								except:
+									pass
 								#очищаем Candidate и IncomeZones
 								del obj['candidate'][:]
 								del obj['IncomeZones'][:]
@@ -624,18 +639,24 @@ def findMatchingKabinet(obj, landscape_id):
 						obj['location']['id'] = i['id']
 						obj['location']['type'] = 'kabinet'
 						# записываем в отчеты БД TagKabinetOrder
-						TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
-							 Kabinet_n_Outer_id=obj['location']['id'], \
-							  WriteTime=datetime.datetime.now())
+						try:
+							TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+								 Kabinet_n_Outer_id=obj['location']['id'], \
+								  WriteTime=datetime.datetime.now())
+						except:
+							pass
 						#очищаем Candidate и IncomeZones
 						del obj['candidate'][:]
 						del obj['IncomeZones'][:]
 				else:
 					obj['location'] = {'id': i['id'], 'type': 'kabinet'}
 					# записываем в отчеты БД TagKabinetOrder
-					TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
-						 Kabinet_n_Outer_id=obj['location']['id'], \
-						  WriteTime=datetime.datetime.now())
+					try:
+						TagKabinetOrder.objects.create(Tag_id=obj['tag_id'], \
+							 Kabinet_n_Outer_id=obj['location']['id'], \
+							  WriteTime=datetime.datetime.now())
+					except:
+						pass
 					#очищаем Candidate и IncomeZones
 					del obj['candidate'][:]
 					del obj['IncomeZones'][:]
@@ -662,13 +683,19 @@ def findMatchingKabinet(obj, landscape_id):
 										if obj['location']['type'] != 'street':
 											obj['location'] = {'type': 'street', 'id': 0}
 											# записываем событие в БД TagOutOfBuilding
-											TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-												WriteTime=datetime.datetime.now())
+											try:
+												TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+													WriteTime=datetime.datetime.now())
+											except:
+												pass
 									else:
 										obj['location'] = {'type': 'street', 'id': 0}
 										# записываем событие в БД TagOutOfBuilding
-										TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-											WriteTime=datetime.datetime.now())
+										try:
+											TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+												WriteTime=datetime.datetime.now())
+										except:
+											pass
 									obj['notInBuild'] = {'cron':0, 'match': 0}
 									obj['noLocation'] = {'cron': 0}
 					# фиксируем выход из здания
@@ -678,13 +705,19 @@ def findMatchingKabinet(obj, landscape_id):
 							if obj['location']['type'] != 'street':
 								obj['location'] = {'type': 'street', 'id': 0}
 								# записываем событие в БД TagOutOfBuilding
-								TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-									WriteTime=datetime.datetime.now())
+								try:
+									TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+										WriteTime=datetime.datetime.now())
+								except:
+									pass
 						else:
 							obj['location'] = {'type': 'street', 'id': 0}
 							# записываем событие в БД TagOutOfBuilding
-							TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-								WriteTime=datetime.datetime.now())
+							try:
+								TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
+									WriteTime=datetime.datetime.now())
+							except:
+								pass
 						obj['notInBuild'] = {'cron': 0, 'match': 0}
 						obj['noLocation'] = {'cron': 0}
 				# фиксация попадания floor на этаж, если отсутствует kabinet
@@ -704,13 +737,19 @@ def findMatchingKabinet(obj, landscape_id):
 								if 'location' in obj and obj['location']['id'] != floor['id']:
 									obj['location'] = {'id': floor['id'], 'type': 'floor'}
 									# записываем событие входа на этаж TagFloorOrder
-									TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
-										 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+									try:
+										TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+											 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+									except:
+										pass
 								elif 'location' not in obj:
 									obj['location'] = {'id': floor['id'], 'type': 'floor'}
 									# записываем событие входа на этаж TagFloorOrder
-									TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
-										 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+									try:
+										TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+											 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+									except:
+										pass
 								obj['noLocation']['cron'] = 0
 					# если нет candidates, нет зоны входа floor, noLocation.cron > 20
 					if (obj['noLocation']['cron'] > 20 and 'candidate' in obj and \
@@ -724,13 +763,19 @@ def findMatchingKabinet(obj, landscape_id):
 									if obj['location']['id'] != floor['id']:
 										obj['location'] = {'id': floor['id'], 'type': 'floor'}
 										# записываем событие входа на этаж TagFloorOrder
-										TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
-											 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+										try:
+											TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+												 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+										except:
+											pass
 								else:
 									obj['location'] = {'id': floor['id'], 'type': 'floor'}
 									# записываем событие входа на этаж TagFloorOrder
-									TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
-										 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+									try:
+										TagFloorOrder.objects.create(Tag_id=obj['tag_id'], \
+											 Floor_id=floor['id'], WriteTime=datetime.datetime.now())
+									except:
+										pass
 								obj['noLocation']['cron'] = 0
 					for kabinet in floor['kabinets']:
 						#проверяем, входит ли вектор в kabinet

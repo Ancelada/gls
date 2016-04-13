@@ -1,0 +1,10 @@
+<h3>Структурное подразделение / зона пользователя</h3>
+<div class="row">
+	<div class="large-12 small-12 columns">
+		<input type="radio" name="instructure" id="structure" value="Структурное подразделение" {% if radio == 'instructure' %}checked="checked"{% endif %}><label for="structure">Структурное подразделение</label>
+		<input type="radio" name="instructure" id="uzone" value="Зона пользователя/ группа зон пользователя" {% if radio == 'inuzone' %}checked="checked"{% endif %}><label for="uzone">Зона пользователя/ группа зон пользователя</label>
+		<input type="radio" name="instructure" id="all" value="Всё"><label for="all">Всё</label>
+		<div id="structure">{{structure}}</div>
+		<div id="uzone">{{uzone}}</div>	
+	</div>
+</div>

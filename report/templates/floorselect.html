@@ -1,0 +1,7 @@
+<label for="floor">Этаж
+	<select id="floor">
+		{% for f in floors %}
+			<option value="{{f.id}}">{% if f.FloorName != None %}{{f.FloorName}}{% else %}{{f.dae_FloorName}}{% endif %}</option>
+		{% endfor %}
+	</select>
+</label>

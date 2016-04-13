@@ -10,7 +10,6 @@ urlpatterns = patterns('',
 	url(r'^recieve_json$', 'mainapp.views.recieve_json'),
 
 	#receive slmp
-	url(r'^send_simple_location_message$', 'mainapp.views.send_simple_location_message'),
 	url(r'^receive_slmp$', 'mainapp.views.receive_slmp'),
 
 	#get location
@@ -21,10 +20,6 @@ urlpatterns = patterns('',
 	url(r'movement$', 'mainapp.views.movement'),
 	url(r'children$', 'mainapp.views.children'),
 	url(r'loadcollada$', 'mainapp.views.loadcollada'),
-
-	#get ajax marks count
-	# url(r'getmarksvalues', 'mainapp.views.getmarksvalues'),
-	# url(r'getmarks', 'mainapp.views.getmarks'),
 
 	#scene view
 	url(ur'values/(?P<landscape_id>[а-яА-ЯёЁA-Za-z0-9_\ _+.,-]+)$', 'mainapp.views.values'),
@@ -44,9 +39,6 @@ urlpatterns = patterns('',
 	url(r'orderadd$', 'mainapp.views.orderadd'),
 	url(r'getsessions$', 'mainapp.views.getsessions'),
 	url(r'setproperty$', 'mainapp.views.setproperty'),
-
-	#testing
-	url(r'testing$', 'mainapp.views.testing'),
 
 	#send coordinates
 	url(r'sendcoordsform', 'mainapp.views.sendcoordsform'),

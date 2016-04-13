@@ -1,0 +1,7 @@
+<label for="uzoneslist">Наименование
+	<select id="groupuzoneslist">
+		{% for gruz in gruzones %}
+			<option value="{{gruz.id}}">{% if gruz.GroupName != None %}{{gruz.GroupName}}{% else %}{{gruz.id}}{% endif%}</option>
+		{% endfor %}
+	</select>
+</label>

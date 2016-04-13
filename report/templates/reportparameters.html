@@ -1,0 +1,20 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	<h1>Отчет: "{{report.Name}}"</h1>
+	{% for rp in reportparameters %}
+		<div id="{{rp.Parameter__domName}}" class="reportparameter" data-id="{{rp.Parameter_id}}">{{rp.html}}</div>
+	{% endfor %}
+	<div class="row" id="showerrors">
+		
+	</div>
+	<button class="button" id="proccess">Сформировать</button>
+	<div id="result"></div>
+<script>
+	$(document).ready(function(){
+		report_id={{report.id}}
+		user_id={{user.id}}
+		$.getScript("/static/js/additional/report.js");	
+	})
+</script>
+{% endblock %}

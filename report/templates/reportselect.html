@@ -1,0 +1,21 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	<h1>Отчеты</h1>
+	<table>
+		<thead>
+			<tr>
+				<th>Наименование</th>
+				<th>Доступ</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for r in Report %}
+			<tr>
+				<td><a href="/reportparameters/{{r.id}}" data-tooltip aria-haspopup="true" class="has-tip" data-disable-hover="false" tabindex="1" title="{{r.Description}}">{{r.Name}}</a></td>
+				<td>{% if r.reportuser__User_id == user %}Да{% else%}Нет{% endif%}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock %}

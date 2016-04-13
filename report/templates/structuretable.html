@@ -1,0 +1,40 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	<h1>Отчет: "{{report.Name}}"</h1>
+	<h3>Перемещения по структурным подразделениям</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>Время</th>
+				<th>Тип</th>
+				<th>Строение</th>
+				<th>Этаж</th>
+				<th>Кабинет</th>
+				<th>Время до следующего события (ч:мм:сс)</th>
+				<th>Table</th>
+				<th>Parameters</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for c in chronology %}
+				<tr {% if c.table == 'turnonofftag' %}{% if c.parameters %}style="background-color:#e8ffb2;" {% else %} {% endif %}style="background-color:#ffbdbd;"{% endif%}{% if c.table == 'tagkabinetorder' %}style="background-color:#c9c9ff;"{% endif %}{% if c.table == 'tagfloororder' %}style="background-color:#feffa3;"{% endif %}{% if c.table == 'tagoutofbuilding'%}style="background-color:#eecbff;"{% endif %}>
+					<td>{{c.time|date:"d-b-Y H:i:s"}}</td>
+					<td>
+						{% if c.table == 'tagfloororder' %}Перемещение на этаж '{{c.floorname}}'{% endif%}
+						{% if c.table == 'tagkabinetorder' %}Переход в кабинет '{{c.kabinetname}}'{% endif%}
+						{% if c.table == 'turnonofftag' %}{% if c.parameters %}Включение метки{% else %}Отключение метки{% endif %}{% endif %}
+						{% if c.table == 'tagoutofbuilding' %}Выход из здания{% endif %}
+					</td>
+					<td>{% if c.buildingname %}{{c.buildingname}}{% endif %}</td>
+					<td>{% if c.floorname%}{{c.floorname}}{% endif%}</td>
+					<td>{% if c.kabinetname %}{{c.kabinetname}}{% endif %}</td>
+					<td>{{c.length}}</td>
+					<td>{{c.table}}</td>
+					<td>{{c.parameters|jsonify}}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock %}

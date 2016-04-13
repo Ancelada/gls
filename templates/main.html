@@ -7,10 +7,12 @@
   	<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
     <link rel="stylesheet" href="{% static 'css/foundation-icons/foundation-icons.css' %}">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/foundation-datepicker.css' %}">
     <script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
 </head>
 <body>
+  <h6>Пользователь: {{user.username}}(id:{{user.id}})</h6>
   <div class="row">
     {% block content %}
 
@@ -18,7 +20,10 @@
   </div>
   <script src="{% static 'js/jscolor.min.js'%}"></script>
   <script src="{% static 'js/foundation.js' %}"></script>
+  <script src="{% static 'js/vendor/foundation.dropdownMenu.js' %}"></script>
   <script src="{% static 'js/vendor/what-input.min.js' %}"></script>
+  <script src="{% static 'js/foundation-datepicker.min.js' %}"></script>
+  <script src="{% static 'js/locales/foundation-datepicker.ru.js' %}"></script>
   <script type="text/javascript">
     $(document).foundation();
   </script>

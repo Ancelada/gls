@@ -1,0 +1,17 @@
+<h3>Идентификатор / наименование</h3>
+<div class="row">
+	<label for="identificator" class="large-6 small-6 columns">Идентификатор
+		<select name="identificator" id="identificator">
+			{% for tag in tags %}
+				<option value="{{tag.TagId}}" {% if tag.TagId == tag_id %}selected="selected"{% endif%}>{{tag.TagId}}</option>
+			{% endfor %}
+		</select>
+	</label>
+	<label for="tagname" class="large-6 small-6 columns">ФИО
+		<select name="tagname" id="tagname">
+			{% for tag in tags %}
+				<option value="{{tag.TagId}}" {% if name == tag.Name %}selected="selected"{% endif %}>{{tag.Name}}</option>
+			{% endfor %}
+		</select>
+	</label>
+</div>

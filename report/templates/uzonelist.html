@@ -1,0 +1,7 @@
+<label for="uzoneslist">Наименование
+	<select id="uzoneslist">
+		{% for uz in uzones %}
+			<option value="{{uz.id}}">{% if uz.UserZoneName != None %}{{uz.UserZoneName}}{% else %}{{uz.id}}{% endif%}</option>
+		{% endfor %}
+	</select>
+</label>

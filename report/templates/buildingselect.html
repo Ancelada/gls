@@ -1,0 +1,7 @@
+<label for="building">Строение
+	<select id="building">
+		{% for b in buildings %}
+			<option value="{{b.id}}">{% if b.BuildingName != None %}{{b.BuildingName}}{% else %}{{b.dae_BuildingName}}{% endif %}</option>
+		{% endfor %}
+	</select>
+</label>
