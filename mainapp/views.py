@@ -1862,16 +1862,55 @@ def incomezonedefine(request, landscape_id='0000'):
 			objecttype = ObjectType.objects.get(id=obj_type)
 			data = {}
 			data['command'] = objecttype.Command
-			data['masterAnchors'] = []
 			obj = ObjectObjectType.objects.filter(ObjectType_id=objecttype.id).values('Object__id', \
-				 'Object__Name', 'Object__Description', 'Object__xCoord', 'Object__yCoord', \
-				  'Object__zCoord')
-			for i in obj:
-				data['masterAnchors'].append({'id': i['Object__id'], 'name': i['Object__Name'], \
-					 'description': i['Object__Description'], 'x': i['Object__xCoord'], \
-					 'y': i['Object__zCoord'], 'z': i['Object__yCoord'], 'inUse': 'true', \
-					  'idLayer': landscape_id})
-			return JsonResponse({'string': data})
+					 'Object__Name', 'Object__Description', 'Object__xCoord', 'Object__yCoord', \
+					  'Object__zCoord', 'Object__server_id', 'Object__server_inUse', \
+					   'Object__server_minNumPoints', 'Object__server_radius', 'Object__server_type')
+			if obj_type == 1:
+				data['masterAnchors'] = []
+				for i in obj:
+					data['masterAnchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
+						 'description': i['Object__Description'], 'x': i['Object__xCoord'], \
+						 'y': i['Object__zCoord'], 'z': i['Object__yCoord'], \
+						  'inUse': bool(i['Object__server_inUse']), \
+						  'idLayer': int(landscape_id)})
+			elif obj_type == 2:
+				data['anchors'] = []
+				for i in obj:
+					data['anchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
+						 'description': i['Object__Description'], 'x': i['Object__xCoord'], \
+						  'y': i['Object__zCoord'], 'z': i['Object__yCoord'], \
+						   'inUse': bool(i['Object__server_inUse']), \
+						    'idLayer': int(landscape_id), 'type': i['Object__server_type'], \
+						    'radius': i['Object__server_radius'], \
+						     'minNumPoints': i['Object__server_minNumPoints']})
+			url = 'http://192.168.1.111:8000'
+			data = json(data)
+			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+			r = requests.post(url, data=data, headers=headers)
+			json_data = simplejson.loads(r.text)
+			return JsonResponse({'string': json_data})
+		# сохранить параметры объекта
+		if string['method'] == 'saveparameters':
+			objecttype_id = string['objecttype_id']
+			obj_id = string['obj_id']
+			Name = string['name']
+			server_id = string['server_id']
+			Description = string['description']
+			server_inUse = string['server_inUse']
+			if objecttype_id == 1:
+				Object.objects.filter(id=obj_id).update(Name=Name, server_id=server_id, \
+				 Description=Description, server_inUse=server_inUse)
+			elif objecttype_id == 2:
+				server_type = string['server_type']
+				server_radius = string['server_radius']
+				server_minNumPoints = string['server_minNumPoints']
+				Object.objects.filter(id=obj_id).update(Name=Name, server_id=server_id, \
+					Description=Description, server_inUse=server_inUse, server_type=server_type, \
+					 server_radius=server_radius, server_minNumPoints=server_minNumPoints)
+			args['objects'] = Object.objects.all()
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
 		# показать конкретный объект
 		if string['method'] == 'showobject':
 			obj_id = string['obj_id']
@@ -1883,7 +1922,8 @@ def incomezonedefine(request, landscape_id='0000'):
 			meshes = []
 			objType = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id).values('id', \
 			 'Name', 'xCoord', 'yCoord', 'zCoord', \
-			  'objectobjecttype__ObjectType_id')
+			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
+			   'server_radius', 'server_minNumPoints')
 			for i in objType:
 				meshes.append(i)
 			return JsonResponse({'string':meshes})
@@ -1891,6 +1931,13 @@ def incomezonedefine(request, landscape_id='0000'):
 		if string['method'] == 'changecoords':
 			Object.objects.filter(id=string['obj']).update(xCoord=string['xCoord'], \
 			 yCoord=string['yCoord'], zCoord=string['zCoord'])
+			args['objects'] = Object.objects.all()
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
+		# удалить объект objectdelete
+		if string['method'] == 'objectdelete':
+			obj_id = string['obj_id']
+			Object.objects.filter(id=obj_id).delete()
 			args['objects'] = Object.objects.all()
 			args['objecttable'] = render_to_string('objecttable.html', args)
 			return JsonResponse({'string': args['objecttable']})

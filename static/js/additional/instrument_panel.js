@@ -2,7 +2,7 @@
 //*Отправить объекты указанного типа на сервер
 $('body').delegate('#sendserver', 'click', function(){
 	landscape_id = $(this).attr('data-landscape');
-	obj_type = $(this).attr('data-type');
+	obj_type = parseInt($(this).attr('data-type'));
 	parameters = {};
 	parameters['landscape_id'] = landscape_id;
 	parameters['obj_type'] = obj_type;
@@ -19,7 +19,25 @@ $('body').delegate('#sendserver', 'click', function(){
     	}
     });
 });
-
+//сохранить параметры объекта
+$('#objecttable').delegate('#saveparameters', 'click', function(){
+	parameters = {}
+	type = parseInt($(this).attr('data-type'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['obj_id'] = parseInt($(this).attr('data-id'));
+	parameters['method'] = 'saveparameters';
+	parameters['server_id'] = $(this).parent().find('#server_id').val();
+	parameters['name'] = $(this).parent().find('#objname').val();
+	parameters['description'] = $(this).parent().find('#objdescription').val();	
+	parameters['server_inUse'] = $(this).parent().find('input#server_inuse')[0].checked;
+	parameters['objecttype_id'] = type;
+	if (type == 2) {
+		parameters['server_type'] = $(this).parent().find('#server_type option:selected')[0].value;
+		parameters['server_radius'] = parseInt($(this).parent().find('input#server_radius').val());
+		parameters['server_minNumPoints'] = parseInt($(this).parent().find('#minnumpoints').val());
+	}
+	objectTable(parameters);
+});
 
 //**********************************
 //отобразить на сцене
@@ -95,6 +113,15 @@ $(document).ready(function(){
 	showHideUpdate();
 	sendserverUpdate()
 });
+//удалить один конкретный объект
+$('#objecttable').delegate('#objectdelete', 'click', function(){
+	parameters = {}
+	parameters['obj_id'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'objectdelete';
+	objectTable(parameters);
+	hideObject(parameters['obj_id']);
+});
 //показать один конкретный выбранный объект
 $('body').delegate('#showobject', 'click', function(){
 	obj_id = parseInt($(this).attr('data-id'));
@@ -122,7 +149,22 @@ function hideObject(obj_id){
 	});
 	if (got == 1){
 		ObjShowed.splice([no], 1);
-		/*delete ObjShowed[no];*/
+	}
+	got = 0;
+	var noob;
+	var noot
+	$.each(Objects, function(index){
+		$.each(Objects[index]['objects'], function(ind){
+			if(Objects[index]['objects'][ind]['id'] == obj_id){
+				scene.remove(Objects[index]['objects'][ind]['mesh']);
+				got = 1;
+				noot = index;
+				noob = ind;
+			}
+		});
+	});
+	if (got == 1){
+		Objects[noot]['objects'].splice([noob], 1);
 	}
 }
 

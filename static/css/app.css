@@ -9,7 +9,7 @@ body{
 	top:0;
 	right:0;
 	height: 100%;
-	overflow:visible;
+	overflow-y:scroll;
 	background-color:#fff;
 	-webkit-transition: right 1s;
 	transition: right 1s;
@@ -236,7 +236,7 @@ li.tabs-title a{
 	top:0;
 	right:0;
 	height: 100%;
-	overflow:visible;
+	overflow-y:scroll;
 	background-color:#fff;
 	-webkit-transition: right 1s;
 	transition: right 1s;
