@@ -3,7 +3,7 @@
 {% block content %}
 	{% load jsonify %}
 	<h1>Отчет: "{{report.Name}}"</h1>
-	<h3>Перемещения по структурным подразделениям</h3>
+	<h3>Перемещения по пользовательским зонам</h3>
 	<div class="row">
 		<fieldset class="large-12 small-12 columns">
 			<legend><h6>Отображать</h6></legend>
@@ -18,9 +18,8 @@
 				<th>Время</th>
 				<th>Тип</th>
 				<th>Сцена</th>
-				<th>Строение</th>
-				<th>Этаж</th>
-				<th>Кабинет</th>
+				<th>Наименование зоны</th>
+				<th>Наименование группы зон</th>
 				<th>Время до следующего события (ч:мм:сс)</th>
 				<th>Table</th>
 				<th>Parameters</th>
@@ -32,9 +31,8 @@
 					<td>{{c.time|date:"d-b-Y H:i:s"}}</td>
 					<td>{{c.eventtype}}</td>
 					<td>{{c.landscapename}}</td>
-					<td>{% if c.buildingname %}{{c.buildingname}}{% endif %}</td>
-					<td>{% if c.floorname%}{{c.floorname}}{% endif%}</td>
-					<td>{% if c.kabinetname %}{{c.kabinetname}}{% endif %}</td>
+					<td>{{c.uzonename}}</td>
+					<td>{% if c.gruzonename%}{{c.gruzonename}}{% endif%}</td>
 					<td>{{c.length}}</td>
 					<td>{{c.table}}</td>
 					<td>{{c.parameters|jsonify}}</td>

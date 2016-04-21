@@ -1,0 +1,14 @@
+<label for="scene" class="large-6 small-6 columns">Идентификатор сцены
+	<select id="scene_id">
+		{% for l in loadlandscapes %}
+			<option value="{{l.landscape_id}}" {% if l.landscape_id == landscape_id %}selected="selected"{% endif %}>{{l.landscape_id}}</option>
+		{% endfor %}
+	</select>
+</label>
+<label for="scenename" class="large-6 small-6 columns">Наименование сцены
+	<select id="scenename">
+		{% for l in loadlandscapes %}
+			<option value="{{l.landscape_id}}" {% if l.landscape_id == landscape_id %}selected="selected"{% endif %}>{{l.landscape_name}}</option>
+		{% endfor %}
+	</select>
+</label>

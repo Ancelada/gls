@@ -1,18 +1,8 @@
 <div class="row">
-	<label for="scene" class="large-6 small-6 columns">Идентификатор сцены
-		<select id="scene_id">
-			{% for l in loadlandscapes %}
-				<option value="{{l.landscape_id}}" {% if l.landscape_id == landscape_id %}selected="selected"{% endif %}>{{l.landscape_id}}</option>
-			{% endfor %}
-		</select>
-	</label>
-	<label for="scenename" class="large-6 small-6 columns">Наименование сцены
-		<select id="scenename">
-			{% for l in loadlandscapes %}
-				<option value="{{l.landscape_id}}" {% if l.landscape_id == landscape_id %}selected="selected"{% endif %}>{{l.landscape_name}}</option>
-			{% endfor %}
-		</select>
-	</label>
+	<div class="large-12 small-12 columns">
+		<input id="checklandscape" type="checkbox" {% if landscapeselect %}checked="checked"{% endif %}><label for="checklandscape">Указать сцену</label>
+	</div>
+	<div id="landscapeselect">{{landscapeselect}}</div>
 </div>
 <div class="row">
 	<div class="large-6 small-6 columns">

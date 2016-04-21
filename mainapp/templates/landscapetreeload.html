@@ -30,13 +30,76 @@
 	<body>
 		{% csrf_token %}
 		<!-- ***блок 3д изображения*** -->
-		<!--************************-->
+		<!-- ************************ -->
 		<div id ="webGL-container"></div>
+		<button class="button large show_hide_session_button">Настройка сессии</button>
+		<!-- Блок инструментов -->
+		<div class="session_block large-3 small-4 columns" style="right:-100%;">
+			<fieldset class="large-12 small-12 columns">
+				<button class="close-button close_session_panel" aria-label="Close menu" type="button">
+                    <span aria-hidden="true">x</span>
+                </button>
+                <br>
+                <h3 class="subheader">Настройка сессии</h3>
+                <fieldset>
+                	<legend>Параметры сессии</legend>
+                	<label for="sessionname">Наименование
+                		<input type="text" id="sessionname" value="КБНТ">	
+                	</label>
+                	<label for="sessionpassword">Пароль
+                		<input type="text" id="sessionpassword" value="1234">
+                	</label>
+                </fieldset>
+                <fieldset>
+                	<legend>Параметры сцены</legend>
+                	<label for="layerid">Идентификатор
+                		<input type="text" id="layerid" value="3">
+                	</label>
+                	<label for="layername">Наименование
+                		<input type="text" id="layername" value="Подложка КБНТ">
+                	</label>
+                </fieldset>
+                <span class="button secondary" id="sendsession">Отправить параметры новой сессии</span>
+                <div id="notification"></div>
+			</fieldset>
+		</div>
     <!-- ***блок панель управления*** -->
     <!--************************-->
     <script>
+    	var landscape_id = '{{landscape_id}}';
 	    var colladaObjects = {};
-
+        $.getScript("/static/js/additional/session_panel.js");
+	    //json session для загрузки Андрею 
+	    var session = {};
+	    //наименование комманды
+	    session['command'] = 'saveNewSession';
+	    //ключ session
+	    session['session'] = {};
+	    session['session']['id'] = 0;
+	    session['session']['inuse'] = 1;
+	    //ключ layer
+	    session['layer'] = {};
+	    //левый верхний
+	    session['layer']['latitude1'] = 0;
+	    session['layer']['longitude1'] = 0;
+	    session['layer']['height1'] = 0;
+	    session['layer']['x1'] = 0;
+	    session['layer']['y1'] = 0;
+	    session['layer']['z1'] = 0;
+	    //правый нижний
+	    session['layer']['latitude2'] = 0;
+	    session['layer']['longitude2'] = 0;
+	    session['layer']['height2'] = 0;
+	    session['layer']['x2'] = 0;
+	    session['layer']['y2'] = 0;
+	    session['layer']['z2'] = 0;
+	    session['layer']['scaleX'] = 0;
+	    session['layer']['scaleY'] = 0;
+	    //планы
+	    session['plans'] = [];
+	    //дерево планов
+	    session['plans_tree'] = [];
+	    
 	    function init(){
 	    	/*сцена, камера */
 		    scene = new THREE.Scene();
@@ -67,7 +130,7 @@
 	        sceneOptions = {};
 
 	        //маркеры калибровки
-		    var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
+		    /*var markGeom = new THREE.BoxGeometry(0.5, 0.5, 0.5, 2, 2, 2);
 		    var markMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
 		    this.marker6004 = new THREE.Mesh(markGeom, markMaterial);
 		    marker6004.position.set(76.457, 39.682, 7.6);
@@ -83,10 +146,35 @@
 
 		    this.marker6045 = new THREE.Mesh(markGeom, markMaterial);
 		    marker6045.position.set(76.426, 30.141, 8.7);
-		    scene.add(marker6045);
+		    scene.add(marker6045);*/
 
 		    loader.load( '/static/js/webgl/models/{{source}}', function ( collada ) {
 				loader.options.convertUpAxis = true;
+				//функция заполнения планов сессии для Андрея
+				function fillSessionPlans(obj, objType){
+					plan = {};
+                    plan['id'] = obj.id;
+                    plan['name'] = obj.name;
+                    plan['description'] = '';
+                    plan['x'] = obj.Center['x'];
+                    plan['y'] = obj.BoxMin['z'];
+                    plan['z'] = obj.Center['y'];
+                    plan['sizex'] = Math.abs(obj.BoxMax.x - obj.BoxMin.x);
+                    plan['sizey'] = Math.abs(obj.BoxMax.z - obj.BoxMin.z);
+                    plan['sizez'] = Math.abs(obj.BoxMax.y - obj.BoxMin.y);
+                    plan['angleRotateX'] = 0;
+                    plan['angleRotateY'] = obj.Zangle;
+                    plan['angleRotateZ'] = 0;
+                    if (objType == 'building') {
+                    	plan['objType'] = 2;	
+                    } else if (objType == 'floor') {
+                    	plan['objType'] = 3;
+                    } else if (objType == 'kabinet'){
+                    	plan['objType'] = 4;
+                    }
+                    return plan;
+				}
+
 				//функция преобразования относительных вершин к центру 0
 				function relativeCenter(obj){
 					var planeGeometry = new THREE.Geometry();
@@ -222,8 +310,11 @@
 		    	//gls.dae
 		    	var dae = collada.scene;
 		    	/*dae.position.set(72,29,6);*/
-		    	x = 72;
+		    	/*x = 72;
 		    	y = 29;
+		    	z = 6;*/
+		    	x = 76.639466894532;
+		    	y = 74.03660739746092645;
 		    	z = 6;
 		    	dae.position.set(x, y, z);
 		    	sceneOptions['DaePosition'] = {};
@@ -254,6 +345,14 @@
 		            landscape = colladaObjects['landscape'][0];
 		            a = getCenter(bbox);
 		            landscape.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		            landscape.BoxMin = bbox['min'];
+		            landscape.BoxMax = bbox['max'];
+		            session['layer']['x1'] = parseFloat(Math.round(landscape.BoxMin['x']).toFixed(0));
+		            session['layer']['y1'] = landscape.BoxMin['z'];
+		            session['layer']['z1'] = parseFloat(Math.round(landscape.BoxMin['y']).toFixed(0));
+		            session['layer']['x2'] = landscape.BoxMax['x'];
+		            session['layer']['y2'] = landscape.BoxMin['z'];
+		            session['layer']['z2'] = landscape.BoxMax['y'];
 		            //добавляем свойство Z angle
 		            setZangle(dae, landscape);
 		        //**наполняем building
@@ -274,6 +373,10 @@
 		                    bld.BoxMax = bbox['max'];
 		                    a = getCenter(bbox);
 		                    bld.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		                    //заполняем session['plans'] buildings
+		                    session['plans'].push(fillSessionPlans(bld, 'building'));
+		                    //заполняем session['PLANS_TREE']
+		                    session['plans_tree'].push({'id': bld.id, 'idparent': -1});
 		                    //приводим относительные вершины к центру 0
 		             		relativeCenter(bld);
 		                    //преобразуем вершины
@@ -294,6 +397,10 @@
 		                            flr.BoxMax = bbox['max'];
 		                            a = getCenter(bbox);
 		                            flr.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		                            //заполняем session['plans'] floors
+		                    		session['plans'].push(fillSessionPlans(flr, 'floor'));
+		                    		//заполняем session['plans_tree']
+		                    		session['plans_tree'].push({'id': flr.id, 'idparent': flr.parent.parent.children[0].id});
 		                            //приводим относительные вершины к центру 0 
                                    	relativeCenter(flr);
 		                            // преобразуем вершины
@@ -319,6 +426,10 @@
 		                                    kbnt.BoxMax = bbox['max'];
 		                                    a = getCenter(bbox);
 		                                    kbnt.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
+		                                    //заполняем session['plans_tree']
+		                    				session['plans_tree'].push({'id': kbnt.id, 'idparent': kbnt.parent.parent.children[0].id});
+		                                    //заполняем session['plans'] kabinets
+		                    				session['plans'].push(fillSessionPlans(kbnt, 'kabinet'));
 		                                    //приводим относительные вершины к центру 0 
                                    			relativeCenter(kbnt);
 		                                    // преобразуем вершины
@@ -694,7 +805,7 @@
 		    		}
 		    	}
 		    	//записываем результат в БД
-				$.ajax({
+				/*$.ajax({
 					type:"POST",
 					url:"/landscape_save",
         			data: JSON.stringify({'landscape_id': '{{landscape_id}}'.toString(), colladaObjects, verticesDict, sceneOptions}),
@@ -705,7 +816,8 @@
 		          		window.location = '/landscapeloadform/success';
 		          		console.log(data);
 		          	}
-				});
+				});*/
+
 				//ищу floor
 	    		var floorVert = [];
 	    		var floorFaces = [];

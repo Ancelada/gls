@@ -62,12 +62,19 @@ def reportparameters(request, report=1):
 		if string['method'] == 'scene_idchange':
 			args['loadlandscapes'] = LoadLandscape.objects.all()
 			args['landscape_id'] = string['landscape_id']
+			args['landscapeselect'] = render_to_string('landscapeselect.html', args)
 			return JsonResponse(structure(args))
 		#изменен scenename
 		if string['method'] == 'scenenamechange':
 			args['loadlandscapes'] = LoadLandscape.objects.all()
 			args['landscape_id'] = string['landscape_id']
+			args['landscapeselect'] = render_to_string('landscapeselect.html', args)
 			return JsonResponse(structure(args))
+		#поставлен checkbox landscape
+		if string['method'] == 'chooselandscape':
+			args['loadlandscapes'] = LoadLandscape.objects.all()
+			args['landscapeselect'] = render_to_string('landscapeselect.html', args)
+			return JsonResponse({'string': args['landscapeselect']})
 		#поставлен checkbox building
 		if string['method'] == 'choosebuilding':
 			args['landscape_id'] = string['landscape_id']
@@ -131,69 +138,230 @@ def reportparameters(request, report=1):
 				strFrom = datetime.datetime.strptime(interval['from'], '%d-%m-%Y %H:%M')
 				strTo = datetime.datetime.strptime(interval['to'], '%d-%m-%Y %H:%M')
 				# structure
+				################
 				# проверка есть ли building, floor, kabinet
+				if not 'structure' in str_n_uzone and not 'uzone' in str_n_uzone:
+					# (get all) no landscape, no building, no floors etc
+					#############################
+					args['chronology'] = getAll(strFrom, strTo, tag_id)
+					args['structure'] = render_to_string('structuretable.html', args)
+					return JsonResponse({'string': args['structure']})
 				if 'structure' in str_n_uzone:
+					chronology = getAll(strFrom, strTo, tag_id)
 					#only landscape_id
-					if ('kabinet_id' not in str_n_uzone) and ('floor_id' not in str_n_uzone) and \
-					  ('building_id' not in str_n_uzone):
-						turnonofftag = TurnOnOffTag.objects.filter(OnOffTime__gte=strFrom, OnOffTime__lte=strTo, \
-						 Tag_id=tag_id)
-						tagfloororder = TagFloorOrder.objects.filter(WriteTime__gte=strFrom, \
-						 WriteTime__lte=strTo, Tag_id=tag_id)
-						tagkabinetorder = TagKabinetOrder.objects.filter(WriteTime__gte=strFrom, \
-							 WriteTime__lte=strTo, Tag_id=tag_id)
-						tagoutofbuilding = TagOutOfBuilding.objects.filter(WriteTime__gte=strFrom, \
-							 WriteTime__lte=strTo, Tag_id=tag_id)
-						floors = Floor.objects.all()
-						buildings = Building.objects.all()
-						kabinets = Kabinet_n_Outer.objects.all()
-						#создаем словарь перемещений
-						chronology = []
-						for toot in turnonofftag:
-							#если включается-выключается метка
-							parameters = {'on': toot.OnOff}
-							chronology.append({'time': toot.OnOffTime, 'table': 'turnonofftag', \
-							 'parameters': toot.OnOff})
-
-						for tfo in tagfloororder:
-							#если этаж
-							parameters = {'floor_id': tfo.Floor_id}
-							#ищем наименование этажей, зданий
-							a = getObjName(parameters['floor_id'], 'floor', floors, buildings, kabinets)
-							chronology.append({'time': tfo.WriteTime, 'table': 'tagfloororder', 'parameters': parameters, \
-								'floorname': a['floorname'], 'buildingname': a['buildingname']})
-						for tko in tagkabinetorder:
-							#если кабинет
-							parameters = {'kabinet_id': tko.Kabinet_n_Outer_id}
-							#ищем наименование кабинетов, этажей, зданий
-							a = getObjName(parameters['kabinet_id'], 'kabinet', floors, buildings, kabinets)
-							chronology.append({'time':tko.WriteTime, 'table': 'tagkabinetorder', 'parameters':parameters, \
-								 'kabinetname': a['kabinetname'], 'floorname': a['floorname'], \
-								  'buildingname': a['buildingname']})
-
-
-						for toob in tagoutofbuilding:
-							#если выход из здания
-							parameters = {}
-							chronology.append({'time': toob.WriteTime, 'table': 'tagoutofbuilding', \
-							 'parameters': parameters})
-
-						args['chronology'] = sorted(chronology, key=lambda k: k['time'])
-						# добавляем длительность пребывания
-						no = 0
-						for c in args['chronology']:
-							if no < len(args['chronology'])-1:
-								c['length'] = args['chronology'][no+1]['time'] - c['time']
-								no += 1
+					#######################
+					if ('kabinet_id' not in str_n_uzone['structure']) \
+					 and ('floor_id' not in str_n_uzone['structure']) \
+					  and  ('building_id' not in str_n_uzone['structure']) \
+					   and ('landscape_id' in str_n_uzone['structure']):
+						args['chronology'] = getByType('landscape_id', chronology, str_n_uzone)
 						args['structure'] = render_to_string('structuretable.html', args)
 						return JsonResponse({'string': args['structure']})
 					#landscape_id, building_id
-			  	elif ('kabinet_id' not in str_n_uzone) and ('floor_id' not in str_n_uzone):
-			  		pass
-		  		#landscape_id, building_id, floor_id
-		  		elif ('kabinet_id' not in str_n_uzone):
-		  			pass
+					###############################
+					elif ('kabinet_id' not in str_n_uzone['structure']) \
+					 and('floor_id' not in str_n_uzone['structure']) \
+					  and('building_id' in str_n_uzone['structure']):
+					  	args['chronology'] = getByType('building_id', chronology, str_n_uzone)
+					  	args['structure'] = render_to_string('structuretable.html', args)
+					  	return JsonResponse({'string': args['structure']})
+					#landscape_id, building_id, floor_id
+					###############################
+					if ('kabinet_id' not in str_n_uzone['structure']) \
+					 and ('floor_id' in str_n_uzone['structure']):
+						args['chronology'] = getByType('floor_id', chronology, str_n_uzone)
+						args['structure'] = render_to_string('structuretable.html', args)
+						return JsonResponse({'string': args['structure']})
+					#landscape_id, building_id, floor_id, kabinet_id
+					###############################
+					if ('kabinet_id' in str_n_uzone['structure']):
+						args['chronology'] = getByType('kabinet_id', chronology, str_n_uzone)
+						args['structure'] = render_to_string('structuretable.html', args)
+						return JsonResponse({'string': args['structure']})
+				# userzone
+				################
+				if 'uzone' in str_n_uzone:
+					# если не указана конкретная зона пользователя, отобразить перемещения по всем зонам
+					chronology = getAllUz(strFrom, strTo, tag_id, args['user'])
+					if 'userzone' in str_n_uzone['uzone']:
+						if str_n_uzone['uzone']['userzone'] == 'all':
+							args['chronology'] = chronology
+							args['uzones'] = render_to_string('uzonetable.html', args)
+						elif str_n_uzone['uzone']['userzone'] != 'all':
+							# указана зона пользователя
+							args['chronology'] = getUzoneByType('userzone', chronology, str_n_uzone)
+							args['uzones'] = render_to_string('uzonetable.html', args)
+					# если не указана конкретная зона пользователя, отобразить перемещения по всем зонам
+					elif 'groupuzone' in str_n_uzone['uzone']:
+						if str_n_uzone['uzone']['groupuzone'] == 'all':
+							args['chronology'] = chronology
+							args['uzones'] = render_to_string('uzonetable.html', args)
+						elif str_n_uzone['uzone']['groupuzone'] != 'all':
+							# указана группа зон пользователя
+							args['chronology'] = getUzoneByType('groupuzone', chronology, str_n_uzone)
+							args['uzones'] = render_to_string('uzonetable.html', args)
+					return JsonResponse({'string': args['uzones']})
 	return render(request, 'reportparameters.html', args)
+
+def getByType(Type, chronology, str_n_uzone):
+	newArr = []
+	for c in chronology:
+		if (c['table'] == 'tagoutofbuilding' or c['table'] == 'turnonofftag') and \
+		 c['parameters']['landscape_id'] == str_n_uzone['structure']['landscape_id']:
+			newArr.append(c)
+		elif Type in c['parameters']:
+			if c['parameters'][Type] == str_n_uzone['structure'][Type]:
+				newArr.append(c)
+	return newArr
+
+def getUzoneByType(Type, chronology, str_n_uzone):
+	newArr = []
+	for c in chronology:
+		if (c['table'] == 'turnonofftag' or c['table'] == 'tagnouzone'):
+			newArr.append(c)
+		elif Type in c['parameters']:
+			if c['parameters'][Type] == str_n_uzone['uzone'][Type]['id']:
+				newArr.append(c)
+	return newArr
+
+def getAllUz(strFrom, strTo, tag_id, user):
+	turnonofftag = TurnOnOffTag.objects.filter(OnOffTime__gte=strFrom, OnOffTime__lte=strTo, \
+		 Tag_id=tag_id)
+	tagnouzone = TagNoUzone.objects.filter(Tag_id=tag_id, User_id=user)
+	taguzoneuserorder = TagUzoneUserOrder.objects.filter(Tag_id=tag_id, \
+		User_id=user).values('WriteTime', 'Tag_id', 'User_id', 'UserZone_id', 'UserZone__LoadLandscape_id')
+	groupuserzoneuserzone = GroupUserZoneUserZone.objects.all()
+	#создаем словарь перемещений
+	chronology = []
+	for toot in turnonofftag:
+		#если включается-выключается метка
+		parameters = {'on': toot.OnOff, 'landscape_id': toot.LoadLandscape_id}
+		chronology.append({'time': toot.OnOffTime, 'table': 'turnonofftag', \
+		 'parameters': parameters})
+	for tnuz in tagnouzone:
+		#если отсутствует uzone
+		parameters = {'landscape_id': tnuz.LoadLandscape_id}
+		chronology.append({'time': tnuz.WriteTime, 'table': 'tagnouzone', \
+			 'parameters': parameters})
+	for tuuo in taguzoneuserorder:
+		#перемещения в зоны
+		for i in groupuserzoneuserzone:
+			if i.UserZone_id == tuuo['UserZone_id']:
+				gruzone_id = i.GroupUserZone_id
+		if gruzone_id:
+			parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
+			 'groupuzone': gruzone_id, 'userzone': tuuo['UserZone_id']}
+			uzonename = uzoneName(tuuo['UserZone_id'], 'uzone')
+			gruzonename = uzoneName(gruzone_id, 'gruzone')
+		  	chronology.append({'time': tuuo['WriteTime'], 'gruzonename': gruzonename['groupuserzonename'], \
+		  	 'uzonename': uzonename['userzonename'], \
+		  	 'table': 'taguzoneuserorder', 'parameters': parameters})
+		else:
+			parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
+			 'userzone': tuuo['UserZone_id']}
+			uzonename = uzoneName(tuuo['UserZone_id'], 'uzone')
+		  	chronology.append({'time': tuuo['WriteTime'], 'table': 'taguzoneuserorder', \
+		  		 'uzonename': uzonename['userzonename'], 'parameters': parameters})
+	chronology = sorted(chronology, key=lambda k: k['time'])
+	# добавляем время до следующего события
+	no = 0
+	for c in chronology:
+		if no < len(chronology)-1:
+			c['length'] = chronology[no+1]['time'] - c['time']
+			no += 1
+	# добавляем поля eventtype, color тип события, цвет
+	for c in chronology:
+		if c['table'] == 'taguzoneuserorder':
+			c['eventtype'] = u'Переход в зону "%s"' %(c['uzonename'])
+			c['color'] = 'c9c9ff'
+		elif c['table'] == 'turnonofftag' and c['parameters']['on'] == True:
+			c['eventtype'] = u'Включение метки'
+			c['color'] = 'e8ffb2'
+		elif c['table'] == 'turnonofftag' and c['parameters']['on'] == False:
+			c['eventtype'] = u'Выключение метки'
+			c['color'] = 'ffbdbd'
+		elif c['table'] == 'tagnouzone':
+			c['eventtype'] = u'Выход из зон'
+			c['color'] = 'eecbff'
+	return chronology
+
+def getAll(strFrom, strTo, tag_id):
+	turnonofftag = TurnOnOffTag.objects.filter(OnOffTime__gte=strFrom, OnOffTime__lte=strTo, \
+	 Tag_id=tag_id)
+	tagfloororder = TagFloorOrder.objects.filter(WriteTime__gte=strFrom, \
+	 WriteTime__lte=strTo, Tag_id=tag_id)
+	tagkabinetorder = TagKabinetOrder.objects.filter(WriteTime__gte=strFrom, \
+		 WriteTime__lte=strTo, Tag_id=tag_id)
+	tagoutofbuilding = TagOutOfBuilding.objects.filter(WriteTime__gte=strFrom, \
+		 WriteTime__lte=strTo, Tag_id=tag_id)
+	floors = Floor.objects.all()
+	buildings = Building.objects.all()
+	kabinets = Kabinet_n_Outer.objects.all()
+	landscapes = LoadLandscape.objects.all()
+	#создаем словарь перемещений
+	chronology = []
+	for toot in turnonofftag:
+		#если включается-выключается метка
+		parameters = {'on': toot.OnOff, 'landscape_id': toot.LoadLandscape_id}
+		chronology.append({'time': toot.OnOffTime, 'table': 'turnonofftag', \
+		 'parameters': parameters})
+
+	for tfo in tagfloororder:
+		#если этаж
+		parameters = {}
+		parameters['floor_id'] = tfo.Floor_id
+		#ищем наименование этажей, зданий
+		a = getObjName(parameters['floor_id'], 'floor', floors, buildings, kabinets, landscapes)
+		parameters['landscape_id'] = a['landscape_id']
+		parameters['building_id'] = a['building_id']
+		chronology.append({'time': tfo.WriteTime, 'table': 'tagfloororder', 'parameters': parameters, \
+			'floorname': a['floorname'], 'buildingname': a['buildingname'], \
+			 'landscapename': a['landscapename']})
+	for tko in tagkabinetorder:
+		#если кабинет
+		parameters = {}
+		parameters['kabinet_id'] = tko.Kabinet_n_Outer_id
+		#ищем наименование кабинетов, этажей, зданий
+		a = getObjName(parameters['kabinet_id'], 'kabinet', floors, buildings, kabinets, landscapes)
+		parameters['landscape_id'] = a['landscape_id']
+		parameters['floor_id'] = a['floor_id']
+		parameters['building_id'] = a['building_id']
+		chronology.append({'time':tko.WriteTime, 'table': 'tagkabinetorder', 'parameters':parameters, \
+			 'kabinetname': a['kabinetname'], 'floorname': a['floorname'], \
+			  'buildingname': a['buildingname'], 'landscapename': a['landscapename']})
+
+
+	for toob in tagoutofbuilding:
+		#если выход из здания
+		parameters = {'landscape_id': toob.LoadLandscape_id}
+		chronology.append({'time': toob.WriteTime, 'table': 'tagoutofbuilding', \
+		 'parameters': parameters})
+
+	chronology = sorted(chronology, key=lambda k: k['time'])
+	# добавляем время до следующего события
+	no = 0
+	for c in chronology:
+		if no < len(chronology)-1:
+			c['length'] = chronology[no+1]['time'] - c['time']
+			no += 1
+	# добавляем поля eventtype, color тип события, цвет
+	for c in chronology:
+		if c['table'] == 'tagkabinetorder':
+			c['eventtype'] = u'Переход в кабинет "%s"' %(c['kabinetname'])
+			c['color'] = 'c9c9ff'
+		elif c['table'] == 'tagfloororder':
+			c['eventtype'] = u'Перемещение на этаж "%s"' %(c['floorname'])
+			c['color'] = 'feffa3'
+		elif c['table'] == 'turnonofftag' and c['parameters']['on'] == True:
+			c['eventtype'] = u'Включение метки'
+			c['color'] = 'e8ffb2'
+		elif c['table'] == 'turnonofftag' and c['parameters']['on'] == False:
+			c['eventtype'] = u'Выключение метки'
+			c['color'] = 'ffbdbd'
+		elif c['table'] == 'tagoutofbuilding':
+			c['eventtype'] = u'Выход из здания'
+			c['color'] = 'eecbff'
+	return chronology
 
 def getKabinet(Kabinet, ObjId):
 	returnedDict = {}
@@ -216,6 +384,7 @@ def getFloor(Floor, ObjId):
 				returnedDict['floorname'] = f.FloorName
 			else:
 				returnedDict['floorname'] = f.dae_FloorName
+			returnedDict['floor_id'] = f.id
 			break
 	return returnedDict	
 
@@ -227,25 +396,62 @@ def getBuilding(Building, ObjId):
 				returnedDict['buildingname'] = b.BuildingName
 			else:
 				returnedDict['buildingname'] = b.dae_BuildingName
+			returnedDict['building_id'] = b.id
 			break
 	return returnedDict
 
-def getObjName(ObjId, ObjType, Floor, Building, Kabinet):
+def getLandscape(Landscape, Building, building_id):
+	returnedDict = {}
+	for b in Building:
+		if b.id == building_id:
+			landscape_id = b.LoadLandscape_id
+			break
+	for l in Landscape:
+		if l.landscape_id == landscape_id:
+			if l.landscape_name:
+				returnedDict['landscapename'] = l.landscape_name
+			else:
+				returnedDict['landscapename'] = l.landscape_id
+			returnedDict['landscape_id'] = l.landscape_id
+			break
+	return returnedDict
+
+def getObjName(ObjId, ObjType, Floor, Building, Kabinet, Landscape):
 	returnedDict = {}
 	if ObjType == 'floor':
 		a = getFloor(Floor, ObjId)
 		returnedDict['floorname'] = a['floorname']
+		returnedDict['floor_id'] = a['floor_id']
+		building_id = a['building_id']
 		a = getBuilding(Building, a['building_id'])
 		returnedDict['buildingname'] = a['buildingname']
+		returnedDict['building_id'] = a['building_id']
+		a = getLandscape(Landscape, Building, building_id)
+		returnedDict['landscapename'] = a['landscapename']
+		returnedDict['landscape_id'] = a['landscape_id']
 		return returnedDict
 	if ObjType == 'kabinet':
 		a = getKabinet(Kabinet, ObjId)
 		returnedDict['kabinetname'] = a['kabinetname']
 		a = getFloor(Floor, a['floor_id'])
 		returnedDict['floorname'] = a['floorname']
+		returnedDict['floor_id'] = a['floor_id']
+		building_id = a['building_id']
 		a = getBuilding(Building, a['building_id'])
 		returnedDict['buildingname'] = a['buildingname']
+		returnedDict['building_id'] = a['building_id']
+		a = getLandscape(Landscape, Building, building_id)
+		returnedDict['landscapename'] = a['landscapename']
+		returnedDict['landscape_id'] = a['landscape_id']
 		return returnedDict
+
+def uzoneName(ObjId, ObjType):
+	returnedDict = {}
+	if ObjType == 'uzone':
+		returnedDict['userzonename'] = UserZone.objects.get(id=ObjId).UserZoneName
+	if ObjType == 'gruzone':
+		returnedDict['groupuserzonename'] = GroupUserZone.objects.get(id=ObjId).GroupName
+	return returnedDict
 
 def structure(arr):
 	arr['radio'] = 'instructure'

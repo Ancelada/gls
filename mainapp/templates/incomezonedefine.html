@@ -52,15 +52,46 @@
                 </div>
             </div>
         </div>
-        <button class="button large show_hide_button">Статичные объекты</button>
+        <button class="button large show_hide_button">Строения</button>
         <button class="button alert large income_zone_button">Зоны входа</button>
         <button class="button success large exclude_zone_button">Зоны исключения</button>
         <button class="button large user_zone_button">Зоны пользователя</button>
+        <button class="button large warning add_object_button">Добавить объект</button>
         <div class="large-3 small-3 columns popup" style="padding-left:0px;padding-right:0px;">
             <ul class="tabs vertical" id="example-vert-tabs" data-tabs>
 
 
             </ul>
+        </div>
+        <!-- Блок объектов -->
+        <div class="add_object_block large-3 small-4 columns" style="right:-100%;">
+            <fieldset class="large-12 small-12 columns" style="float:none;">
+                <h3 class="subheader">Список объектов</h3>
+                <div class="large-12 small-12 columns" id="objecttable">
+                    {{objecttable}}
+                </div>
+                <button class="button" id="newobject">Новый</button>
+            </fieldset>
+            <fieldset class="large-12 small-12 columns">
+                <button class="close-button add_object_close" aria-label="Close menu" type="button">
+                     <span aria-hidden="true">x</span>
+                </button>
+                <h3 class="subheader">Тип объекта</h3>
+                <select name="" id="objecttype">
+                    {% for type in objecttype %}
+                        <option value="{{type.id}}">{{type.Name}}</option>
+                    {% endfor %}
+                </select>
+                <button class="button success" data-landscape="{{landscape_id}}" data-type="" id="sendserver">Отправить все объекты указанного типа на сервер</button>
+                <label for="objectsize">Размер экземпляров объектов
+                    <input id="objectsize" type="number" value="1" step="0.01">    
+                </label>
+                <label for="objectcolor">Цвет экземпляров объектов
+                    <input class="jscolor" value="" id="objectcolor">
+                </label>
+                <button class="button" id="showallobjects">Отобразить на сцене все объекты указанного типа</button>
+                <button class="button alert" id="hideallobjects">Скрыть со сцены все объекты указанного типа</button>
+            </fieldset>
         </div>
         <!-- Блок интрументов -->
         <div class="instrument_block large-3 small-4 columns" style="right:-100%;">
@@ -982,6 +1013,9 @@
             if ($('#new_user').text()=='Остановить'){
                 addVertice(vertices, event);
             }
+            if ($('#newobject').text()=='Остановить'){
+                addVertice(vertices, event);
+            }
         }
 
         function addVertice(arr, event){
@@ -1069,6 +1103,7 @@
                             }
                         }
                     });
+                    return false;
                 }
             });
 
@@ -1121,6 +1156,7 @@
                             }
                         });
                     }
+                    return false;
                 }
             });
         }
@@ -1277,6 +1313,7 @@
                             coloredexclude(building);
                             //запрос вершин здания и вершин привязанных к нему объектов
                             getVertices(building, node.children[i]);
+                            return false;
                         }
                     }
                     lookUpBuilding(node.children[i], dae_elem);
@@ -1329,6 +1366,7 @@
                                         coloredexclude(cur['curName']);
                                         //запрос вершин здания и вершин привязанных к нему объектов
                                         getVertices(cur['curName'], node.children[i]);
+                                        return false;
                                 }
                             })
                             max = Math.max.apply(Math, floors);
@@ -1368,6 +1406,7 @@
                                     coloredexclude(curName);
                                     //запрос вершин здания и вершин привязанных к нему объектов
                                     getVertices(curName, node.children[i]);
+                                    return false;
                             });
                         }
                     }
@@ -1587,6 +1626,7 @@
     });
 
 	</script>
+    <script src="{% static 'js/jscolor.min.js'%}"></script>
     <script src="{% static 'js/foundation.js' %}"></script>
     <script src="{% static 'js/vendor/what-input.min.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.slider.js' %}"></script>

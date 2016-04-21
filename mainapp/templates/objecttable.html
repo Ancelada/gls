@@ -1,0 +1,85 @@
+<table>
+	<thead>
+		<tr>
+			<th>Наименование</th>
+			<th>Действие</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for o in objects %}
+			{% if o.LoadLandscape_id == landscape_id %}
+			<tr {% for co in coloredobjects %}{% if co.Object_id == o.id %}style="background-color:bisque;"{% endif %}{% endfor %}>
+				<td>Тип: {% for oot in objectobjecttypes %}{% if oot.Object_id == o.id %}{{oot.ObjectType__Name}}{% endif %}{% endfor %}
+				Имя:{{o.Name}}</td>
+				<td>
+					<button class="button" data-toggle="dropdownobject{{o.id}}">Действие</button>
+					<div class="dropdown-pane left" id="dropdownobject{{o.id}}" data-dropdown style="width:200px;">
+						<ul class="vertical dropdown menu" data-dropdown-menu>
+							<li>
+								<a href="#" id="showobject" data-id="{{o.id}}">Показать</a>
+							</li>
+							<li>
+								<a href="#" id="hideobject" data-id="{{o.id}}">Скрыть</a>
+							</li>
+							<li>
+							 	<a href="#" id="changetype" data-id="{{o.id}}">Изменить тип</a>
+							 	<ul class="menu">
+							 		<li>
+							 			<select name="" id="objectobjecttype" data-id="{{o.id}}" style="margin-bottom:0;">
+                    {% for type in objecttype %}
+                        <option value="{{type.id}}" {% for oot in objectobjecttypes %}{% if oot.ObjectType_id == type.id and oot.Object_id == o.id %}selected="selected"{% endif %}{% endfor %}>{{type.Name}}</option>
+                    {% endfor %}
+                		</select>
+							 		</li>
+							 	</ul>
+							</li>
+							<li>
+								<a href="#" id="changename" data-id="{{o.id}}">Изменить имя</a>
+								<ul class="menu">
+									<li>
+										<input type="text" placeholder="имя" data-id="{{o.id}}" {% if o.Name %}value="{{o.Name}}"{% endif %}>
+									</li>
+								</ul>
+							</li>
+							<li>
+								<a href="#" id="changecoords" data-id="{{o.id}}">Изменить координаты</a>
+								<ul class="menu">
+									<li>{{o.Name}}</li>
+									<li>
+										<label for="xCoord">Координата X
+											<input type="number" id="xCoord" data-id="{{o.id}}" step="0.01" value="{{o.xCoord|decToPoint}}">	
+										</label>
+									</li>
+									<li>
+										<label for="yCoord">Координата Y
+											<input type="number" id="yCoord" data-id="{{o.id}}" step="0.01" value="{{o.yCoord|decToPoint}}">
+										</label>
+									</li>
+									<li>
+										<label for="zCoord">Координата Z
+											<input type="number" id="zCoord" data-id="{{o.id}}" step="0.01" value="{{o.zCoord|decToPoint}}">
+										</label>
+									</li>
+									<li>
+										<button class="button success" data-id="{{o.id}}" id="savecoords">Сохранить</button>
+									</li>
+								</ul>
+							</li>
+							<li>
+								<a href="#" data-toggle="animatedModal{{o.id}}" id="parameters">Параметры</a>
+								<div class="reveal" id="animatedModal{{o.id}}" data-reveal data-close-on-click="true" data-animation-in="spin-in" data-animation-out="spin-out">
+									<h1>Параметры</h1>
+									<button class="close-button" data-close aria-label></button>
+								</div>
+							</li>
+						</ul>
+					</div>
+				</td>
+			</tr>
+			{% endif %}
+		{% endfor %}
+	</tbody>
+</table>
+<script>
+	$(document).foundation();
+</script>

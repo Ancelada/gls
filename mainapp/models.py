@@ -134,7 +134,8 @@ class LoadLandscape(models.Model):
 	get_wall_height_symbol = models.BooleanField()
 	light_target_symbol = models.BooleanField()
 	# landscape_source = models.FileField(upload_to='static/js/webgl/models/%s' % get_upload_file_name, blank=True, null=True)
-
+	def __str__(self):
+		return self.landscape_id.encode('utf-8')
 class Building(models.Model):
 	class Meta():
 		db_table = 'Building'
@@ -291,6 +292,7 @@ class TurnOnOffTag(models.Model):
 	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	OnOff = models.BooleanField()
 	OnOffTime = models.DateTimeField(null=True)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 
 ###################
@@ -404,6 +406,8 @@ class UserZone(models.Model):
 	UserZoneName = models.CharField(max_length=200, blank=True, null=True)
 	User = models.ForeignKey(User, on_delete=models.CASCADE)
 	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+	def __str__(self):
+		return self.UserZoneName.encode('utf-8')
 
 class VerticesUserZone(models.Model):
 	class Meta():
@@ -444,6 +448,9 @@ class GroupUserZone(models.Model):
 	GroupName = models.CharField(max_length=200)
 	GroupDescription = models.TextField()
 	User = models.ForeignKey(User, on_delete=models.CASCADE)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+	def __str__(self):
+		return self.GroupName.encode('utf-8')
 
 class GroupUserZoneUserZone(models.Model):
 	class Meta():
@@ -493,6 +500,7 @@ class TagOutOfBuilding(models.Model):
 		db_table = 'TagOutOfBuilding'
 	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	WriteTime = models.DateTimeField()
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 class TagNoUzone(models.Model):
 	class Meta():
@@ -500,3 +508,41 @@ class TagNoUzone(models.Model):
 	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 	User = models.ForeignKey(User, on_delete=models.CASCADE)
 	WriteTime = models.DateTimeField()
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+#########################
+## Объекты
+#########################
+
+class ObjectType(models.Model):
+	class Meta():
+		db_table = 'ObjectType'
+	Name = models.CharField(max_length=200, null=True, blank=True)
+	Command = models.CharField(max_length=200, null=True, blank=True)
+	def __str__(self):
+		return self.Name.encode('utf-8')
+
+class Object(models.Model):
+	class Meta():
+		db_table = 'Object'
+	Name = models.CharField(max_length=200, null=True, blank=True)
+	Description = models.TextField(null=True, blank=True)
+	LoadLandscape = models.ForeignKey(LoadLandscape)
+	xCoord = models.FloatField()
+	yCoord = models.FloatField()
+	zCoord = models.FloatField()
+	server_id = models.CharField(max_length=200, null=True, blank=True)
+	server_inUse = models.NullBooleanField(null=True)
+	server_type = models.CharField(max_length=200, null=True, blank=True)
+	server_radius = models.FloatField(null=True, blank=True)
+	server_minNumPoints = models.IntegerField(null=True, blank=True)
+	def __str__(self):
+		if self.Name > 0:
+			return self.Name.encode('utf-8')
+		else:
+			return 'нет наименования'
+
+class ObjectObjectType(models.Model):
+	class Meta():
+		db_table = 'ObjectObjectType'
+	ObjectType = models.ForeignKey(ObjectType, on_delete=models.CASCADE)
+	Object = models.ForeignKey(Object, on_delete=models.CASCADE)

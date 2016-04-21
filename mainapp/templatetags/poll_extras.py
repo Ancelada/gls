@@ -22,3 +22,9 @@ def less_now(value):
 		return True
 	else:
 		return False
+
+@register.filter
+def decToPoint(value):
+	a = str(value)
+	a = a.replace(',', '.')
+	return a

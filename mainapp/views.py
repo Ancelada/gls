@@ -45,11 +45,12 @@ def main(request):
 	return render(request, 'metka.html')
 
 def send_json_request(request):
-	url = 'http://localhost:8000/recieve_json'
-	data = {'data':[{'key1': 'val1'}, {'key2': 'val2'}]}
-	headers = {'content-type': 'application/json'}
-	r = requests.post(url, data=json.dumps(data), headers=headers)
-	return redirect('/')
+	url = 'http://192.168.1.111:8000'
+	data = json({"SESSION":{"ID":0,"Name":"КБНТ","Password":"1234","ID_layer":3,"Inuse":1},"LAYER":{"ID":3,"Name":"Подложка КБНТ","Latitude_1":0,"Longitude_1":0,"Height_1":0,"X_1":0,"Y_1":0,"Z_1":0,"Latitude_2":0,"Longitude_2":0,"Height_2":0,"X_2":149.9980484375,"Y_2":0,"Z_2":149.9980484375,"ScaleX":0,"ScaleY":0},"Plans":[{"ID":13,"Name":"building_001","Description":"","X":70.74239957130649,"Y":0.010000229813150255,"Z":71.06670148823082,"Sizex":48.16391453965018,"Sizey":9.184015239940116,"Sizez":29.859846559427446,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":2},{"ID":15,"Name":"floor_003","Description":"","X":70.74239957130649,"Y":5.999999999999999,"Z":71.06210742988696,"Sizex":48.16391453965018,"Sizey":3.194015469753267,"Sizez":29.850658442739736,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":3},{"ID":17,"Name":"kabinet_001","Description":"","X":72.9144675778225,"Y":6.110000133514401,"Z":79.98160425567863,"Sizex":18.110019216313958,"Sizey":3.0700001716613823,"Sizez":11.89002005767351,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":23,"Name":"kabinet_002","Description":"","X":72.51891588192211,"Y":5.999999999999999,"Z":69.24602592323852,"Sizex":44.37210082571874,"Sizey":3.1328890260732303,"Sizez":10.169453317166443,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":27,"Name":"kabinet_003","Description":"","X":92.20149188194193,"Y":5.999999999999999,"Z":60.668667064128414,"Sizex":5.245729918379311,"Sizey":3.1077058552103063,"Sizez":7.649775110288083,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":31,"Name":"kabinet_004","Description":"","X":86.59412272392112,"Y":6,"Z":61.93489222452154,"Sizex":5.955031855410439,"Sizey":3.101723422519566,"Sizez":10.203969839997669,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":35,"Name":"kabinet_005","Description":"","X":80.91715632722644,"Y":6,"Z":61.94667494352351,"Sizex":5.2688153892362095,"Sizey":3.124796228881836,"Sizez":10.262474647165433,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":39,"Name":"kabinet_006","Description":"","X":75.2422464226176,"Y":6,"Z":61.933724485977294,"Sizex":5.98672110782509,"Sizey":3.0478870478096596,"Sizez":10.19438963302148,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":43,"Name":"kabinet_007","Description":"","X":69.54112600361192,"Y":6,"Z":64.89486433185898,"Sizex":5.37559170725271,"Sizey":3.0555796743794676,"Sizez":4.24365943164765,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":47,"Name":"kabinet_008","Description":"","X":63.89833357800467,"Y":6,"Z":64.93468673978906,"Sizex":5.854764554511924,"Sizey":3.106966228881836,"Sizez":4.243269402000003,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":53,"Name":"kabinet_009","Description":"","X":63.82241659334213,"Y":6,"Z":61.88359489494879,"Sizex":16.82601360632721,"Sizey":3.1632532288818407,"Sizez":10.163494913982063,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":57,"Name":"kabinet_010","Description":"","X":58.10941105118468,"Y":6,"Z":70.66129678158688,"Sizex":6.354355620040479,"Sizey":3.120327359353304,"Sizez":2.645706873687189,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":61,"Name":"kabinet_011","Description":"","X":62.99635928626192,"Y":6,"Z":70.67996136315274,"Sizex":3.3581496804027395,"Sizey":3.1183888583329917,"Sizez":2.6052768063805445,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":65,"Name":"kabinet_012","Description":"","X":65.90757486428046,"Y":6,"Z":70.71524319026662,"Sizex":2.420035511649999,"Sizey":3.134411111505031,"Sizez":2.5617481023136293,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":69,"Name":"kabinet_013","Description":"","X":67.91184279369476,"Y":6,"Z":70.69608339195581,"Sizex":1.5192016254815712,"Sizey":3.134412042652368,"Sizez":2.556848388325676,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":73,"Name":"kabinet_014","Description":"","X":72.522261766453,"Y":6,"Z":70.69830815305204,"Sizex":7.66586612104345,"Sizey":3.1344122288818355,"Sizez":2.568787540280354,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":77,"Name":"kabinet_015","Description":"","X":77.27579110758651,"Y":6,"Z":70.68853121335937,"Sizex":1.7775514045543162,"Sizey":3.1344122288818355,"Sizez":2.5178912158343536,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":81,"Name":"kabinet_017","Description":"","X":85.07017858027069,"Y":6,"Z":70.6938714410664,"Sizex":4.392652956118781,"Sizey":3.0863442288818366,"Sizez":2.5022070379999946,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":85,"Name":"kabinet_016","Description":"","X":80.54440633326456,"Y":6.000004768371582,"Z":70.69388565443359,"Sizex":4.67923375427435,"Sizey":1.7763568394002505e-15,"Sizez":2.467183329000008,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":87,"Name":"kabinet","Description":"","X":48.477298887531916,"Y":6,"Z":71.37049910402754,"Sizex":3.633713172101018,"Sizey":3.194015469753266,"Sizez":5.806939889274574,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":4},{"ID":91,"Name":"floor_002","Description":"","X":70.74233704784241,"Y":2.980000734329195,"Z":71.06722375805089,"Sizex":48.02156091300267,"Sizey":3.089999318122917,"Sizez":29.858802019787312,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":3},{"ID":95,"Name":"kabinet_000","Description":"","X":114.73401555923473,"Y":2.980000734329223,"Z":62.10613902624419,"Sizex":44.21847833673684,"Sizey":3.0100003944189617,"Sizez":14.101679868993607,"AngleRotateX":0,"AngleRotateY":-3.1415925561171143,"AngleRotateZ":0,"ObjType":4},{"ID":99,"Name":"floor_001","Description":"","X":70.74233717880966,"Y":0.010000229813150255,"Z":71.06722375805089,"Sizex":48.021560651068164,"Sizey":3.0100002298131887,"Sizez":29.858802019787312,"AngleRotateX":0,"AngleRotateY":0,"AngleRotateZ":0,"ObjType":3}],"PLANS_TREE":[{"ID":13,"IDParent":-1},{"ID":15,"IDParent":13},{"ID":17,"IDParent":15},{"ID":23,"IDParent":15},{"ID":27,"IDParent":15},{"ID":31,"IDParent":15},{"ID":35,"IDParent":15},{"ID":39,"IDParent":15},{"ID":43,"IDParent":15},{"ID":47,"IDParent":15},{"ID":53,"IDParent":15},{"ID":57,"IDParent":15},{"ID":61,"IDParent":15},{"ID":65,"IDParent":15},{"ID":69,"IDParent":15},{"ID":73,"IDParent":15},{"ID":77,"IDParent":15},{"ID":81,"IDParent":15},{"ID":85,"IDParent":15},{"ID":87,"IDParent":15},{"ID":91,"IDParent":13},{"ID":95,"IDParent":91},{"ID":99,"IDParent":13}]})
+	headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+	r = requests.post(url, data=data, headers=headers)
+	json_data = json(r.text)
+	return HttpResponse(json_data)
 
 def recieve_json(request):
 	if request.method == 'POST':
@@ -408,7 +409,8 @@ def correctF():
 			updateUnique(i, 'delete')
 			try:
 				t = Tag.objects.get(TagId=i['tag_id'])
-				TurnOnOffTag(OnOff=0, OnOffTime=datetime.datetime.now(), Tag_id=t.TagId).save()
+				TurnOnOffTag(OnOff=0, OnOffTime=datetime.datetime.now(), Tag_id=t.TagId, \
+				 LoadLandscape_id=i['zone_id']).save()
 				unique.remove(i)
 			except:
 				unique.remove(i)
@@ -492,7 +494,7 @@ def findMatchingUserZone(obj, landscape_id):
 					# записываем в БД выход из зон TagNoUzone
 					try:
 						TagNoUzone.objects.create(User_id=user['user_id'], Tag_id=obj['tag_id'], \
-							 WriteTime=datetime.datetime.now())
+							 WriteTime=datetime.datetime.now(), LoadLandscape_id=obj['zone_id'])
 					except:
 						pass
 			elif user['noUserZoneLocation']['cron'] == 100:
@@ -685,7 +687,8 @@ def findMatchingKabinet(obj, landscape_id):
 											# записываем событие в БД TagOutOfBuilding
 											try:
 												TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-													WriteTime=datetime.datetime.now())
+													WriteTime=datetime.datetime.now(), \
+													 LoadLandscape_id=obj['zone_id'])
 											except:
 												pass
 									else:
@@ -693,7 +696,8 @@ def findMatchingKabinet(obj, landscape_id):
 										# записываем событие в БД TagOutOfBuilding
 										try:
 											TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-												WriteTime=datetime.datetime.now())
+												WriteTime=datetime.datetime.now(), \
+												 LoadLandscape_id=obj['zone_id'])
 										except:
 											pass
 									obj['notInBuild'] = {'cron':0, 'match': 0}
@@ -707,7 +711,8 @@ def findMatchingKabinet(obj, landscape_id):
 								# записываем событие в БД TagOutOfBuilding
 								try:
 									TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-										WriteTime=datetime.datetime.now())
+										WriteTime=datetime.datetime.now(), \
+										 LoadLandscape_id=obj['zone_id'])
 								except:
 									pass
 						else:
@@ -715,7 +720,8 @@ def findMatchingKabinet(obj, landscape_id):
 							# записываем событие в БД TagOutOfBuilding
 							try:
 								TagOutOfBuilding.objects.create(Tag_id=obj['tag_id'], \
-									WriteTime=datetime.datetime.now())
+									WriteTime=datetime.datetime.now(), \
+									 LoadLandscape_id=obj['zone_id'])
 							except:
 								pass
 						obj['notInBuild'] = {'cron': 0, 'match': 0}
@@ -1067,7 +1073,8 @@ def receive_slmp(request):
 					if not(doubled):
 						try:
 							t = Tag.objects.get(TagId=dictionary['tag_id'])
-							TurnOnOffTag(Tag_id=t.TagId, OnOff=1, OnOffTime=datetime.datetime.now()).save()
+							TurnOnOffTag(Tag_id=t.TagId, OnOff=1, OnOffTime=datetime.datetime.now(), \
+								LoadLandscape_id=dictionary['zone_id']).save()
 						except:
 							pass
 						updateUnique(dictionary, 'add')
@@ -1254,6 +1261,19 @@ def landscapetreeload(request, landscape_id='0000', source=''):
 	args = {}
 	args['landscape_id'] = landscape_id
 	args['source'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		url = 'http://192.168.1.111:8000'
+		data = json(string['data'])
+		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		try:
+			r = requests.post(url, data=data, headers=headers)
+			json_data = json(r.text)
+		except:
+			json_data = 'ответа нет'
+		args['message'] = json_data
+		a = render_to_string('notification.html', args)
+		return JsonResponse({'string': a})
 	return render(request, 'landscapetreeload.html', args)
 
 def landscape_save(request):
@@ -1808,7 +1828,8 @@ def incomezonedefine(request, landscape_id='0000'):
 	args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
 	args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
 	 User_id=auth.get_user(request).id)
-	args['uzonegroups'] = GroupUserZone.objects.filter(User_id=auth.get_user(request).id)
+	args['uzonegroups'] = GroupUserZone.objects.filter(User_id=auth.get_user(request).id, \
+	 LoadLandscape_id=landscape_id)
 	args['uzonegroupuzones'] = GroupUserZoneUserZone.objects.all()
 	args['uzoneswithoutgroups'] = getUzonesWithoutGroups(args['uzones'], args['uzonegroupuzones'], \
 	 auth.get_user(request).id)
@@ -1827,9 +1848,89 @@ def incomezonedefine(request, landscape_id='0000'):
 	args['kIncomeZone'] = KabinetIncomeZone.objects.all()
 	args['kExcludeZone'] = KabinetExcludeZone.objects.all()
 	args['kUserZone'] = KabinetUserZone.objects.all()
+	args['objecttype'] = ObjectType.objects.all()
+	args['objects'] = Object.objects.all()
+	args['objectobjecttypes'] = ObjectObjectType.objects.all().values('ObjectType_id', \
+		 'Object_id', 'ObjectType__Name')
+	args['objecttable'] = render_to_string('objecttable.html', args)
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
 		landscape_id = string['landscape_id']
+		# отправить objecttype на сервер
+		if string['method'] == 'sendobjectstypetoserver':
+			obj_type = string['obj_type']
+			objecttype = ObjectType.objects.get(id=obj_type)
+			data = {}
+			data['command'] = objecttype.Command
+			data['masterAnchors'] = []
+			obj = ObjectObjectType.objects.filter(ObjectType_id=objecttype.id).values('Object__id', \
+				 'Object__Name', 'Object__Description', 'Object__xCoord', 'Object__yCoord', \
+				  'Object__zCoord')
+			for i in obj:
+				data['masterAnchors'].append({'id': i['Object__id'], 'name': i['Object__Name'], \
+					 'description': i['Object__Description'], 'x': i['Object__xCoord'], \
+					 'y': i['Object__zCoord'], 'z': i['Object__yCoord'], 'inUse': 'true', \
+					  'idLayer': landscape_id})
+			return JsonResponse({'string': data})
+		# показать конкретный объект
+		if string['method'] == 'showobject':
+			obj_id = string['obj_id']
+			a = Object.objects.get(id=obj_id)
+			return JsonResponse({'string': {'id': a.id, 'x': a.xCoord, 'y': a.yCoord, 'z': a.zCoord}})
+		# показать все объекты
+		if string['method'] == 'showallobjects':
+			objecttype_id = string['objecttype_id']
+			meshes = []
+			objType = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id).values('id', \
+			 'Name', 'xCoord', 'yCoord', 'zCoord', \
+			  'objectobjecttype__ObjectType_id')
+			for i in objType:
+				meshes.append(i)
+			return JsonResponse({'string':meshes})
+		#изменить координаты
+		if string['method'] == 'changecoords':
+			Object.objects.filter(id=string['obj']).update(xCoord=string['xCoord'], \
+			 yCoord=string['yCoord'], zCoord=string['zCoord'])
+			args['objects'] = Object.objects.all()
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
+		#подcветить выбранный objecttype in objecttable
+		if string['method'] == 'coloredobjects':
+			args['coloredobjects'] = ObjectObjectType.objects.filter(ObjectType_id=string['objecttype'])
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
+		#добавить объект
+		if string['method'] == 'addobject':
+			point = string['point']
+			objecttype = string['objecttype']
+			a = Object.objects.create(xCoord=point['x'], yCoord=point['y'], zCoord=0, \
+			 LoadLandscape_id=args['landscape_id'])
+			ObjectObjectType.objects.create(Object_id=a.id, ObjectType_id=objecttype)
+			args['objects'] = Object.objects.filter(LoadLandscape_id=args['landscape_id'])
+			args['objectobjecttypes'] = ObjectObjectType.objects.all().values('ObjectType_id', \
+			 'Object_id', 'ObjectType__Name')
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
+		#изменить тип объекта
+		if string['method'] == 'typechange':
+			objecttype = string['objecttype']
+			obj = string['object']
+			if len(ObjectObjectType.objects.filter(Object_id=obj)) > 0:
+				ObjectObjectType.objects.filter(Object_id=obj).update(ObjectType_id=objecttype)
+			else:
+				ObjectObjectType.objects.create(Object_id=obj, ObjectType_id=objecttype)
+			args['objectobjecttypes'] = ObjectObjectType.objects.all().values('ObjectType_id', \
+			 'Object_id', 'ObjectType__Name')
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
+		#изменить имя объекта
+		if string['method'] == 'changename':
+			obj = string['object']
+			name = string['name']
+			Object.objects.filter(id=obj).update(Name=name)
+			args['objects'] = Object.objects.filter(LoadLandscape_id=args['landscape_id'])
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
 		#добавить зону входа
 		if string['method'] == 'add':
 			zone = IncomeZone.objects.create(LoadLandscape_id=landscape_id)
@@ -1943,9 +2044,9 @@ def incomezonedefine(request, landscape_id='0000'):
 		if string['method'] == 'renamezonegroup':
 			groupid = string['groupid']
 			groupname = string['groupname']
-			GroupUserZone.objects.filter(id=groupid).update(GroupName=groupname)
+			GroupUserZone.objects.filter(id=groupid, LoadLandscape_id=string['landscape_id']).update(GroupName=groupname)
 			args['uzonegroups'] = \
-			 GroupUserZone.objects.filter(User_id=auth.get_user(request).id)
+			 GroupUserZone.objects.filter(User_id=auth.get_user(request).id, LoadLandscape_id=string['landscape_id'])
 			args['data'] = {}
 			args['data']['uzonegrouptable'] = render_to_string('userzonegrouptable.html', args)
 			return JsonResponse(args['data'])
@@ -2320,14 +2421,15 @@ def incomezonedefine(request, landscape_id='0000'):
 		# создаем новую uzonegroup
 		if string['method'] == 'adduzonegroup':
 			username = string['user']
-			GroupUserZone.objects.create(User_id=username)
-			args['uzonegroups'] = GroupUserZone.objects.filter(User_id=username)
+			GroupUserZone.objects.create(User_id=username, LoadLandscape_id=string['landscape_id'])
+			args['uzonegroups'] = GroupUserZone.objects.filter(User_id=username, \
+			 LoadLandscape_id=string['landscape_id'])
 			return render(request, 'userzonegrouptable.html', args)
 		#удаляем uzonegroup
 		if string['method'] == 'deleteuzonegroup':
 			username = string['user']
 			uid = string['uid']
-			GroupUserZone.objects.filter(id=uid).delete()
+			GroupUserZone.objects.filter(id=uid, LoadLandscape_id=string['landscape_id']).delete()
 			return render(request, 'userzonegrouptable.html', args)
 		# формируем словарь с вершинами объекта
 		if string['method'] == 'objvertices':

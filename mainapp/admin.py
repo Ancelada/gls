@@ -30,6 +30,24 @@ class Locate_Message_Definition_MessageAdmin(admin.ModelAdmin):
 		('Источник', {'fields': ['Source']}),
 		('Тип формата', {'fields': ['Format']}),
 	]
+
+class ObjectTypeAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование', {'fields': ['Name']}),
+		('Command', {'fields': ['Command']})
+	]
+
+class ObjectAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование', {'fields': ['Name']}),
+		('Описание', {'fields': ['Description']}),
+		('Сцена', {'fields': ['LoadLandscape'] }),
+		('x', {'fields': ['xCoord']}),
+		('y', {'fields': ['yCoord']}),
+		('z', {'fields': ['zCoord']}),
+	]
+admin.site.register(Object, ObjectAdmin)
+admin.site.register(ObjectType, ObjectTypeAdmin)
 admin.site.register(DataType, DataTypeAdmin)
 admin.site.register(Field_Definition_Message, Field_Definition_MessageAdmin)
 admin.site.register(LMDMFormat, LMDMFormatAdmin)

@@ -205,3 +205,46 @@ li.tabs-title a{
 	max-height: 600px;
 	overflow-y: scroll;
 }
+
+.show_hide_session_button{
+	font-size:100%;
+	position:fixed;
+	top:0;
+	right:0;
+	background-color:rgba(33, 153, 232, 0.3);
+}
+
+.session_block{
+	position:fixed;
+	top:0;
+	right:0;
+	height: 100%;
+	overflow:visible;
+	background-color:#fff;
+	-webkit-transition: right 1s;
+	transition: right 1s;
+}
+
+.add_object_button{
+	position:fixed;
+	right: 0;
+	top: 225px;
+}
+
+.add_object_block{
+	position:fixed;
+	top:0;
+	right:0;
+	height: 100%;
+	overflow:visible;
+	background-color:#fff;
+	-webkit-transition: right 1s;
+	transition: right 1s;
+}
+
+#objecttable{
+	max-height: 250px;
+	overflow-y:scroll;
+	padding-left:0;
+	padding-right: 0;
+}

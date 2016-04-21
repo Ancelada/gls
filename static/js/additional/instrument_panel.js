@@ -1,3 +1,404 @@
+//***********************************
+//*Отправить объекты указанного типа на сервер
+$('body').delegate('#sendserver', 'click', function(){
+	landscape_id = $(this).attr('data-landscape');
+	obj_type = $(this).attr('data-type');
+	parameters = {};
+	parameters['landscape_id'] = landscape_id;
+	parameters['obj_type'] = obj_type;
+	parameters['method'] = 'sendobjectstypetoserver';
+	$.ajax({
+    	type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		console.log(data);
+    	}
+    });
+});
+
+
+//**********************************
+//отобразить на сцене
+var Objects = [];
+var ObjShowed = [];
+//при изменении координат смещать отдельно взятый объект
+$('#objecttable').delegate('#xCoord', 'change', function(index){
+	obj_id = parseInt($(this).attr('data-id'));
+	obj_value = parseFloat($(this).val());
+	$.each(ObjShowed, function(index){
+		if (ObjShowed[index]['id'] == obj_id){
+			ObjShowed[index]['mesh'].position.x = obj_value;
+			return false;
+		}
+	});
+	$.each(Objects, function(index){
+		$.each(Objects[index]['objects'], function(ind){
+			if (Objects[index]['objects'][ind]['id'] == obj_id){
+				Objects[index]['objects'][ind]['mesh'].position.x = obj_value;
+				return false;
+			}
+		});
+	});
+});
+$('#objecttable').delegate('#yCoord', 'change', function(index){
+	obj_id = parseInt($(this).attr('data-id'));
+	obj_value = parseFloat($(this).val());
+	$.each(ObjShowed, function(index){
+		if (ObjShowed[index]['id'] == obj_id){
+			ObjShowed[index]['mesh'].position.y = obj_value;
+			return false;
+		}
+	});
+	$.each(Objects, function(index){
+		$.each(Objects[index]['objects'], function(ind){
+			if (Objects[index]['objects'][ind]['id'] == obj_id){
+				Objects[index]['objects'][ind]['mesh'].position.y = obj_value;
+				return false;
+			}
+		});
+	});
+});
+$('#objecttable').delegate('#zCoord', 'change', function(index){
+	obj_id = parseInt($(this).attr('data-id'));
+	obj_value = parseFloat($(this).val());
+	$.each(ObjShowed, function(index){
+		if (ObjShowed[index]['id'] == obj_id){
+			ObjShowed[index]['mesh'].position.z = obj_value;
+			return false;
+		}
+	});
+	$.each(Objects, function(index){
+		$.each(Objects[index]['objects'], function(ind){
+			if (Objects[index]['objects'][ind]['id'] == obj_id){
+				Objects[index]['objects'][ind]['mesh'].position.z = obj_value;
+				return false;
+			}
+		});
+	});
+});
+
+function showHideUpdate(){
+	objecttype = parseInt($('#objecttype option:selected')[0].value);
+	$('#showallobjects').attr('data-id', objecttype);
+	$('#hideallobjects').attr('data-id', objecttype);
+}
+
+function sendserverUpdate(){
+	type_id = $('#objecttype option:selected')[0].value;
+	$('#sendserver').attr('data-type', type_id);
+}
+$(document).ready(function(){
+	showHideUpdate();
+	sendserverUpdate()
+});
+//показать один конкретный выбранный объект
+$('body').delegate('#showobject', 'click', function(){
+	obj_id = parseInt($(this).attr('data-id'));
+	objShowedUpdate(obj_id);
+	$(this).hide();
+	$('#hideobject[data-id="'+obj_id+'"]').show();
+});
+//скрыть один конкретный выбранный объект
+$('body').delegate('#hideobject', 'click', function(){
+	obj_id = parseInt($(this).attr('data-id'));
+	hideObject(obj_id);
+	$(this).hide();
+	$('#showobject[data-id="'+obj_id+'"]').show();
+});
+
+function hideObject(obj_id){
+	var no;
+	var got = 0;
+	$.each(ObjShowed, function(index){
+		if(ObjShowed[index]['id'] == obj_id){
+			scene.remove(ObjShowed[index]['mesh']);
+			got = 1;
+			no = index;
+		}
+	});
+	if (got == 1){
+		ObjShowed.splice([no], 1);
+		/*delete ObjShowed[no];*/
+	}
+}
+
+function objShowedUpdate(obj_id){
+	parameters = {};
+	parameters['method'] = 'showobject';
+	parameters['obj_id'] = obj_id;
+	parameters['landscape_id'] = landscape_id;
+	objectsize = $('#objectsize').val();
+	objectcolor = $('#objectcolor').val();
+	$.ajax({
+    	type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		a = {}
+    		a['id'] = data['string']['id'];
+    		a['x'] = data['string']['x'];
+    		a['y'] = data['string']['y'];
+    		a['z'] = data['string']['z'];
+    		// наполняем массив показать конкретный объект
+    		doubled = 0;
+    		$.each(ObjShowed, function(index){
+				if (ObjShowed[index]['id'] == a['id']){
+    				doubled = 1;
+    			}
+    		});
+    		if (doubled == 0){
+				ObjShowed.push(a);
+			}
+			//показываем новый объект
+			$.each(ObjShowed, function(index){
+				if (ObjShowed[index]['id'] == obj_id && doubled == 0){
+					showObjMesh(ObjShowed[index], objectsize, objectcolor);
+				}
+			});
+    	}
+    });	
+}
+
+function showObjMesh(Obj, objectsize, objectcolor){
+	x = Obj['x'];
+	y = Obj['y'];
+	z = Obj['z'];
+	Obj['geometry'] = new THREE.SphereGeometry(objectsize, 32, 32);
+	Obj['material'] = new THREE.MeshBasicMaterial( {color: parseInt('0x'+objectcolor)} );
+	Obj['mesh'] = new THREE.Mesh(Obj['geometry'], Obj['material']);
+	Obj['mesh'].position.set(x, y, z);
+	scene.add(Obj['mesh']);
+}
+
+//показать
+$('body').delegate('#showallobjects', 'click', function(){
+	objecttype_id = $(this).attr('data-id');
+	showObjectType('showallobjects', objecttype_id);
+});
+//скрыть
+$('body').delegate('#hideallobjects', 'click', function(){
+	id = $(this).attr('data-id')
+	$.each(Objects, function(index){
+		if (Objects[index]['type_id'] == id){
+			$.each(Objects[index]['objects'], function(ind){
+				scene.remove(Objects[index]['objects'][ind]['mesh']);
+			});
+		}
+	});
+});
+
+function fillObjects(data){
+	$.each(data['string'], function(index){
+		doubled = 0;
+		obj = data['string'][index]['objectobjecttype__ObjectType_id'];
+		Name = data['string'][index]['Name'];
+		xCoord = data['string'][index]['xCoord'];
+		yCoord = data['string'][index]['yCoord'];
+		zCoord = data['string'][index]['zCoord'];
+		id = data['string'][index]['id'];
+		$.each(Objects, function(ind){
+			if ('type_id' in Objects[ind]){
+				if (Objects[ind]['type_id'] == obj){
+					doubled=1;
+					objdoubled = 0;
+					$.each(Objects[ind]['objects'], function(i){
+						if (Objects[ind]['objects'][i]['id'] == id){
+							objdoubled = 1;
+						}
+					});
+					if (objdoubled == 0){
+						Objects[ind]['objects'].push({'Name': Name, 'xCoord': xCoord, 'yCoord': yCoord, 'zCoord': zCoord, 'id': id});
+					}
+				}
+			}
+		});
+		if (doubled==0){
+			Objects.push({'type_id': obj, 'objects': [{'Name': Name, 'xCoord': xCoord, 'yCoord': yCoord, 'zCoord': zCoord, 'id': id}]});
+		}
+	});
+}
+
+function addMesh(Objects, objecttype_id){
+	//добавляем геометрию, материал, фигуры
+	$.each(Objects, function(index){
+		if(Objects[index]['type_id'] == objecttype_id){
+			$.each(Objects[index]['objects'], function(ind){
+				x = Objects[index]['objects'][ind]['xCoord'];
+				y = Objects[index]['objects'][ind]['yCoord'];
+				z = Objects[index]['objects'][ind]['zCoord'];
+				if (('geometry' in Objects[index]['objects'][ind]) == false){
+					//размер, цвет, позиция объекта
+					Objects[index]['objects'][ind]['objectsize'] = objectsize;
+					Objects[index]['objects'][ind]['objectcolor'] = objectcolor;
+					Objects[index]['objects'][ind]['geometry'] = new THREE.SphereGeometry(objectsize, 32, 32);
+					Objects[index]['objects'][ind]['material'] = new THREE.MeshBasicMaterial( {color: parseInt('0x'+objectcolor)} );
+					Objects[index]['objects'][ind]['mesh'] = new THREE.Mesh( Objects[index]['objects'][ind]['geometry'], Objects[index]['objects'][ind]['material'] );
+					Objects[index]['objects'][ind]['mesh'].position.set(x, y, z);
+				} else {
+					//меняем размер и  цвет, если указан новый
+					if (Objects[index]['objects'][ind]['objectsize'] != objectsize || Objects[index]['objects'][ind]['objectcolor'] != objectcolor){
+						scene.remove(Objects[index]['objects'][ind]['mesh']);
+						Objects[index]['objects'][ind]['geometry'] = new THREE.SphereGeometry(objectsize, 32, 32);
+						Objects[index]['objects'][ind]['material'] = new THREE.MeshBasicMaterial( {color: parseInt('0x'+objectcolor)} );
+						Objects[index]['objects'][ind]['mesh'] = new THREE.Mesh( Objects[index]['objects'][ind]['geometry'], Objects[index]['objects'][ind]['material'] );
+						Objects[index]['objects'][ind]['mesh'].position.set(x, y, z);
+						scene.add(Objects[index]['objects'][ind]['mesh']);
+					}
+				}
+			});
+		}
+	});
+	//показываем все фигуры Objects
+	$.each(Objects, function(index){
+		$.each(Objects[index]['objects'], function(ind){
+			scene.remove(Objects[index]['objects'][ind]['mesh']);
+			scene.add(Objects[index]['objects'][ind]['mesh']);
+		});
+	});
+}
+function showObjectType(methodname, objecttype_id){
+	parameters = {};
+	parameters['method'] = methodname;
+	parameters['objecttype_id'] = objecttype_id;
+	parameters['landscape_id'] = landscape_id;
+	objectsize = $('#objectsize').val();
+	objectcolor = $('#objectcolor').val();
+	$.ajax({
+		type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		if (methodname == 'showallobjects'){
+    			//наполняем массив Objects
+    			fillObjects(data);
+    			addMesh(Objects, objecttype_id);
+    		}
+    		if (methodname == 'hideallobjects'){
+
+    		}
+    	}	
+	})
+}
+
+//изменить координате changecoords
+$('body').delegate('#changecoords', 'click', function(){
+	parameters = {};
+	parameters['method'] = 'changecoords';
+	parameters['obj'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['xCoord'] = parseFloat($(this).next().find('input#xCoord').val());
+	parameters['yCoord'] = parseFloat($(this).next().find('input#yCoord').val());
+	parameters['zCoord'] = parseFloat($(this).next().find('input#zCoord').val());
+	objectTable(parameters);
+	updateMeshPosition(parameters['obj'], Objects, parameters['xCoord'], parameters['yCoord'], parameters['zCoord']);
+});
+
+$('body').delegate('#savecoords', 'click', function(){
+	parameters = {};
+	parameters['method'] = 'changecoords';
+	parameters['obj'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['xCoord'] = parseFloat($(this).parent().parent().find('input#xCoord').val());
+	parameters['yCoord'] = parseFloat($(this).parent().parent().find('input#yCoord').val());
+	parameters['zCoord'] = parseFloat($(this).parent().parent().find('input#zCoord').val());
+	objectTable(parameters);
+	updateMeshPosition(parameters['obj'], Objects, parameters['xCoord'], parameters['yCoord'], parameters['zCoord']);
+})
+
+//изменить позицию mesh
+function updateMeshPosition(id, Objects, xCoord, yCoord, zCoord){
+	$.each(Objects, function(index){
+		$.each(Objects[index]['objects'], function(ind){
+			if(Objects[index]['objects'][ind]['id'] == id){
+				Objects[index]['objects'][ind]['mesh'].position.set(xCoord, yCoord, zCoord);
+				return false;
+			}
+		});
+	});
+}
+
+//цвет colored Object
+$('body').delegate('#objecttype', 'change', function(){
+	showHideUpdate();
+	sendserverUpdate();
+	parameters = {};
+	parameters['method'] = 'coloredobjects';
+	parameters['objecttype'] = parseInt($('#objecttype option:selected')[0].value);
+	parameters['landscape_id'] = landscape_id;
+	objectTable(parameters);
+});
+
+//записать вершиныу Object
+$('body').delegate('#newobject', 'click', function(){
+    if($(this).text() == 'Новый'){
+        $(this).text('Остановить');
+        $(this).addClass('secondary')
+    } else{
+    	$(this).removeClass('secondary');
+        $(this).text('Новый');
+        parameters = {};
+        parameters['method'] = 'addobject';
+        parameters['objecttype'] = parseInt($('#objecttype option:selected')[0].value);
+        parameters['point'] = vertices[vertices.length-1];
+        parameters['landscape_id'] = landscape_id;
+        objectTable(parameters);
+        vertices = [];	
+    }
+});
+
+//изменить тип objects
+$('body').delegate('#objectobjecttype', 'change', function(){
+	parameters = {};
+	parameters['method'] = 'typechange';
+	parameters['objecttype'] = parseInt($(this)[0].value);
+	parameters['object'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	objectTable(parameters);
+});
+//изменить имя
+$('body').delegate('#changename', 'click', function(){
+	parameters = {};
+	parameters['method'] = 'changename';
+	parameters['object'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['name'] = $(this).next().find('input').val();
+	objectTable(parameters);
+});
+
+function objectTable(parameters){
+	$.ajax({
+    	type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		$('#objecttable').html(data['string']);
+    	}
+    });
+}
+
+//**********************************************
+//** добавить объект
+
+$('body').delegate('.add_object_button', 'click', function(){
+	$('.add_object_block').css('right', 0);
+});
+
+$('body').delegate('.add_object_close', 'click', function(){
+	$('.add_object_block').css('right', '-100%');
+});
 //**********************************************
 // панель инструментов
 //**********************************************
@@ -36,7 +437,6 @@ function belongToUsone(type, tag_id, uname){
 		dataType: "html",
 		async: true,
 		success: function(data, textStatus, jqXHR){
-			console.log(data);
 		}
 	})
 }
@@ -64,7 +464,6 @@ function belong(type, tag_id, uname){
     	dataType: "html",
     	async: true,
     	success: function(data, textStatus, jqXHR){
-    		console.log(data);
     	}	
 	});
 }

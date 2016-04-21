@@ -87,6 +87,19 @@ function instructure(parameters){
 		}
 	})
 }
+//checkbox указать сцену
+$('body').delegate('#checklandscape', 'change', function(){
+	if (this.checked){
+		parameters = {}
+		parameters['method'] = 'chooselandscape';
+		chooseElem(parameters, 'landscape')
+	} else {
+		$('#landscapeselect').html('');
+		$('#buildingselect').html('');
+		$('#floorselect').html('');
+		$('#kabinetselect').html('');
+	}
+});
 
 //checkbox указать строение
 $('body').delegate('#checkbuilding', 'change', function(){
@@ -144,7 +157,9 @@ function chooseElem(parameters, elemType){
 		dataType: "json",
 		async: true,
 		success: function(data, textStatus, jqXHR){
-			if(elemType=='building'){
+			if (elemType=='landscape') {
+				$('#landscapeselect').html(data['string']);
+			} else if(elemType=='building'){
 				$('#buildingselect').html(data['string']);
 			} else if (elemType=='floor'){
 				$('#floorselect').html(data['string']);
@@ -159,6 +174,7 @@ function chooseElem(parameters, elemType){
 //если выбрана зона пользователя / группа зон пользоватея uzone radio
 $('#instructure').delegate('input[type=radio][id=uzone]', 'change', function(){
 	$('div#structure').html('');
+	$('div#result').html('');
 	parameters = {}
 	parameters['user_id'] = user_id;
 	parameters['method'] = 'inuzone';
@@ -263,17 +279,17 @@ $('body').delegate('#proccess', 'click', function(){
 			//если указано строение
 			if ($('div#structure #building')[0]){
 				var building_id = $('div#structure #building option:selected')[0].value;
-				parameters[no]['parameters']['structure']['building_id'] = building_id;
+				parameters[no]['parameters']['structure']['building_id'] = parseInt(building_id);
 			}
 			//если указан этаж
 			if ($('div#structure #floor')[0]){
 				var floor_id = $('div#structure #floor option:selected')[0].value;
-				parameters[no]['parameters']['structure']['floor_id'] = floor_id;
+				parameters[no]['parameters']['structure']['floor_id'] = parseInt(floor_id);
 			}
 			//если указан кабинет
 			if ($('div#structure #kabinet')[0]){
 				var kabinet_id = $('div#structure #kabinet option:selected')[0].value;
-				parameters[no]['parameters']['structure']['kabinet_id'] = kabinet_id;
+				parameters[no]['parameters']['structure']['kabinet_id'] = parseInt(kabinet_id);
 			}
 			//если заполнена зона пользователя
 			//****************************
@@ -287,7 +303,7 @@ $('body').delegate('#proccess', 'click', function(){
 			//если указана конектретная зона пользователя
 			if ($('div#uzone select#uzoneslist')[0]){
 				var uzone_id = $('div#uzone select#uzoneslist option:selected')[0].value;
-				parameters[no]['parameters']['uzone'] = {'userzone': {'id': uzone_id}};
+				parameters[no]['parameters']['uzone'] = {'userzone': {'id': parseInt(uzone_id)}};
 			}
 
 			//если группа зон пользователя берем всех
@@ -299,7 +315,7 @@ $('body').delegate('#proccess', 'click', function(){
 			// если указана конкретная группа зон пользователя
 			if ($('div#uzone select#groupuzoneslist')[0]){
 				var groupuzone_id = $('div#uzone select#groupuzoneslist option:selected')[0].value;
-				parameters[no]['parameters']['uzone']['groupuzone'] = {'id': groupuzone_id};
+				parameters[no]['parameters']['uzone']['groupuzone'] = {'id': parseInt(groupuzone_id)};
 			}
 
 			if ($('div#instructure input#all')[0]){
@@ -350,6 +366,7 @@ $('body').delegate('#proccess', 'click', function(){
 		params['parameters'] = parameters;
 		params['report_id'] = report_id;
 		params['method'] = 'getreport';
+		console.log(params);
 		$.ajax({
 			type: "POST",
 			url: "/reportparameters/"+report_id,
