@@ -6,15 +6,16 @@
 		<title>Our WebGl</title>
 		{% load staticfiles %}
 
-		<script type="text/javascript" src="{% static 'js/vendor/jquery.min.js' %}"></script>
+		<script type="text/javascript" src="{% static 'js/vendor/jquery-2.2.0.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/attrchange.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/stats.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/helvetiker_regular.typeface.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
-
+        <script type="text/javascript" src="{% static 'js/sockjs.min.js' %}"></script>
 
   		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
     	<link rel="stylesheet" href="{% static 'css/app.css' %}">
@@ -32,8 +33,18 @@
 		<!-- ***блок 3д изображения*** -->
 		<!-- ************************ -->
 		<div id ="webGL-container"></div>
+		<button class="button large show_hide_button">Строения</button>
 		<button class="button large show_hide_session_button">Настройка сессии</button>
-		<!-- Блок инструментов -->
+		<!-- Блок интрументов -->
+		<div class="instrument_block large-3 small-4 columns" style="right:-100%;">
+			<fieldset class="large-12 small-12 columns">
+				<button class="close-button close_panel" aria-label="Close menu" type="button">
+                    <span aria-hidden="true">x</span>
+                </button>
+                <br>
+			</fieldset>
+		</div>
+		<!-- Блок настройки сессии -->
 		<div class="session_block large-3 small-4 columns" style="right:-100%;">
 			<fieldset class="large-12 small-12 columns">
 				<button class="close-button close_session_panel" aria-label="Close menu" type="button">
@@ -60,6 +71,7 @@
                 	</label>
                 </fieldset>
                 <span class="button secondary" id="sendsession">Отправить параметры новой сессии</span>
+                <span class="button success" id="getsessionlist">Получить идентификаторы из списка сессий</span>
                 <div id="notification"></div>
 			</fieldset>
 		</div>
@@ -148,7 +160,7 @@
 		    marker6045.position.set(76.426, 30.141, 8.7);
 		    scene.add(marker6045);*/
 
-		    loader.load( '/static/js/webgl/models/{{source}}', function ( collada ) {
+		    loader.load( '/models/{{source}}', function ( collada ) {
 				loader.options.convertUpAxis = true;
 				//функция заполнения планов сессии для Андрея
 				function fillSessionPlans(obj, objType){
@@ -156,11 +168,11 @@
                     plan['id'] = obj.id;
                     plan['name'] = obj.name;
                     plan['description'] = '';
-                    plan['x'] = obj.Center['x'];
-                    plan['y'] = obj.BoxMin['z'];
+                    plan['x'] = obj.BoxMin['z'];
+                    plan['y'] = obj.Center['x'];
                     plan['z'] = obj.Center['y'];
-                    plan['sizex'] = Math.abs(obj.BoxMax.x - obj.BoxMin.x);
-                    plan['sizey'] = Math.abs(obj.BoxMax.z - obj.BoxMin.z);
+                    plan['sizex'] = Math.abs(obj.BoxMax.z - obj.BoxMin.z);
+                    plan['sizey'] = Math.abs(obj.BoxMax.x - obj.BoxMin.x);
                     plan['sizez'] = Math.abs(obj.BoxMax.y - obj.BoxMin.y);
                     plan['angleRotateX'] = 0;
                     plan['angleRotateY'] = obj.Zangle;
@@ -331,7 +343,8 @@
 
 		        //**дерево
 		        colladaObjects['landscape'] = [];
-
+		        console.log(colladaObjects);
+		        console.log(session);
 		        //**вершины
 		        verticesDict = {};
 		        verticesDict['element'] = [];
@@ -347,11 +360,11 @@
 		            landscape.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
 		            landscape.BoxMin = bbox['min'];
 		            landscape.BoxMax = bbox['max'];
-		            session['layer']['x1'] = parseFloat(Math.round(landscape.BoxMin['x']).toFixed(0));
-		            session['layer']['y1'] = landscape.BoxMin['z'];
+		            session['layer']['x1'] = landscape.BoxMin['z'];
+		            session['layer']['y1'] = parseFloat(Math.round(landscape.BoxMin['x']).toFixed(0));
 		            session['layer']['z1'] = parseFloat(Math.round(landscape.BoxMin['y']).toFixed(0));
-		            session['layer']['x2'] = landscape.BoxMax['x'];
-		            session['layer']['y2'] = landscape.BoxMin['z'];
+		            session['layer']['x2'] = landscape.BoxMin['z'];
+		            session['layer']['y2'] = landscape.BoxMax['x'];
 		            session['layer']['z2'] = landscape.BoxMax['y'];
 		            //добавляем свойство Z angle
 		            setZangle(dae, landscape);
@@ -484,6 +497,78 @@
 		                no += 1;
 		            }
 		        });
+
+		//****************************
+        //**настройки сцены по умолчанию
+        //****************************
+        //изменить материал для обектов
+	    var setMaterialObject = function(obj, material) {
+	    	obj.material = material;
+		}
+    	//landscape 
+    	plane = colladaObjects['landscape'][0];
+        /*plane.receiveShadow = true;*/
+    	setMaterialObject(plane, new THREE.MeshBasicMaterial({ color: 0xdfe3ee}));
+    	//building
+        $.each(colladaObjects['landscape'][0].children, function(value){
+            if (colladaObjects['landscape'][0].children[value].name.indexOf('building') != -1){
+                building = colladaObjects['landscape'][0].children[value];
+                bcolor = 0xffdbd;;
+                building.visible = false;
+                $.each(building.children, function(value){
+                    //floor
+                    floor = building.children[value];
+                    setMaterialObject(floor, new THREE.MeshBasicMaterial({color: 0x8b9dc3, transparent:true}));
+                    /*floor.receiveShadow = true;*/
+                    /*floor.castShadow = true;*/
+                    //kabinet n outer
+                    $.each(floor.children, function(value){
+                        if (floor.children[value].name.indexOf('outer') != -1){
+                            outer = floor.children[value];
+                            /*outer.castShadow = true;*/
+                            setMaterialObject(outer, new THREE.MeshLambertMaterial({color: bcolor, transparent:true}));
+                        } else if (floor.children[value].name.indexOf('kabinet') != -1){
+                            kabinet = floor.children[value];
+                            kcolor = 0x559e83;
+                            kabinet.visible = false;
+                            //wall
+                            $.each(kabinet.children, function(value){
+                                wall = kabinet.children[value];
+                                /*wall.castShadow = true;*/
+                                setMaterialObject(wall, new THREE.MeshLambertMaterial({color: kcolor, transparent:true}));
+                            });
+                        }
+                    });
+                });
+            }
+            if (colladaObjects['landscape'][0].children[value].name.indexOf('light') != -1){
+                light = colladaObjects['landscape'][0].children[value];
+                light.visible = false;
+                a = light.Center;
+                spotLight = new THREE.SpotLight(0xffffff);
+                spotLight.castShadow = true;
+                spotLight.position.set (a['x'], a['y'], a['z']);
+                spotLight.target.position.set(a['x'], a['y'], a['z']{% if sceneop.light_target_symbol == 1 %}-{% else %}+{% endif%} 60);
+                this.lightX = 20;
+                this.lightY = 35;
+                this.lightZ = 40;
+                this.intensity = 5;
+                this.decay = 8.5;   
+                this.distance = 87;
+                this.angle = 0.54;
+                this.exponent = 0;
+                this.shadowCameraNear = 10;
+                this.shadowCameraFar = 100;
+                this.shadowCameraFov = 50;
+                this.shadowCameraVisible=false;
+                this.shadowMapWidth=1028;
+                this.shadowMapHeight=1028;
+                this.shadowBias=0;
+                this.shadowDarkness=0.5;
+                spotLight.target.updateMatrixWorld();
+                scene.add(spotLight);
+            }
+        });
 
 				//разворот сцены dae
 				z = Math.PI;
@@ -1080,8 +1165,10 @@
 	        camera.updateProjectionMatrix();
 	        renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 	    });
-		</script>
-		<script src="{% static 'js/foundation.js' %}"></script>
+	</script>
+    <script src="{% static 'js/jscolor.min.js'%}"></script>
+    <script src="{% static 'js/foundation.js' %}"></script>
+    <script src="{% static 'js/vendor/foundation.reveal.js' %}"></script>
     <script src="{% static 'js/vendor/what-input.min.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.slider.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.tabs.js' %}"></script>
@@ -1093,7 +1180,8 @@
     <script src="{% static 'js/vendor/foundation.util.mediaQuery.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.accordionMenu.js' %}"></script>
     <script>
-      $(document).foundation();
+        $(document).foundation();
+        $('.is-drilldown').css('max-height', '300px');
     </script>
 	</body>
 </html>

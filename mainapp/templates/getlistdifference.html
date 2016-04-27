@@ -1,0 +1,139 @@
+{% if error %}
+	<div class="row">
+		<div class="large-12 small-12 columns">
+			<span class="alert label">{{error}}</span>	
+		</div>
+	</div>
+{% endif %}
+{% for w in ws %}
+	{% for s in sp %}
+		{% if w.server_id == s.id %}
+			<table class="large-12 small-12 columns">
+				<thead>
+					<tr>
+						<th>Тип</th>
+						<th>Идентификатор</th>
+						<th>Наименование</th>
+						<th>Описание</th>
+						<th>x</th>
+						<th>y</th>
+						<th>z</th>
+						<th>Флаг использования устройств</th>
+						<th>Сцена</th>
+						<th>Тип роутера</th>
+						<th>Радиус окресности</th>
+						<th>Минимальное количество точек попадания</th>
+					</tr>
+					<tbody>
+						<tr>
+							<td>WS</td>
+							<td>{{w.server_id}}</td>
+							<td>{{w.Name}}</td>
+							<td>{{w.Description}}</td>
+							<td>{{w.xCoord|truncatechars:7}}</td>
+							<td>{{w.yCoord|truncatechars:7}}</td>
+							<td>{{w.zCoord|truncatechars:7}}</td>
+							<td>{{w.server_inUse}}</td>
+							<td>{{w.LoadLandscape__server_id}}</td>
+							<td>{{w.server_type}}</td>
+							<td>{{w.server_radius}}</td>
+							<td>{{w.server_minNumPoints}}</td>				
+						</tr>
+						<tr>
+							<td>SP</td>
+							<td>{{s.id}}</td>
+							<td>{{s.name}}</td>
+							<td>{{s.description}}</td>
+							<td>{{s.x|truncatechars:7}}</td>
+							<td>{{s.y|truncatechars:7}}</td>
+							<td>{{s.z|truncatechars:7}}</td>
+							<td>{{s.inUse}}</td>
+							<td>{{s.idLayer}}</td>
+							<td>{{s.type}}</td>
+							<td>{{s.radius}}</td>
+							<td>{{s.minNumPoints}}</td>				
+						</tr>
+					</tbody>
+				</thead>
+			</table>
+		{% endif %}
+	{% endfor %}
+{% endfor %}
+<h2>Есть в WS, нет в SP</h2>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>Тип</th>
+			<th>Идентификатор</th>
+			<th>Наименование</th>
+			<th>Описание</th>
+			<th>x</th>
+			<th>y</th>
+			<th>z</th>
+			<th>Флаг использования устройств</th>
+			<th>Сцена</th>
+			<th>Тип роутера</th>
+			<th>Радиус окресности</th>
+			<th>Минимальное количество точек попадания</th>
+		</tr>
+		<tbody>
+			{% for h in haveinweb %}
+			<tr>
+				<td>WS</td>
+				<td>{{h.server_id}}</td>
+				<td>{{h.Name}}</td>
+				<td>{{h.Description}}</td>
+				<td>{{h.xCoord|truncatechars:7}}</td>
+				<td>{{h.yCoord|truncatechars:7}}</td>
+				<td>{{h.zCoord|truncatechars:7}}</td>
+				<td>{{h.server_inUse}}</td>
+				<td>{{h.LoadLandscape__server_id}}</td>
+				<td>{{h.server_type}}</td>
+				<td>{{h.server_radius}}</td>
+				<td>{{h.server_minNumPoints}}</td>				
+			</tr>
+			{% endfor %}
+		</tbody>
+	</thead>
+</table>
+<h2>Есть в SP, нет в WS</h2>
+<table class="large-12 small-12 columns">
+				<thead>
+					<tr>
+						<th>Тип</th>
+						<th>Идентификатор</th>
+						<th>Наименование</th>
+						<th>Описание</th>
+						<th>x</th>
+						<th>y</th>
+						<th>z</th>
+						<th>Флаг использования устройств</th>
+						<th>Сцена</th>
+						<th>Тип роутера</th>
+						<th>Радиус окресности</th>
+						<th>Минимальное количество точек попадания</th>
+					</tr>
+					<tbody>
+						{% for s in haveinsp %}
+						<tr>
+							<td>SP</td>
+							<td>{{s.id}}</td>
+							<td>{{s.name}}</td>
+							<td>{{s.description}}</td>
+							<td>{{s.x|truncatechars:7}}</td>
+							<td>{{s.y|truncatechars:7}}</td>
+							<td>{{s.z|truncatechars:7}}</td>
+							<td>{{s.inUse}}</td>
+							<td>{{s.idLayer}}</td>
+							<td>{{s.type}}</td>
+							<td>{{s.radius}}</td>
+							<td>{{s.minNumPoints}}</td>				
+						</tr>
+						{% endfor %}
+					</tbody>
+				</thead>
+			</table>
+<button class="button success" id="loadtoserver">Загрузить на web сервер</button>
+<script>
+	$('#getlisttable').foundation();
+</script>

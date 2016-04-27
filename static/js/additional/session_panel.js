@@ -10,7 +10,14 @@ $('body').delegate('.close_session_panel', 'click', function(){
 });
 
 //************************************************
-//**Отправить
+//** Получить список сессий
+$('.session_block').delegate('#getsessionlist', 'click', function(){
+	$('#notification').html('');
+	parameters = {};
+	parameters['method'] = 'getsessionlist';
+	serverRequest(parameters);
+});
+//**Отправить сессию
 $('body').delegate('#sendsession', 'click', function(){
 	//параметры сессии
     session['session']['name'] = $('#sessionname').val();
@@ -25,6 +32,10 @@ $('body').delegate('#sendsession', 'click', function(){
 	parameters['data'] = session;
 	parameters['method'] = 'sendsession';
 	parameters['landscape_id'] = landscape_id;
+	serverRequest(parameters);
+});
+
+function serverRequest(parameters){
 	$.ajax({
 		type: "POST",
 		url: "/landscapetreeload/"+landscape_id,
@@ -34,7 +45,18 @@ $('body').delegate('#sendsession', 'click', function(){
 		async: true,
 		success: function(data, textStatus, jqXHR){
 			$('#notification').html(data['string']);
-			console.log(session);
+			console.log(data['string']);
 		}
 	});
+}
+//**********************************************
+// панель инструментов
+//**********************************************
+
+$('body').delegate('.show_hide_button', 'click', function(){
+	$('.instrument_block').css('right', 0);
+});
+
+$('body').delegate('.close_panel', 'click', function(){
+	$('.instrument_block').css('right', '-100%');
 });

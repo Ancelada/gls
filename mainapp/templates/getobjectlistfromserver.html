@@ -1,0 +1,80 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% if username %}
+		<h1>Получить информацию об объектах от сервера</h1>
+		<label for="objecttype">Тип объектов
+			<select name="" id="objecttype">
+				{% for o in objecttype %}
+					<option value="{{o.id}}">{{o.Name}}</option>
+				{% endfor %}
+			</select>
+		</label>
+		<fieldset class="large-12 small-12 columns">
+			<legend>Показать расхождение между ВС и СП</legend>
+			<input id="difference" type="checkbox">	
+		</fieldset>
+		<button class="button secondary" id="sendquery">Отправить запрос</button>
+			<div id="getlisttable">
+				{{getlisttable}}
+			</div>			
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif%}
+	<script>
+		objects = [];
+		$('#sendquery').on('click', function(){
+			if ($('#difference')[0].checked == false ){
+				//получить json список объектов конкретного типа
+				obj_type = parseInt($('#objecttype option:selected')[0].value);
+				parameters = {};
+				parameters['method'] = 'sendrequest';
+				parameters['obj_type'] = obj_type;
+				sendAjax(parameters);
+			} else {
+				//получить списки расхождений
+				obj_type = parseInt($('#objecttype option:selected')[0].value);
+				parameters = {};
+				parameters['method'] = 'difference';
+				parameters['obj_type'] = obj_type;
+				sendAjax(parameters);
+			}
+		});
+		$('#getlisttable').delegate('#loadtoserver', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'loadtoserver';
+			obj_type = parseInt($('#objecttype option:selected')[0].value);
+			parameters['obj_type'] = obj_type;
+			parameters['objects'] = objects;
+			console.log(parameters['objects']);
+			$.ajax({
+				type: "POST",
+				url: "/getobjectlistfromserver",
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					console.log(data);
+				}
+			});
+		});
+		function sendAjax(parameters){
+			$.ajax({
+				type: "POST",
+				url: "/getobjectlistfromserver",
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					$('#getlisttable').html(data['string']);
+					objects = data['arr'];
+				}
+			});
+		}
+	</script>
+{% endblock %}

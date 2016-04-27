@@ -1261,19 +1261,31 @@ def landscapetreeload(request, landscape_id='0000', source=''):
 	args = {}
 	args['landscape_id'] = landscape_id
 	args['source'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
+	# отправить на сервер сессию
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
 		url = 'http://192.168.1.111:8000'
-		data = json(string['data'])
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
-		try:
-			r = requests.post(url, data=data, headers=headers)
-			json_data = json(r.text)
-		except:
-			json_data = 'ответа нет'
-		args['message'] = json_data
-		a = render_to_string('notification.html', args)
-		return JsonResponse({'string': a})
+		if string['method'] == 'sendsession':
+			data = json(string['data'])
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+			except:
+				json_data = 'ответа нет'
+			args['message'] = json_data
+			a = render_to_string('notification.html', args)
+			return JsonResponse({'string': json_data})
+		if string['method'] == 'getsessionlist':
+			data = json({'command':"getListSessions"})
+			try:
+				r = request.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+			except:
+				json_data = 'ответа нет'
+			args['message'] = json_data
+			a = render_to_string('notification.html', args)
+			return JsonResponse({'string': json_data})
 	return render(request, 'landscapetreeload.html', args)
 
 def landscape_save(request):
@@ -1852,10 +1864,121 @@ def incomezonedefine(request, landscape_id='0000'):
 	args['objects'] = Object.objects.all()
 	args['objectobjecttypes'] = ObjectObjectType.objects.all().values('ObjectType_id', \
 		 'Object_id', 'ObjectType__Name')
+	args['objectbuilding'] = ObjectBuilding.objects.all().values('Building_id', \
+				 'Object_id', 'Building__dae_BuildingName')
+	args['objectfloor'] = ObjectFloor.objects.all().values('Floor_id', 'Object_id', \
+	 'Floor__dae_FloorName', 'Floor__Building_id')
+	args['objectkabinet'] = ObjectKabinet.objects.all().values('Kabinet_id', 'Object_id', \
+		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
 	args['objecttable'] = render_to_string('objecttable.html', args)
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
 		landscape_id = string['landscape_id']
+		# проверка на hex
+		if string['method'] == 'checkhex':
+			string = string['string']
+			try:
+				int(string, 16)
+				error = 0
+				text = 0
+			except:
+				error = 1
+				text = "Введенное значение не соответствует hex."
+			return JsonResponse({'error': error, 'text': text })
+		# привязать конекретный объект к статике
+		if string['method'] == 'linkobjecttostatic':
+			static_id = string['static_id']
+			static_type = string['static_type']
+			obj_id = string['obj_id']
+			ObjectBuilding.objects.filter(Object_id=obj_id).delete()
+			ObjectFloor.objects.filter(Object_id=obj_id).delete()
+			ObjectKabinet.objects.filter(Kabinet_id=obj_id).delete()
+			if static_type == 'building':
+				ObjectBuilding.objects.create(Building_id=static_id, Object_id=obj_id)
+			elif static_type == 'floor':
+				ObjectFloor.objects.create(Floor_id=static_id, Object_id=obj_id)
+			elif static_type == 'kabinet':
+				ObjectKabinet.objects.create(Kabinet_id=static_id, Object_id=obj_id)
+			args['objectbuilding'] = ObjectBuilding.objects.all()
+			args['objectfloor'] = ObjectFloor.objects.all()
+			args['objectkabinet'] = ObjectKabinet.objects.all()
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
+		# отправить конкретный объект на сервер "Команда Обновить"
+		if string['method'] == 'sendobjectupdatetoserver':
+			obj_id = string['obj_id']
+			obj = ObjectObjectType.objects.filter(Object_id=obj_id).values('Object__id', \
+					 'Object__Name', 'Object__Description', 'Object__xCoord', 'Object__yCoord', \
+					  'Object__zCoord', 'Object__server_id', 'Object__server_inUse', \
+					   'Object__server_minNumPoints', 'Object__server_radius', 'Object__server_type', \
+					   'ObjectType_id')
+			data = {}
+			obj_type = ObjectType.objects.get(id=obj[0]['ObjectType_id'])
+			id_layer = LoadLandscape.objects.get(landscape_id=landscape_id).server_id
+			data['command'] = obj_type.CommandUpdate
+			if obj_type.id == 1:
+				data['masterAnchors'] = []
+				for i in obj:
+					data['masterAnchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
+						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
+						 'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
+						  'inUse': bool(i['Object__server_inUse']), \
+						  'idLayer': id_layer})
+			elif obj_type.id == 2:
+				data['anchors'] = []
+				for i in obj:
+					data['anchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
+						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
+						  'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
+						   'inUse': bool(i['Object__server_inUse']), \
+						    'idLayer': id_layer, 'type': i['Object__server_type'], \
+						    'radius': i['Object__server_radius'], \
+						     'minNumPoints': i['Object__server_minNumPoints']})
+			url = 'http://192.168.1.111:8000'
+			data = json(data)
+			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+			r = requests.post(url, data=data, headers=headers)
+			json_data = simplejson.loads(r.text)
+			return JsonResponse({'string': data})
+
+		# отправить конкретный объект на сервер "команда Добавить"
+		if string['method'] == 'sendobjecttoserver':
+			obj_id = string['obj_id']
+			obj = ObjectObjectType.objects.filter(Object_id=obj_id).values('Object__id', \
+					 'Object__Name', 'Object__Description', 'Object__xCoord', 'Object__yCoord', \
+					  'Object__zCoord', 'Object__server_id', 'Object__server_inUse', \
+					   'Object__server_minNumPoints', 'Object__server_radius', 'Object__server_type', \
+					   'ObjectType_id')
+			data = {}
+			obj_type = ObjectType.objects.get(id=obj[0]['ObjectType_id'])
+			id_layer = LoadLandscape.objects.get(landscape_id=landscape_id).server_id
+			data['command'] = obj_type.Command
+			if obj_type.id == 1:
+				data['masterAnchors'] = []
+				for i in obj:
+					data['masterAnchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
+						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
+						 'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
+						  'inUse': bool(i['Object__server_inUse']), \
+						  'idLayer': id_layer})
+			elif obj_type.id == 2:
+				data['anchors'] = []
+				for i in obj:
+					data['anchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
+						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
+						  'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
+						   'inUse': bool(i['Object__server_inUse']), \
+						    'idLayer': id_layer, 'type': i['Object__server_type'], \
+						    'radius': i['Object__server_radius'], \
+						     'minNumPoints': i['Object__server_minNumPoints']})
+			url = 'http://192.168.1.111:8000'
+			data = json(data)
+			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+			r = requests.post(url, data=data, headers=headers)
+			json_data = simplejson.loads(r.text)
+			return JsonResponse({'string': data})
+
+
 		# отправить objecttype на сервер
 		if string['method'] == 'sendobjectstypetoserver':
 			obj_type = string['obj_type']
@@ -1870,16 +1993,16 @@ def incomezonedefine(request, landscape_id='0000'):
 				data['masterAnchors'] = []
 				for i in obj:
 					data['masterAnchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
-						 'description': i['Object__Description'], 'x': i['Object__xCoord'], \
-						 'y': i['Object__zCoord'], 'z': i['Object__yCoord'], \
+						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
+						 'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
 						  'inUse': bool(i['Object__server_inUse']), \
 						  'idLayer': int(landscape_id)})
 			elif obj_type == 2:
 				data['anchors'] = []
 				for i in obj:
 					data['anchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
-						 'description': i['Object__Description'], 'x': i['Object__xCoord'], \
-						  'y': i['Object__zCoord'], 'z': i['Object__yCoord'], \
+						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
+						  'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
 						   'inUse': bool(i['Object__server_inUse']), \
 						    'idLayer': int(landscape_id), 'type': i['Object__server_type'], \
 						    'radius': i['Object__server_radius'], \
@@ -1911,6 +2034,16 @@ def incomezonedefine(request, landscape_id='0000'):
 			args['objects'] = Object.objects.all()
 			args['objecttable'] = render_to_string('objecttable.html', args)
 			return JsonResponse({'string': args['objecttable']})
+		# показать информацию о конкретном объект
+		if string['method'] == 'getobjectinfo':
+			args['objecttype'] = ObjectType.objects.all()
+			obj_id = string['obj_id']
+			obj_type = string['obj_type']
+			args['objectobjecttype'] = ObjectObjectType.objects.get(Object_id=obj_id)
+			args['obj'] = Object.objects.get(id=obj_id)
+			args['obj_type'] = ObjectType.objects.get(id=obj_type)
+			args['getobjectinfo'] = render_to_string('getobjectinfo.html', args)
+			return JsonResponse({'string': args['getobjectinfo']})
 		# показать конкретный объект
 		if string['method'] == 'showobject':
 			obj_id = string['obj_id']
@@ -1918,15 +2051,95 @@ def incomezonedefine(request, landscape_id='0000'):
 			return JsonResponse({'string': {'id': a.id, 'x': a.xCoord, 'y': a.yCoord, 'z': a.zCoord}})
 		# показать все объекты
 		if string['method'] == 'showallobjects':
+			landscape_id = string['landscape_id']
 			objecttype_id = string['objecttype_id']
 			meshes = []
-			objType = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id).values('id', \
+			objType = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
+			 LoadLandscape_id=landscape_id).values('id', \
 			 'Name', 'xCoord', 'yCoord', 'zCoord', \
 			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
 			   'server_radius', 'server_minNumPoints')
 			for i in objType:
 				meshes.append(i)
 			return JsonResponse({'string':meshes})
+		# показать только привязанные объекты building
+		if string['method'] == 'showlinkedobjectsbuilding':
+			landscape_id = string['landscape_id']
+			objecttype_id = string['objecttype_id']
+			static_name = string['static_name']
+			meshes = []
+			for b in args['buildings']:
+				if b.dae_BuildingName == static_name:
+					bid = b.id
+					break
+			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
+				LoadLandscape_id=landscape_id).values('id', \
+			 'Name', 'xCoord', 'yCoord', 'zCoord', \
+			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
+			   'server_radius', 'server_minNumPoints')
+			for o in obj:
+				for b in args['objectbuilding']:
+					if o['id'] == b['Object_id'] and b['Building__dae_BuildingName'] == static_name:
+						meshes.append(o)
+						break
+				fid = []
+				for f in args['floors']:
+					if f.Building_id == bid:
+						fid.append(f.id)
+				for f in args['objectfloor']:
+					if o['id'] == f['Object_id'] and f['Floor__Building_id'] == bid:
+						fid.append(f['Floor_id'])
+						meshes.append(o)
+						break
+				for k in args['objectkabinet']:
+					if o['id'] == k['Object_id']:
+						for f in fid:
+							if k['Kabinet__Floor_id'] == f:
+								meshes.append(o)
+								break
+			return JsonResponse({'string':meshes})
+		# показывать только привязанные объекты floor
+		if string['method'] == 'showlinkedobjectsfloor':
+			landscape_id = string['landscape_id']
+			objecttype_id = string['objecttype_id']
+			static_name = string['static_name']
+			meshes = []
+			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
+				LoadLandscape_id=landscape_id).values('id', \
+			 'Name', 'xCoord', 'yCoord', 'zCoord', \
+			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
+			   'server_radius', 'server_minNumPoints')
+			for f in args['floors']:
+				if f.dae_FloorName == static_name:
+					fid = f.id
+			for o in obj:
+				for f in args['objectfloor']:
+					if o['id'] == f['Object_id'] and f['Floor__dae_FloorName'] == static_name:
+						meshes.append(o)
+						break
+				for k in args['objectkabinet']:
+					if o['id'] == k['Object_id']:
+						if k['Kabinet__Floor_id'] == fid:
+							meshes.append(o)
+							break
+			return JsonResponse({'string': meshes})
+		# показывать только привязанные объекты kabinet
+		if string['method'] == 'showlinkedobjectskabinet':
+			landscape_id = string['landscape_id']
+			objecttype_id = string['objecttype_id']
+			static_name = string['static_name']
+			meshes = []
+			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
+				LoadLandscape_id=landscape_id).values('id', \
+			 'Name', 'xCoord', 'yCoord', 'zCoord', \
+			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
+			   'server_radius', 'server_minNumPoints')
+			for o in obj:
+				for k in args['objectkabinet']:
+					if o['id'] == k['Object_id'] and k['Kabinet__dae_Kabinet_n_OuterName'] == static_name:
+						meshes.append(o)
+						break
+			return JsonResponse({'string': meshes})
 		#изменить координаты
 		if string['method'] == 'changecoords':
 			Object.objects.filter(id=string['obj']).update(xCoord=string['xCoord'], \
@@ -1937,9 +2150,30 @@ def incomezonedefine(request, landscape_id='0000'):
 		# удалить объект objectdelete
 		if string['method'] == 'objectdelete':
 			obj_id = string['obj_id']
-			Object.objects.filter(id=obj_id).delete()
+			a = Object.objects.filter(id=obj_id)
+			objectobjecttype = ObjectObjectType.objects.get(Object_id=obj_id)
+			obj_type = ObjectType.objects.get(id=objectobjecttype.ObjectType_id)
+			# отправить на сервер комманду
+			data = {}
+			data['command'] = obj_type.CommandDelete
+			data[obj_type.Name_eng] = []
+			if obj_type.id == 1:
+				data[obj_type.Name_eng].append({'id': a[0].server_id})
+			elif obj_type.id == 2:
+				data[obj_type.Name_eng].append({'id': a[0].server_id})
+			url = 'http://192.168.1.111:8000'
+			data = json(data)
+			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+				args['success'] = 'Команда успешно направлена на сервер'
+			except:
+				args['error'] = 'Сервер позиционирования не отвечает.'
+			a.delete()
 			args['objects'] = Object.objects.all()
 			args['objecttable'] = render_to_string('objecttable.html', args)
+			# отправить запрос на сервер
 			return JsonResponse({'string': args['objecttable']})
 		#подcветить выбранный objecttype in objecttable
 		if string['method'] == 'coloredobjects':
@@ -2694,3 +2928,119 @@ def getbelonguzone(request):
 				if 'belonguzone' in a:
 					del a['belonguzone']
 				return JsonResponse(string)
+# получить список объектов от сервера
+def getobjectlistfromserver(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	args['objecttype'] = ObjectType.objects.all()
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		# отправть запрос получить списки расхождений объектов типа между ВС и СП
+		if string['method'] == 'difference':
+			obj_type = string['obj_type']
+			a = ObjectType.objects.get(id=obj_type)
+			commandList = a.CommandList
+			url = 'http://192.168.1.111:8000'
+			data = json({"command": commandList})
+			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+			args['ws'] = list(Object.objects.filter(objectobjecttype__ObjectType_id=obj_type).values( \
+				'server_id', 'Name', 'Description', 'xCoord', 'yCoord', 'zCoord', 'server_inUse', \
+				 'LoadLandscape__server_id', 'server_type', 'server_radius', 'server_minNumPoints'))
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+				args['sp'] = list(json_data[a.Name_eng])
+			except:
+				args['error'] = 'сервер не отвечает'
+				
+			# меняем систему координат sp
+			# for s in args['sp']:
+			# 	s['x'] = s['z']
+			# 	s['y'] = s['x']
+			# 	s['z'] = s['y']
+
+			# есть ws, нет sp
+			for w in args['ws']:
+				for s in args['sp']:
+					if w['server_id'] == s['id']:
+						w['got'] = 1
+			haveinweb = []
+			for w in args['ws']:
+				if not('got' in w):
+					haveinweb.append(w)
+			args['haveinweb'] = haveinweb
+			# есть sp, нет ws
+			for s in args['sp']:
+				for w in args['ws']:
+					if s['id'] == w['server_id']:
+						s['got'] = 1
+			haveinsp = []
+			for s in args['sp']:
+				if not('got' in s):
+					haveinsp.append(s)
+			args['haveinsp'] = haveinsp
+			args['getlisttable'] = render_to_string('getlistdifference.html', args)
+			return JsonResponse({'string': args['getlisttable']})
+		# отправить запрос получить список всех объектов типа от СП
+		if string['method'] == 'sendrequest':
+			obj_type = string['obj_type']
+			a = ObjectType.objects.get(id=obj_type)
+			commandList = a.CommandList
+			url = 'http://192.168.1.111:8000'
+			data = json({"command": commandList})
+			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+				args['json_data'] = list(json_data[a.Name_eng])
+			except:
+				args['error'] = 'сервер не отвечает'
+			args['getlisttable'] = render_to_string('getlisttable.html', args)
+			return JsonResponse({'string': args['getlisttable'], 'arr': args['json_data']})
+		# отправить список объектов конкретного типа на ВС
+		if string['method'] == 'loadtoserver':
+			obj_type = string['obj_type']
+			obj_server = string['objects']
+			landscapes = list(LoadLandscape.objects.all())
+			objects = list(Object.objects.all())
+			for obj in obj_server:
+				doubled = 0
+				#eсли уже был записан, обновляем информацию
+				for o in objects:
+					if obj['id'] == o.server_id:
+						o.Name = obj['name']
+						o.Description = obj['description']
+						o.xCoord = obj['x']
+						o.yCoord = obj['z']
+						o.zCoord = obj['y']
+						o.server_inUse = obj['inUse']
+						o.LoadLandscape_id = l['landscape_id']
+						o.server_type = obj['type']
+						o.server_radius = obj['radius']
+						o.server_minNumPoints = obj['minNumPoints']
+						o.save()
+						doubled = 1
+						break
+				#новая запись
+				if doubled == 0:
+					for l in landscapes:
+						if 'type' in obj:
+							if obj['idLayer'] == l.server_id:
+								a = Object.objects.create(Name=obj['name'], Description=obj['description'], \
+									xCoord=obj['z'], yCoord=obj['x'], zCoord=obj['y'], \
+									 server_inUse=obj['inUse'], LoadLandscape_id=l.landscape_id, \
+									 server_type=obj['type'], server_radius=obj['radius'], \
+									 server_minNumPoints=obj['minNumPoints'], server_id=obj['id'])
+								ObjectObjectType.objects.create(Object_id=a.id, ObjectType_id=obj_type)
+								break
+						else:
+							if obj['idLayer'] == l.server_id:
+								a = Object.objects.create(Name=obj['name'], Description=obj['description'], \
+									xCoord=obj['z'], yCoord=obj['x'], zCoord=obj['y'], \
+									 server_inUse=obj['inUse'], LoadLandscape_id=l.landscape_id, \
+									 server_type=False, server_radius=False, \
+									 server_minNumPoints=False, server_id=obj['id'])
+								ObjectObjectType.objects.create(Object_id=a.id, ObjectType_id=obj_type)
+								break
+			return JsonResponse({'string': 'ok'})
+	return render(request, 'getobjectlistfromserver.html', args)

@@ -33,11 +33,12 @@
 	<body>
 		{% csrf_token %}
         {% if username %}
+        <div id="objectwindow"></div>
 		<!-- ***блок 3д изображения*** -->
 		<!--************************-->
 		<div id ="webGL-container"></div>
         <!-- ***блок панель управления*** -->
-        ************************
+        <!--************************-->
         <div class="small-4 columns" id="mobile-control-panel">
             <div class="small-12 columns" style="padding:0">
                 <div class="small-12 columns" style="padding:0">
@@ -702,7 +703,7 @@
     /* add collada import */
     var loader = new THREE.ColladaLoader();
     /*loader.options.convertUpAxis = true;*/
-    loader.load( '/static/js/webgl/models/{{link}}', function ( collada ) {
+    loader.load( '/models/{{link}}', function ( collada ) {
         //расширение bounding box по размерам внутренних элементов
         var getBoundingBox = function(node, dae_elem, indae_elem){
             if (indae_elem == 1){
@@ -1052,6 +1053,7 @@
         }
 
         var selectedFloor;
+        var intersectsObjects;
         function onDocumentMouseDown(event){
             var floor = {};
             var building = {};
@@ -1062,6 +1064,65 @@
             mouse.x = (event.clientX/ renderer.domElement.width) * 2 - 1;
             mouse.y = -(event.clientY/ renderer.domElement.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
+
+            //ищем Objects
+            $.each(Objects, function(index){
+                $.each(Objects[index]['objects'], function(ind){
+                    a = raycaster.intersectObject(Objects[index]['objects'][ind]['mesh']);
+                    if (intersectsObjects){
+                        //скрываем objectwindow
+                        $('#objectwindow').css({display: 'none'});
+                    }
+                    if (a.length > 0){
+                        if( intersectsObjects ){
+                            //уменьшаем размер сферы ранее выбранной, убираем objectwindow
+                            scale = intersectsObjects[0].object.scale.x;
+                            intersectsObjects[0].object.scale.set(scale/2, scale/2, scale/2);
+                            $('#objectwindow').css({display: 'none'});
+                        }
+                        obj = Objects[index]['objects'][ind]
+                        Name = obj['Name'];
+                        Type_id = Objects[index]['type_id'];
+                        Id = obj['id'];
+                        intersectsObjects = a;
+                        intersectsObjects[0].Name = Name;
+                        intersectsObjects[0].Type_id = parseInt(Type_id);
+                        intersectsObjects[0].Id = parseInt(Id);
+                        scale = intersectsObjects[0].object.scale.x;
+                        intersectsObjects[0].object.scale.set(scale*2, scale*2, scale*2);
+                        //показываем objectwindow
+                        $('#objectwindow').css({display: 'block'});
+                        $('#objectwindow').css({top: event.clientY, left: event.clientX});
+                        //показываем информацию об объекте
+                        parameters = {};
+                        parameters['landscape_id'] = landscape_id;
+                        parameters['obj_id'] = Id;
+                        parameters['obj_type'] = Type_id;
+                        parameters['method'] = 'getobjectinfo';
+                        getInfo(parameters);
+                        return false;
+                    }
+                });
+            });
+
+            //функция показать информацию о объекте
+            function getInfo(parameters){
+                $('#objectwindow').html('');
+                $.ajax({
+                    type: "POST",
+                    url: "/incomezonedefine/"+landscape_id,
+                    data: JSON.stringify(parameters),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    async: true,
+                    success: function(data, textStatus, jqXHR){
+                        $('#objectwindow').html(data['string']);
+                    }
+                });
+            }
+
+            //панель Objects
+            console.log(landscape_id);
 
             //ищем building по floor
             ElemLookUp(colladaObjects['landscape'][0], 'building', building, 0);
@@ -1313,6 +1374,9 @@
                             coloredexclude(building);
                             //запрос вершин здания и вершин привязанных к нему объектов
                             getVertices(building, node.children[i]);
+                            //показать привязанные к строению объекты
+                            objecttype = parseInt($('#objecttype option:selected')[0].value);
+                            showObjectType('showlinkedobjectsbuilding', objecttype, building);
                             return false;
                         }
                     }
@@ -1371,6 +1435,10 @@
                             })
                             max = Math.max.apply(Math, floors);
                             min = Math.min.apply(Math, floors);
+                            //показать привязанные к этажу объекты
+                            objecttype = parseInt($('#objecttype option:selected')[0].value);
+                            showObjectType('showlinkedobjectsfloor', objecttype, dae_elem);
+                            return false;
                         }
                     }
                     lookUpFloor(node.children[i], dae_elem, floors);
@@ -1408,6 +1476,10 @@
                                     getVertices(curName, node.children[i]);
                                     return false;
                             });
+                            //показать привязанные к кабинету объекты
+                            objecttype = parseInt($('#objecttype option:selected')[0].value);
+                            showObjectType('showlinkedobjectskabinet', objecttype, dae_elem);
+                            return false;
                         }
                     }
                     lookUpKabinet(node.children[i], dae_elem, kabinets);
@@ -1632,7 +1704,6 @@
     <script src="{% static 'js/vendor/what-input.min.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.slider.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.tabs.js' %}"></script>
-    <script src="{% static 'js/vendor/foundation.util.keyboard.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.util.timerAndImageLoader.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.drilldown.js' %}"></script>
     <script src="{% static 'js/vendor/foundation.util.motion.js' %}"></script>

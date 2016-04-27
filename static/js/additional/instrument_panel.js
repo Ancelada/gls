@@ -1,4 +1,67 @@
+//проверка на hex
+$('#objecttable').delegate('#server_id', 'keyup', function(){
+	parameters = {};
+	parameters['landscape_id'] = landscape_id;
+	parameters['string'] = $(this).val();
+	parameters['method'] = 'checkhex';
+	$.ajax({
+		type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		if (data['error'] == 1){
+    			if ($('span#error').hasClass("alert") == false){
+    				$('span#error').addClass("alert label");
+					$('span#error').html(data['text']);	
+    			}
+    		} else {
+    			$('span#error').removeClass("alert label");
+    			$('span#error').html('');
+    		}
+    		
+    	}
+	});
+});
+
 //***********************************
+//привязать конкретный объект к статике
+$('#objecttable').delegate('#linkobjecttostatic', 'click', function(){
+	parameters = {};
+	parameters['static_type'] = $(this).attr('data-type');
+	parameters['static_id'] = parseInt($(this).attr('data-id'));
+	parameters['obj_id'] = parseInt($(this).attr('data-objectid'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'linkobjecttostatic';
+	objectTable(parameters);
+});
+
+//***********************************
+//*Отправить конкретный объект на сервер
+//команда обновить
+$('body').delegate('#sendobjectupdatetoserver', 'click', function(){
+	console.log('process');
+	landscape_id = $(this).attr('data-landscape');
+	obj_id = $(this).attr('data-id');
+	parameters = {};
+	parameters['landscape_id'] = landscape_id;
+	parameters['obj_id'] = obj_id;
+	parameters['method'] = 'sendobjectupdatetoserver';
+	sendServerQueryResponseToConsole(parameters);
+});
+//команда добавить
+$('body').delegate('#sendobjecttoserver', 'click', function(){
+	console.log('process');
+	landscape_id = $(this).attr('data-landscape');
+	obj_id = $(this).attr('data-id');
+	parameters = {};
+	parameters['landscape_id'] = landscape_id;
+	parameters['obj_id'] = obj_id;
+	parameters['method'] = 'sendobjecttoserver';
+	sendServerQueryResponseToConsole(parameters);
+});
 //*Отправить объекты указанного типа на сервер
 $('body').delegate('#sendserver', 'click', function(){
 	landscape_id = $(this).attr('data-landscape');
@@ -7,6 +70,9 @@ $('body').delegate('#sendserver', 'click', function(){
 	parameters['landscape_id'] = landscape_id;
 	parameters['obj_type'] = obj_type;
 	parameters['method'] = 'sendobjectstypetoserver';
+	sendServerQueryResponseToConsole(parameters);
+});
+function sendServerQueryResponseToConsole(parameters){
 	$.ajax({
     	type: "POST",
     	url: "/incomezonedefine/"+landscape_id,
@@ -18,9 +84,10 @@ $('body').delegate('#sendserver', 'click', function(){
     		console.log(data);
     	}
     });
-});
+}
+
 //сохранить параметры объекта
-$('#objecttable').delegate('#saveparameters', 'click', function(){
+$('body').delegate('#saveparameters', 'click', function(){
 	parameters = {}
 	type = parseInt($(this).attr('data-type'));
 	parameters['landscape_id'] = landscape_id;
@@ -100,18 +167,22 @@ $('#objecttable').delegate('#zCoord', 'change', function(index){
 });
 
 function showHideUpdate(){
-	objecttype = parseInt($('#objecttype option:selected')[0].value);
-	$('#showallobjects').attr('data-id', objecttype);
-	$('#hideallobjects').attr('data-id', objecttype);
+	if($('#objecttype option:selected')[0]){
+	    objecttype = parseInt($('#objecttype option:selected')[0].value);
+    	$('#showallobjects').attr('data-id', objecttype);
+    	$('#hideallobjects').attr('data-id', objecttype);                
+    }
 }
 
 function sendserverUpdate(){
-	type_id = $('#objecttype option:selected')[0].value;
-	$('#sendserver').attr('data-type', type_id);
+    if ($('#objecttype option:selected')[0]){
+        type_id = $('#objecttype option:selected')[0].value;
+        $('#sendserver').attr('data-type', type_id);    
+    }
 }
 $(document).ready(function(){
-	showHideUpdate();
-	sendserverUpdate()
+    showHideUpdate();
+    sendserverUpdate();
 });
 //удалить один конкретный объект
 $('#objecttable').delegate('#objectdelete', 'click', function(){
@@ -168,6 +239,15 @@ function hideObject(obj_id){
 	}
 }
 
+function hideAllObjects(){
+	$.each(Objects, function(index){
+		$.each(Objects[index]['objects'], function(ind){
+			scene.remove(Objects[index]['objects'][ind]['mesh']);	
+		});
+	});
+	Objects = [];
+}
+
 function objShowedUpdate(obj_id){
 	parameters = {};
 	parameters['method'] = 'showobject';
@@ -222,7 +302,7 @@ function showObjMesh(Obj, objectsize, objectcolor){
 //показать
 $('body').delegate('#showallobjects', 'click', function(){
 	objecttype_id = $(this).attr('data-id');
-	showObjectType('showallobjects', objecttype_id);
+	showObjectType('showallobjects', objecttype_id, 0);
 });
 //скрыть
 $('body').delegate('#hideallobjects', 'click', function(){
@@ -305,11 +385,12 @@ function addMesh(Objects, objecttype_id){
 		});
 	});
 }
-function showObjectType(methodname, objecttype_id){
+function showObjectType(methodname, objecttype_id, static_name){
 	parameters = {};
 	parameters['method'] = methodname;
 	parameters['objecttype_id'] = objecttype_id;
 	parameters['landscape_id'] = landscape_id;
+	parameters['static_name'] = static_name;
 	objectsize = $('#objectsize').val();
 	objectcolor = $('#objectcolor').val();
 	$.ajax({
@@ -322,6 +403,19 @@ function showObjectType(methodname, objecttype_id){
     	success: function(data, textStatus, jqXHR){
     		if (methodname == 'showallobjects'){
     			//наполняем массив Objects
+    			hideAllObjects();
+    			fillObjects(data);
+    			addMesh(Objects, objecttype_id);
+    		} else if (methodname == 'showlinkedobjectsbuilding'){
+    			hideAllObjects();
+    			fillObjects(data);
+    			addMesh(Objects, objecttype_id);
+			} else if(methodname == 'showlinkedobjectsfloor'){
+				hideAllObjects();
+    			fillObjects(data);
+    			addMesh(Objects, objecttype_id);
+    		} else if(methodname == 'showlinkedobjectskabinet'){
+    			hideAllObjects();
     			fillObjects(data);
     			addMesh(Objects, objecttype_id);
     		}

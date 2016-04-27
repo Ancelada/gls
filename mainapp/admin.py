@@ -34,7 +34,11 @@ class Locate_Message_Definition_MessageAdmin(admin.ModelAdmin):
 class ObjectTypeAdmin(admin.ModelAdmin):
 	fieldsets = [
 		('Наименование', {'fields': ['Name']}),
-		('Command', {'fields': ['Command']})
+		('Наименование_анг', {'fields': ['Name_eng']}),
+		('Command', {'fields': ['Command']}),
+		('CommandList', {'fields': ['CommandList']}),
+		('CommandDelete', {'fields': ['CommandDelete']}),
+		('CommandUpdate', {'fields': ['CommandUpdate']}),
 	]
 
 class ObjectAdmin(admin.ModelAdmin):

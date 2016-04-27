@@ -90,4 +90,7 @@ urlpatterns = patterns('',
 
 	#show userzones by landscape_id
 	url(r'getuzones/(?P<parameters>[0-9]+)', 'mainapp.views.getuzones'),
+
+	# работа с роутерами, координаторами и т. д.
+	url(r'getobjectlistfromserver', 'mainapp.views.getobjectlistfromserver'),
 )

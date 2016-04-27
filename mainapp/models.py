@@ -4,9 +4,10 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 import jsonfield
+from time import time
 
-def get_upload_file_name(instance, filename):
-	return '%s_%s' % (str(time).replace('.', '_'), filename)
+# def get_upload_file_name(instance, filename):
+# 	return 'uploaded_files/%s_%s' % (str(time).replace('.', '_'), filename)
 
 # Create your models here.
 
@@ -114,7 +115,7 @@ class LoadLandscape(models.Model):
 		db_table = 'LoadLandscape'
 	landscape_name = models.CharField(max_length=100)
 	landscape_id = models.CharField(primary_key=True, max_length=20)
-	landscape_source = models.FileField(upload_to='', blank=True, null=True)
+	landscape_source = models.FileField(upload_to='%s', blank=True, null=True)
 	camera_position_x = models.FloatField(null=True)
 	camera_position_y = models.FloatField(null=True)
 	camera_position_z = models.FloatField(null=True)
@@ -133,7 +134,7 @@ class LoadLandscape(models.Model):
 	circle_step_symbol = models.BooleanField()
 	get_wall_height_symbol = models.BooleanField()
 	light_target_symbol = models.BooleanField()
-	# landscape_source = models.FileField(upload_to='static/js/webgl/models/%s' % get_upload_file_name, blank=True, null=True)
+	server_id = models.IntegerField(blank=True, null=True)
 	def __str__(self):
 		return self.landscape_id.encode('utf-8')
 class Building(models.Model):
@@ -517,7 +518,11 @@ class ObjectType(models.Model):
 	class Meta():
 		db_table = 'ObjectType'
 	Name = models.CharField(max_length=200, null=True, blank=True)
+	Name_eng = models.CharField(max_length=200, null=True, blank=True)
 	Command = models.CharField(max_length=200, null=True, blank=True)
+	CommandList = models.CharField(max_length=200, null=True, blank=True)
+	CommandDelete = models.CharField(max_length=200, null=True, blank=True)
+	CommandUpdate = models.CharField(max_length=200, null=True, blank=True)
 	def __str__(self):
 		return self.Name.encode('utf-8')
 
@@ -526,13 +531,13 @@ class Object(models.Model):
 		db_table = 'Object'
 	Name = models.CharField(max_length=200, null=True, blank=True)
 	Description = models.TextField(null=True, blank=True)
-	LoadLandscape = models.ForeignKey(LoadLandscape)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 	xCoord = models.FloatField()
 	yCoord = models.FloatField()
 	zCoord = models.FloatField()
 	server_id = models.CharField(max_length=200, null=True, blank=True)
 	server_inUse = models.NullBooleanField(null=True)
-	server_type = models.CharField(max_length=200, null=True, blank=True)
+	server_type = models.CharField(max_length=1, null=True, blank=True)
 	server_radius = models.FloatField(null=True, blank=True)
 	server_minNumPoints = models.IntegerField(null=True, blank=True)
 	def __str__(self):
@@ -546,3 +551,40 @@ class ObjectObjectType(models.Model):
 		db_table = 'ObjectObjectType'
 	ObjectType = models.ForeignKey(ObjectType, on_delete=models.CASCADE)
 	Object = models.ForeignKey(Object, on_delete=models.CASCADE)
+
+class ObjectBuilding(models.Model):
+	class Meta():
+		db_table = 'ObjectBuilding'
+	Object = models.ForeignKey(Object, on_delete=models.CASCADE)
+	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
+
+class ObjectFloor(models.Model):
+	class Meta():
+		db_table = 'ObjectFloor'
+	Object = models.ForeignKey(Object, on_delete=models.CASCADE)
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+
+class ObjectKabinet(models.Model):
+	class Meta():
+		db_table = 'ObjectKabinet'
+	Object = models.ForeignKey(Object, on_delete=models.CASCADE)
+	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+#########################
+###sessions
+#########################
+class Session(models.Model):
+	class Meta():
+		db_table = 'Session'
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+
+class Command(models.Model):
+	class Meta():
+		db_table = 'Command'
+	Name = models.CharField(max_length=200, blank=True, null=True)
+	def __str__(self):
+		return self.Name.encode('utf-8')
+
+# class Layer(models.Model):
+# 	class Meta():
+# 		db_table = 'Layer'
+# 		

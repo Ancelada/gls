@@ -560,7 +560,7 @@ function hyphenate(str) {
     9: 'TAB',
     13: 'ENTER',
     27: 'ESCAPE',
-    32: 'SPACE',
+    /*32: 'SPACE',*/
     37: 'ARROW_LEFT',
     38: 'ARROW_UP',
     39: 'ARROW_RIGHT',

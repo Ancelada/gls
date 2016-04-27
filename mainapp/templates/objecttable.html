@@ -1,3 +1,10 @@
+{% load staticfiles %}
+{% if error %}
+    <span class="alert label">{{error}}</span>
+{% endif %}
+{% if success %}
+    <span class="success label">{{success}}</span>
+{% endif %}
 <table>
 	<thead>
 		<tr>
@@ -10,7 +17,35 @@
 			{% if o.LoadLandscape_id == landscape_id %}
 			<tr {% for co in coloredobjects %}{% if co.Object_id == o.id %}style="background-color:bisque;"{% endif %}{% endfor %}>
 				<td>Тип: {% for oot in objectobjecttypes %}{% if oot.Object_id == o.id %}{{oot.ObjectType__Name}}{% endif %}{% endfor %}
-				Имя:{{o.Name}}</td>
+				Имя:{{o.Name}}
+				{% for ob in objectbuilding %}
+					{% if o.id == ob.Object_id %}
+						{% for b in buildings %}
+							{% if b.id == ob.Building_id %}
+								Привязан: {% if b.BuildingName != None %}{{b.BuildingName}}{%else%}{{b.dae_BuildingName}}{% endif%}
+							{% endif %}
+						{% endfor%}
+					{% endif %}
+				{% endfor %}
+				{% for of in objectfloor %}
+					{% if o.id == of.Object_id %}
+						{% for f in floors %}
+							{% if f.id == of.Floor_id %}
+								Привязан: {% if f.FloorName != None %}{{f.FloorName}}{% else %}{{f.dae_FloorName}}{% endif %}
+							{% endif %}
+						{% endfor %}
+					{% endif %}
+				{% endfor %}
+				{% for ok in objectkabinet %}
+					{% if o.id == ok.Object_id %}
+						{% for k in kabinet_n_outer %}
+							{% if k.id == ok.Kabinet_id %}
+								Привязан: {% if k.Kabinet_n_OuterName != None %}{{k.Kabinet_n_OuterName}}{% else %}{{k.dae_Kabinet_n_OuterName}}{% endif %}
+							{% endif %}
+						{% endfor %}
+					{% endif %}
+				{% endfor %}
+				</td>
 				<td>
 					<button class="button" data-toggle="dropdownobject{{o.id}}">Действие</button>
 					<div class="dropdown-pane left" id="dropdownobject{{o.id}}" data-dropdown style="width:200px;">
@@ -74,6 +109,7 @@
 <h4>Параметры {{oot.ObjectType__Name}}а "{{o.Name}}"</h1>
 <label for="server_id">Идентификатор
 	<input type="text" id="server_id" value="{% if o.server_id %}{{o.server_id}}{% endif %}">
+	<span id="error"></span>
 </label>
 <label for="object_name">Наименование
 	<input type="text" id="objname" value="{% if o.Name %}{{o.Name}}{% endif %}">
@@ -103,6 +139,7 @@
 <h4>Параметры {{oot.ObjectType__Name}}а "{{o.Name}}"</h1>
 <label for="server_id">Идентификатор
 	<input type="text" id="server_id" value="{% if o.server_id %}{{o.server_id}}{% endif %}">
+	<span id="error"></span>
 </label>
 <label for="object_name">Наименование
 	<input type="text" id="objname" value="{% if o.Name %}{{o.Name}}{% endif%}">
@@ -116,6 +153,7 @@
 											{% endif %}
 										{% endif %}
 									{% endfor %}
+									<div id="info"></div>
 									<button class="button success" id="saveparameters" data-id="{{o.id}}" data-type="{% for oot in objectobjecttypes %}{% if oot.Object_id == o.id%}{{oot.ObjectType_id}}{% endif %}{% endfor %}">Сохранить параметры</button>
 									<button class="close-button" data-close aria-label="Close reveal" type="button">
 										<span aria-hidden="true">&times;</span>
@@ -124,6 +162,37 @@
 							</li>
 							<li>
 								<a href="#" id="objectdelete" data-id="{{o.id}}">Удалить</a>
+							</li>
+							<li>
+								<a href="#">Привязать к стру. подразделению</a
+								>
+								<ul class="menu">
+                                    {% for b in buildings %}
+                                        <li><a href="#"  id="linkobjecttostatic"  data-type="building" data-id="{{b.id}}"  data-objectid="{{o.id}}">{% if not b.BuildingName or b.BuildingName == '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{%endif%}</a>
+                                            <ul class="menu">
+                                                {% for f in floors %}
+                                                {% if f.Building_id == b.id %}
+                                                <li><a href="#" data-type="floor" data-id="{{f.id}}" id="linkobjecttostatic" data-objectid="{{o.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
+                                                    <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+                                                    {% for k in kabinet_n_outer %}
+                                                    {% if k.Floor_id = f.id %}
+                                                    <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="linkobjecttostatic" data-objectid="{{o.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
+                                                    {% endif %}
+                                                    {% endfor %}
+                                                    </ul>
+                                                </li>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </ul>
+                                        </li>
+                                    {% endfor %}        
+                                </ul>
+							</li>
+							<li>
+								<a href="#" id="sendobjecttoserver" data-id="{{o.id}}" data-landscape="{{landscape_id}}">Отправить на сервер  "Добавить объект"</a>
+							</li>
+							<li>
+								<a href="#" id="sendobjectupdatetoserver" data-id="{{o.id}}" data-landscape="{{landscape_id}}">Отправить на сервер "Обновить объект"</a>
 							</li>
 						</ul>
 					</div>
@@ -134,5 +203,5 @@
 	</tbody>
 </table>
 <script>
-	$(document).foundation();
+	$('#objecttable').foundation();
 </script>
