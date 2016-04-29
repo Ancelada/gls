@@ -1,0 +1,31 @@
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>LoadLandscape_id</th>
+			<th>idLayer</th>
+			<th>inuse</th>
+			<th>name</th>
+			<th>server_id</th>
+			<th>server_idLayer</th>
+			<th></th>
+		</tr>
+		<tbody>
+			{% for s in sessions %}
+				<tr>
+					<td>{{s.LoadLandscape_id}}</td>
+					<td>{{s.idLayer}}</td>
+					<td>{{s.inuse}}</td>
+					<td>{{s.name}}</td>
+					<td>{{s.server_id}}</td>
+					<td>{{s.server_idLayer}}</td>
+					<td>
+						<button class="button secondary" id="getsessiondetail" data-id="{{s.id}}">Отобразить список объектов</button>
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</thead>
+</table>
+<script>
+	$('#mysessiontable').foundation();
+</script>

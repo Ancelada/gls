@@ -77,6 +77,7 @@
                 <button class="close-button add_object_close" aria-label="Close menu" type="button">
                      <span aria-hidden="true">x</span>
                 </button>
+                <input type="checkbox" id="showobjects"><label for="showobjects">Показывать объекты</label>
                 <h3 class="subheader">Тип объекта</h3>
                 <select name="" id="objecttype">
                     {% for type in objecttype %}
@@ -1375,8 +1376,10 @@
                             //запрос вершин здания и вершин привязанных к нему объектов
                             getVertices(building, node.children[i]);
                             //показать привязанные к строению объекты
-                            objecttype = parseInt($('#objecttype option:selected')[0].value);
-                            showObjectType('showlinkedobjectsbuilding', objecttype, building);
+                            if ($('#showobjects')[0].checked==true){
+                                objecttype = parseInt($('#objecttype option:selected')[0].value);
+                                showObjectType('showlinkedobjectsbuilding', objecttype, building);
+                            }
                             return false;
                         }
                     }
@@ -1436,8 +1439,10 @@
                             max = Math.max.apply(Math, floors);
                             min = Math.min.apply(Math, floors);
                             //показать привязанные к этажу объекты
-                            objecttype = parseInt($('#objecttype option:selected')[0].value);
-                            showObjectType('showlinkedobjectsfloor', objecttype, dae_elem);
+                            if ($('#showobjects')[0].checked==true){
+                                objecttype = parseInt($('#objecttype option:selected')[0].value);
+                                showObjectType('showlinkedobjectsfloor', objecttype, dae_elem);
+                            }
                             return false;
                         }
                     }
@@ -1477,8 +1482,10 @@
                                     return false;
                             });
                             //показать привязанные к кабинету объекты
-                            objecttype = parseInt($('#objecttype option:selected')[0].value);
-                            showObjectType('showlinkedobjectskabinet', objecttype, dae_elem);
+                            if ($('#showobjects')[0].checked==true){
+                                objecttype = parseInt($('#objecttype option:selected')[0].value);
+                                showObjectType('showlinkedobjectskabinet', objecttype, dae_elem);
+                            }
                             return false;
                         }
                     }

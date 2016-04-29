@@ -1,0 +1,136 @@
+{% if error %}
+	<div class="row">
+		<div class="large-12 small-12 columns">
+			<span class="alert label">{{error}}</span>	
+		</div>
+	</div>
+{% endif %}
+<h2>session</h2>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>id</th>
+			<th>idLayer</th>
+			<th>inUse</th>
+			<th>name</th>
+		</tr>
+		<tbody>
+			<tr>
+				<td>{{session.id}}</td>
+				<td>{{session.idLayer}}</td>
+				<td>{{session.inuse}}</td>
+				<td>{{session.name}}</td>
+			</tr>
+		</tbody>
+	</thead>
+</table>
+<h2>layer</h2>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>height1</th>
+			<th>height2</th>
+			<th>id</th>
+			<th>latitude1</th>
+			<th>latitude2</th>
+			<th>longitude1</th>
+			<th>longitude2</th>
+			<th>name</th>
+			<th>scaleX</th>
+			<th>scaleY</th>
+			<th>x1</th>
+			<th>x2</th>
+			<th>y1</th>
+			<th>y2</th>
+			<th>z1</th>
+			<th>z2</th>
+		</tr>
+		<tbody>
+			<tr>
+				<td>{{layer.height1}}</td>
+				<td>{{layer.height2}}</td>
+				<td>{{layer.id}}</td>
+				<td>{{layer.latitude1}}</td>
+				<td>{{layer.latitude2}}</td>
+				<td>{{layer.longitude1}}</td>
+				<td>{{layer.longitude2}}</td>
+				<td>{{layer.name}}</td>
+				<td>{{layer.scaleX}}</td>
+				<td>{{layer.scaleY}}</td>
+				<td>{{layer.x1}}</td>
+				<td>{{layer.x2}}</td>
+				<td>{{layer.y1}}</td>
+				<td>{{layer.y2}}</td>
+				<td>{{layer.z1}}</td>
+				<td>{{layer.z2}}</td>
+			</tr>
+		</tbody>
+	</thead>
+</table>
+<h2>plans</h2>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>angleRotateX</th>
+			<th>angleRotateY</th>
+			<th>angleRotateZ</th>
+			<th>description</th>
+			<th>id</th>
+			<th>name</th>
+			<th>objType</th>
+			<th>sizeX</th>
+			<th>sizeY</th>
+			<th>sizeZ</th>
+			<th>x</th>
+			<th>y</th>
+			<th>z</th>
+		</tr>
+		<tbody>
+			{% for p in plans %}
+				<tr>
+					<td>{{p.angleRotateX}}</td>
+					<td>{{p.angleRotateY}}</td>
+					<td>{{p.angleRotateZ}}</td>
+					<td>{{p.description}}</td>
+					<td>{{p.id}}</td>
+					<td>{{p.name}}</td>
+					<td>{{p.objType}}</td>
+					<td>{{p.sizeX}}</td>
+					<td>{{p.sizeY}}</td>
+					<td>{{p.sizeZ}}</td>
+					<td>{{p.x}}</td>
+					<td>{{p.y}}</td>
+					<td>{{p.z}}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</thead>
+</table>
+<h2>plansTree</h2>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>id</th>
+			<th>idParent</th>
+		</tr>
+		<tbody>
+			{% for p in plansTree %}
+				<tr>
+					<td>{{p.id}}</td>
+					<td>{{p.idParent}}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</thead>
+</table>
+<label for="mysessions">Сессии ws
+	<select id="mysessions">
+		{% for s in mysessions %}
+			<option value="{{s.id}}">{{s.name}}</option>
+		{% endfor %}
+	</select>
+</label>
+<button class="button" id="linktows" data-id="{{session.id}}">Привязать идентификаторы к указанной сессии WS</button>
+<script>
+	$('#sessionstable').foundation();
+</script>

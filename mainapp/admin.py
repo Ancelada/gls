@@ -50,6 +50,11 @@ class ObjectAdmin(admin.ModelAdmin):
 		('y', {'fields': ['yCoord']}),
 		('z', {'fields': ['zCoord']}),
 	]
+class CommandAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование', {'fields': ['Name']}),
+	]
+admin.site.register(Command, CommandAdmin)
 admin.site.register(Object, ObjectAdmin)
 admin.site.register(ObjectType, ObjectTypeAdmin)
 admin.site.register(DataType, DataTypeAdmin)

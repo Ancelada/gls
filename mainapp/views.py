@@ -1049,14 +1049,14 @@ def receive_slmp(request):
 			line = line[2]
 			line = line.split(',')
 			for i in line:
-				dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
+				dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': int(line[10], 16)}
 		# second and other lines
 		else:
 			line = line[0].split('\r\n')
 			for i in line:
 				line = i.split(',')
 				if len(line) > 0 and len(line) > 4:
-					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': line[11]}
+					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': int(line[10], 16)}
 					#наполняем unique
 					doubled = 0
 					for i in unique:
@@ -1266,6 +1266,45 @@ def landscapetreeload(request, landscape_id='0000', source=''):
 		string = simplejson.loads(request.body)
 		url = 'http://192.168.1.111:8000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		if string['method'] == 'loadtodb':
+			landscape_id = string['landscape_id']
+			data = string['session']
+			# session
+			# ищем уже загруженную сессию
+			a = SessionTable.objects.filter(LoadLandscape_id=landscape_id)
+			if len(a) == 0:
+				# если нет, создаем строку
+				a = SessionTable.objects.create(LoadLandscape_id=landscape_id, \
+				 idLayer=data['session']['idLayer'], \
+					inuse=data['session']['inuse'], name=data['session']['name'])
+			else:
+				#если да, обновляем
+				a.update( \
+				 idLayer=data['session']['idLayer'], inuse=data['session']['inuse'], \
+				  name=data['session']['name'], server_id=0, server_idLayer=0)
+			# layer
+			SessionLayer.objects.filter(SessionTable_id=a[0].id).delete()
+			SessionLayer.objects.create(SessionTable_id=a[0].id, height1=data['layer']['height1'], \
+				height2=data['layer']['height2'], ws_id=data['layer']['id'], \
+				latitude1=data['layer']['latitude1'], latitude2=data['layer']['latitude2'], \
+				 longitude1=data['layer']['longitude1'], longitude2=data['layer']['longitude2'], \
+				 name=data['layer']['name'], scaleX=data['layer']['scaleX'], scaleY=data['layer']['scaleY'], \
+				 x1=data['layer']['x1'], x2=data['layer']['x2'], y1=data['layer']['y1'], y2=data['layer']['y2'], \
+				  z1=data['layer']['z1'], z2=data['layer']['z2'], server_id=0)
+			# plans
+			SessionPlan.objects.filter(SessionTable_id=a[0].id).delete()
+			for p in data['plans']:
+				SessionPlan.objects.create(SessionTable_id=a[0].id, ws_id=p['id'], name=p['name'], \
+					description=p['description'], x=p['x'], y=p['y'], z=p['z'], sizeX=p['sizex'], \
+					sizeY=p['sizey'], sizeZ=p['sizez'], angleRotateX=p['angleRotateX'], \
+					angleRotateY=p['angleRotateY'], angleRotateZ=p['angleRotateZ'], \
+					 objType=p['objType'], server_id=0)
+			#plans_tree
+			SessionPlanTree.objects.filter(SessionTable_id=a[0].id).delete()
+			for t in data['plans_tree']:
+				SessionPlanTree.objects.create(SessionTable_id=a[0].id, ws_id=t['id'], server_id=0, \
+					ws_parent_id=t['idparent'], server_parent_id=0)
+			return JsonResponse({'string': data})
 		if string['method'] == 'sendsession':
 			data = json(string['data'])
 			try:
@@ -2997,7 +3036,7 @@ def getobjectlistfromserver(request):
 				args['error'] = 'сервер не отвечает'
 			args['getlisttable'] = render_to_string('getlisttable.html', args)
 			return JsonResponse({'string': args['getlisttable'], 'arr': args['json_data']})
-		# отправить список объектов конкретного типа на ВС
+		# отправить список объектов конкретного типа на WS
 		if string['method'] == 'loadtoserver':
 			obj_type = string['obj_type']
 			obj_server = string['objects']
@@ -3044,3 +3083,147 @@ def getobjectlistfromserver(request):
 								break
 			return JsonResponse({'string': 'ok'})
 	return render(request, 'getobjectlistfromserver.html', args)
+
+# работа с сессиями
+# сессии от SP
+def getsessionsfromserver(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	command = Command.objects.all()
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		url = 'http://192.168.1.111:8000'
+		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		# список сессий
+		if string['method'] == 'getlistsessions':
+			data = json({"command": command[2].Name})
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+				args['sessions'] = json_data['sessions']
+			except:
+				args['error'] = 'сервер не отвечает'
+			args['sessionstable'] = render_to_string('sessionstable.html', args)
+			return JsonResponse({'string': args['sessionstable']})
+		# удалить сессию
+		if string['method'] == 'deletesession':
+			session_id = string['session_id']
+			data = json({"command": Command.objects.get(id=4).Name, "id": session_id})
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+				JsonResponse({'string': json_data})
+				result = 'запрос отправлен'
+			except:
+				result = 'отсутствует связь с сервером'
+			return JsonResponse({'string': result})
+		# детали конкретной сессии sessiondetail
+		if string['method'] == 'sessiondetail':
+			session_id = string['session_id']
+			data = json({"command": command[1].Name, "id": session_id})
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+				args['session'] = json_data['session']
+				args['layer'] = json_data['layer']
+				args['plans'] = json_data['plans']
+				args['plansTree'] = json_data['plansTree']
+				args['mysessions'] = SessionTable.objects.all()
+			except:
+				args['error'] = 'сервер не отвечает'
+			args['sessiondetail'] = render_to_string('sessiondetail.html', args)
+			return JsonResponse({'string': args['sessiondetail']})
+		# привязать идентификаторы к сессии ws
+		if string['method'] == 'linktows':
+			ws_session_id = string['ws_session_id']
+			sp_session_id = string['sp_session_id']
+			data = json({"command": command[1].Name, "id": sp_session_id})
+			r = requests.post(url, data=data, headers=headers)
+			sp_json_data = simplejson.loads(r.text)
+			for p in sp_json_data['plansTree']:
+				for i in sp_json_data['plans']:
+					if p['id'] == i['id']:
+						p['name'] = i['name']
+					elif p['idParent'] == i['id']:
+						p['nameParent'] = i['name']
+			ws_json_data = {}
+			ws_json_data['session'] = SessionTable.objects.get(id=ws_session_id)
+			ws_json_data['layer'] = SessionLayer.objects.get(SessionTable_id=ws_session_id)
+			ws_json_data['plans'] = list(SessionPlan.objects.filter(SessionTable_id=ws_session_id))
+			ws_json_data['plansTree'] = list(SessionPlanTree.objects.filter(SessionTable_id=ws_session_id))
+			# id session
+			ws_json_data['session'].server_id = sp_json_data['session']['id']
+			ws_json_data['session'].server_idLayer = sp_json_data['session']['idLayer']
+			ws_json_data['session'].save()
+			# id layer
+			ws_json_data['layer'].server_id = sp_json_data['layer']['id']
+			ws_json_data['layer'].save()
+			# id plans
+			for p in ws_json_data['plans']:
+				for s in sp_json_data['plans']:
+					if p.name == s['name']:
+						p.server_id = s['id']
+						p.save()
+			# id plansTree
+			for p in ws_json_data['plansTree']:
+				for i in ws_json_data['plans']:
+					if p.ws_id == i.ws_id:
+						p.server_id = i.server_id
+						p.save()
+					elif p.ws_parent_id == i.ws_id:
+						p.server_parent_id = i.server_id
+						p.save()
+			return JsonResponse({'string': 'ok'})
+	return render(request, 'getsessionsfromserver.html', args)
+# мои сессии WS
+def getmysession(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		#список сессий
+		if string['method'] == 'mysessiontable':
+			args['sessions'] = SessionTable.objects.all()
+			args['mysessiontable'] = render_to_string('mysessiontable.html', args)
+			return JsonResponse({'string': args['mysessiontable']})
+		# детали конкретной сессии mysessiondetail
+		if string['method'] == 'mysessiondetail':
+			session_id = string['session_id']
+			args['session'] = SessionTable.objects.get(id=session_id)
+			args['layer'] = SessionLayer.objects.get(SessionTable_id=session_id)
+			args['plans'] = SessionPlan.objects.filter(SessionTable_id=session_id)
+			args['plansTree'] = SessionPlanTree.objects.filter(SessionTable_id=session_id)
+			args['mysessiondetail'] = render_to_string('mysessiondetail.html', args)
+			return JsonResponse({'string': args['mysessiondetail']})
+		# запрос saveNewSession
+		if string['method'] == 'sendtosp':
+			session_id = string['session_id']
+			session = SessionTable.objects.get(id=session_id)
+			layer = SessionLayer.objects.get(SessionTable_id=session_id)
+			plans = SessionPlan.objects.filter(SessionTable_id=session_id)
+			plansTree = SessionPlanTree.objects.filter(SessionTable_id=session_id)
+			data = {}
+			data['command'] = Command.objects.get(id=1).Name
+			data['session'] = {'id': session.id, 'name': session.name, \
+			 'idLayer': session.idLayer, 'inuse': session.inuse}
+			data['layer'] = {'id': layer.ws_id, 'name': layer.name, \
+			 'latitude1': layer.latitude1, 'longitude1': layer.longitude1, \
+			 'height1': layer.height1, 'x1': layer.x1, 'y1': layer.y1, \
+			 'z1': layer.z1, 'latitude2': layer.latitude2, 'longitude2': layer.longitude2, \
+			 'height2': layer.height2, 'x2': layer.x2, 'y2': layer.y2, \
+			 'z2': layer.z2, 'scaleX': layer.scaleX, 'scaleY': layer.scaleY}
+		 	data['plans'] = []
+			for i in plans:
+				data['plans'].append({'id':i.ws_id, 'name':i.name, 'description': i.description, \
+					'x': i.x, 'y': i.y, 'z': i.z, 'sizeX': i.sizeX, 'sizeY': i.sizeY, 'sizeZ': i.sizeZ, \
+					'angleRotateX': i.angleRotateX, 'angleRotateY': i.angleRotateY, \
+					'angleRotateZ': i.angleRotateZ, 'objType': i.objType})
+			data['plansTree'] = []
+			for i in plansTree:
+				data['plansTree'].append({'id': i.ws_id, 'idParent': i.ws_parent_id})
+			url = 'http://192.168.1.111:8000'
+			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			return JsonResponse(json_data)
+	return render(request, 'getmysession.html', args)

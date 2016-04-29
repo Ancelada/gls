@@ -1,0 +1,58 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% if username %}
+		<h1>Получить информацию о сессиях WS</h1>
+		<button class="button secondary" id="getlistsessions">Отправить запрос</button>
+		<div id="mysessiontable">
+			{{mysessiontable}}
+		</div>
+		<div id="mysessiondetail">
+			{{mysessiondetail}}
+		</div>
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif%}
+	<script>
+		$('body').delegate('#getlistsessions', 'click', function(){
+			parameters = {}
+			parameters['method'] = 'mysessiontable';
+			sendRequest(parameters);
+		});
+
+		$('body').delegate('#getsessiondetail', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'mysessiondetail';
+			parameters['session_id'] = parseInt($(this).attr('data-id'));
+			sendRequest(parameters);
+		});
+		$('#mysessiondetail').delegate('#sendtosp', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendtosp';
+			parameters['session_id'] = parseInt($(this).attr('data-id'));
+			sendRequest(parameters);
+		});
+		function sendRequest(parameters){
+			$.ajax({
+				type: "POST",
+				url: "/getmysession",
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					if (parameters['method'] == 'mysessiontable'){
+						$('#mysessiontable').html(data['string']);	
+					} else if (parameters['method'] == 'mysessiondetail'){
+						$('#mysessiondetail').html(data['string']);
+					} else if (parameters['method'] == 'sendtosp'){
+						console.log(data);
+					}
+				}
+			});
+		}
+	</script>
+{% endblock %}

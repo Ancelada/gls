@@ -8,6 +8,24 @@ $('body').delegate('.show_hide_session_button', 'click', function(){
 $('body').delegate('.close_session_panel', 'click', function(){
 	$('.session_block').css('right', '-100%');
 });
+//************************************************
+//** Записать сессию в БД
+$('.session_block').delegate('#loadtodb', 'click', function(){
+	//параметры сессии
+    session['session']['name'] = $('#sessionname').val();
+    /*session['session']['password'] = $('#sessionpassword').val();*/
+    session['session']['idLayer'] = parseInt($('#layerid').val());
+    // параметры layer
+    session['layer']['id'] = parseInt($('#layerid').val());
+    session['layer']['name'] = $('#layername').val();
+    //передаем на ws
+	parameters = {};
+	parameters['landscape_id'] = landscape_id;
+	parameters['session'] = session;
+	parameters['method'] = 'loadtodb';
+	serverRequest(parameters);
+});
+
 
 //************************************************
 //** Получить список сессий
@@ -26,13 +44,13 @@ $('body').delegate('#sendsession', 'click', function(){
     // параметры layer
     session['layer']['id'] = parseInt($('#layerid').val());
     session['layer']['name'] = $('#layername').val();
-
-	$('#notification').html('');
+    console.log(session);
+	/*$('#notification').html('');
 	parameters = {};
 	parameters['data'] = session;
 	parameters['method'] = 'sendsession';
 	parameters['landscape_id'] = landscape_id;
-	serverRequest(parameters);
+	serverRequest(parameters);*/
 });
 
 function serverRequest(parameters){
@@ -44,7 +62,7 @@ function serverRequest(parameters){
 		dataType: "json",
 		async: true,
 		success: function(data, textStatus, jqXHR){
-			$('#notification').html(data['string']);
+			/*$('#notification').html(data['string']);*/
 			console.log(data['string']);
 		}
 	});

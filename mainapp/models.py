@@ -572,10 +572,65 @@ class ObjectKabinet(models.Model):
 #########################
 ###sessions
 #########################
-class Session(models.Model):
+class SessionTable(models.Model):
 	class Meta():
-		db_table = 'Session'
+		db_table = 'SessionTable'
 	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+	idLayer = models.IntegerField(blank=True, null=True)
+	inuse = models.NullBooleanField(blank=True, null=True)
+	name = models.CharField(max_length=200, blank=True, null=True)
+	server_id = models.IntegerField(blank=True, null=True)
+	server_idLayer = models.IntegerField(blank=True, null=True)
+
+class SessionLayer(models.Model):
+	class Meta():
+		db_table = 'SessionLayer'
+	SessionTable = models.ForeignKey(SessionTable, on_delete=models.CASCADE)
+	height1 = models.FloatField(blank=True, null=True)
+	height2 = models.FloatField(blank=True, null=True)
+	ws_id = models.IntegerField(blank=True, null=True)
+	latitude1 = models.FloatField(blank=True, null=True)
+	latitude2 = models.FloatField(blank=True, null=True)
+	longitude1 = models.FloatField(blank=True, null=True)
+	longitude2 = models.FloatField(blank=True, null=True)
+	name = models.CharField(max_length=200, blank=True, null=True)
+	scaleX = models.FloatField(blank=True, null=True)
+	scaleY = models.FloatField(blank=True, null=True)
+	x1 = models.FloatField(blank=True, null=True)
+	x2 = models.FloatField(blank=True, null=True)
+	y1 = models.FloatField(blank=True, null=True)
+	y2 = models.FloatField(blank=True, null=True)
+	z1 = models.FloatField(blank=True, null=True)
+	z2 = models.FloatField(blank=True, null=True)
+	server_id = models.IntegerField(blank=True, null=True)
+
+class SessionPlan(models.Model):
+	class Meta():
+		db_table = 'SessionPlan'
+	SessionTable = models.ForeignKey(SessionTable, on_delete=models.CASCADE)
+	ws_id = models.IntegerField(blank=True, null=True)
+	name = models.CharField(max_length=200, blank=True, null=True)
+	description = models.TextField(blank=True, null=True)
+	x = models.FloatField(blank=True, null=True)
+	y = models.FloatField(blank=True, null=True)
+	z = models.FloatField(blank=True, null=True)
+	sizeX = models.FloatField(blank=True, null=True)
+	sizeY = models.FloatField(blank=True, null=True)
+	sizeZ = models.FloatField(blank=True, null=True)
+	angleRotateX = models.FloatField(blank=True, null=True)	
+	angleRotateY = models.FloatField(blank=True, null=True)
+	angleRotateZ = models.FloatField(blank=True, null=True)
+	objType = models.FloatField(blank=True, null=True)
+	server_id = models.IntegerField(blank=True, null=True)
+
+class SessionPlanTree(models.Model):
+	class Meta():
+		db_table = 'SessionPlanTree'
+	SessionTable = models.ForeignKey(SessionTable, on_delete=models.CASCADE)
+	ws_id = models.IntegerField(blank=True, null=True)
+	server_id = models.IntegerField(blank=True, null=True)
+	ws_parent_id = models.IntegerField(blank=True, null=True)
+	server_parent_id = models.IntegerField(blank=True, null=True)
 
 class Command(models.Model):
 	class Meta():
@@ -583,8 +638,3 @@ class Command(models.Model):
 	Name = models.CharField(max_length=200, blank=True, null=True)
 	def __str__(self):
 		return self.Name.encode('utf-8')
-
-# class Layer(models.Model):
-# 	class Meta():
-# 		db_table = 'Layer'
-# 		

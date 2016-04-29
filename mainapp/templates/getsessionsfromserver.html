@@ -1,0 +1,73 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% if username %}
+		<h1>Получить информацию о сессиях</h1>
+		<button class="button secondary" id="getlistsessions">Отправить запрос</button>
+		<div id="sessionstable">
+			{{sessionstable}}
+		</div>
+		<div id="sessiondetail">
+			{{sessiondetail}}
+		</div>
+		<div id="result">
+			
+		</div>
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif%}
+	<script>
+		//удалить сессию
+		$('#sessionstable').delegate('#deletesession', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'deletesession';
+			parameters['session_id'] = parseInt($(this).attr('data-id'));
+			sendRequest(parameters);
+		});
+		//связать id с ws сессией
+		$('#sessiondetail').delegate('#linktows', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'linktows';
+			parameters['sp_session_id'] = parseInt($(this).attr('data-id'));
+			parameters['ws_session_id'] = parseInt($('#mysessions option:selected')[0].value);
+			sendRequest(parameters);
+		})
+
+		$('body').delegate('#getlistsessions', 'click', function(){
+			parameters = {}
+			parameters['method'] = 'getlistsessions';
+			sendRequest(parameters);
+		});
+
+		$('body').delegate('#getsessiondetail', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sessiondetail';
+			parameters['session_id'] = parseInt($(this).attr('data-id'));
+			sendRequest(parameters);
+		});
+
+		function sendRequest(parameters){
+			$.ajax({
+				type: "POST",
+				url: "/getsessionsfromserver",
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					if (parameters['method'] == 'getlistsessions'){
+						$('#sessionstable').html(data['string']);	
+					} else if (parameters['method'] == 'sessiondetail'){
+						$('#sessiondetail').html(data['string']);
+					} else if (parameters['method'] == 'deletesession'){
+						$('#result').html(data['string']);
+						console.log(data);
+					}
+				}
+			});
+		}
+	</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% if error %}
+	<div class="row">
+		<div class="large-12 small-12 columns">
+			<span class="alert label">{{error}}</span>	
+		</div>
+	</div>
+{% endif %}
+<h2>Список сессий (СП)</h2>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>id</th>
+			<th>idLayer</th>
+			<th>inUse</th>
+			<th>name</th>
+			<th></th>
+		</tr>
+		<tbody>
+			{% for i in sessions %}
+			<tr>
+				<td>{{i.id}}</td>
+				<td>{{i.idLayer}}</td>
+				<td>{{i.inUse}}</td>
+				<td>{{i.name}}</td>
+				<td>
+					<button class="button secondary" id="getsessiondetail" data-id="{{i.id}}">Отобразить список объектов</button>
+					<button class="button alert" id="deletesession" data-id="{{i.id}}">Удалить</button>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</thead>
+</table>
+<script>
+	$('#sessionstable').foundation();
+</script>

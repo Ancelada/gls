@@ -70,6 +70,7 @@
                 		<input type="text" id="layername" value="Подложка КБНТ">
                 	</label>
                 </fieldset>
+                <span class="button succes" id="loadtodb">Записать параметры сессии</span>
                 <span class="button secondary" id="sendsession">Отправить параметры новой сессии</span>
                 <span class="button success" id="getsessionlist">Получить идентификаторы из списка сессий</span>
                 <div id="notification"></div>
@@ -168,12 +169,12 @@
                     plan['id'] = obj.id;
                     plan['name'] = obj.name;
                     plan['description'] = '';
-                    plan['x'] = obj.BoxMin['z'];
-                    plan['y'] = obj.Center['x'];
-                    plan['z'] = obj.Center['y'];
-                    plan['sizex'] = Math.abs(obj.BoxMax.z - obj.BoxMin.z);
-                    plan['sizey'] = Math.abs(obj.BoxMax.x - obj.BoxMin.x);
-                    plan['sizez'] = Math.abs(obj.BoxMax.y - obj.BoxMin.y);
+                    plan['x'] = obj.Center['y'];
+                    plan['y'] = obj.BoxMin['z'];
+                    plan['z'] = obj.Center['x'];
+                    plan['sizex'] = Math.abs(obj.BoxMax.y - obj.BoxMin.y);
+                    plan['sizey'] = Math.abs(obj.BoxMax.z - obj.BoxMin.z);
+                    plan['sizez'] = Math.abs(obj.BoxMax.x - obj.BoxMin.x);
                     plan['angleRotateX'] = 0;
                     plan['angleRotateY'] = obj.Zangle;
                     plan['angleRotateZ'] = 0;
@@ -343,8 +344,6 @@
 
 		        //**дерево
 		        colladaObjects['landscape'] = [];
-		        console.log(colladaObjects);
-		        console.log(session);
 		        //**вершины
 		        verticesDict = {};
 		        verticesDict['element'] = [];
@@ -360,12 +359,12 @@
 		            landscape.Center = new THREE.Vector3(a['x'], a['y'], a['z']);
 		            landscape.BoxMin = bbox['min'];
 		            landscape.BoxMax = bbox['max'];
-		            session['layer']['x1'] = landscape.BoxMin['z'];
-		            session['layer']['y1'] = parseFloat(Math.round(landscape.BoxMin['x']).toFixed(0));
-		            session['layer']['z1'] = parseFloat(Math.round(landscape.BoxMin['y']).toFixed(0));
-		            session['layer']['x2'] = landscape.BoxMin['z'];
-		            session['layer']['y2'] = landscape.BoxMax['x'];
-		            session['layer']['z2'] = landscape.BoxMax['y'];
+		            session['layer']['x1'] = parseFloat(Math.round(landscape.BoxMin['y']).toFixed(0));//0z
+		            session['layer']['y1'] = parseFloat(Math.round(landscape.BoxMin['x']).toFixed(0));//0y
+		            session['layer']['z1'] = landscape.BoxMin['z'];//0x
+		            session['layer']['x2'] = landscape.BoxMax['y'];//149z2
+		            session['layer']['y2'] = landscape.BoxMax['x'];//149y2
+		            session['layer']['z2'] = landscape.BoxMin['z'];//0x
 		            //добавляем свойство Z angle
 		            setZangle(dae, landscape);
 		        //**наполняем building

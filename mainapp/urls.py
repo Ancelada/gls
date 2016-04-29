@@ -93,4 +93,9 @@ urlpatterns = patterns('',
 
 	# работа с роутерами, координаторами и т. д.
 	url(r'getobjectlistfromserver', 'mainapp.views.getobjectlistfromserver'),
+	# работа с сессиями
+	# информация от SP
+	url(r'getsessionsfromserver', 'mainapp.views.getsessionsfromserver'),
+	# информация от WS
+	url(r'getmysession', 'mainapp.views.getmysession'),
 )
