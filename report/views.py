@@ -31,6 +31,8 @@ def reportparameters(request, report=1):
 	args = {}
 	args['user'] = auth.get_user(request)
 	args['report'] = Report.objects.get(id=report)
+	report_uzone = ReportUzone.objects.get(Report_id=int(report))
+	report_structure = ReportStructure.objects.get(Report_id=int(report))
 	args['tags'] = Tag.objects.all()
 	# подбор параметров к отчету, заполнение html блоков отчета с параметрами
 	args['reportparameters'] = ReportParameter.objects.filter(Report_id=args['report'].id).values( \
@@ -137,6 +139,8 @@ def reportparameters(request, report=1):
 				# interval
 				strFrom = datetime.datetime.strptime(interval['from'], '%d-%m-%Y %H:%M')
 				strTo = datetime.datetime.strptime(interval['to'], '%d-%m-%Y %H:%M')
+				args['strFrom'] = strFrom
+				args['strTo'] = strTo
 				# structure
 				################
 				# проверка есть ли building, floor, kabinet
@@ -144,8 +148,10 @@ def reportparameters(request, report=1):
 					# (get all) no landscape, no building, no floors etc
 					#############################
 					args['chronology'] = getAll(strFrom, strTo, tag_id)
-					args['structure'] = render_to_string('structuretable.html', args)
-					return JsonResponse({'string': args['structure']})
+					args['structurelength'] = groupStructureByLength(args['chronology'])
+					args[report_structure.TemplateParameter] = \
+					 render_to_string(report_structure.TemplateFileName, args)
+					return JsonResponse({'string': args[report_structure.TemplateParameter]})
 				if 'structure' in str_n_uzone:
 					chronology = getAll(strFrom, strTo, tag_id)
 					#only landscape_id
@@ -155,29 +161,37 @@ def reportparameters(request, report=1):
 					  and  ('building_id' not in str_n_uzone['structure']) \
 					   and ('landscape_id' in str_n_uzone['structure']):
 						args['chronology'] = getByType('landscape_id', chronology, str_n_uzone)
-						args['structure'] = render_to_string('structuretable.html', args)
-						return JsonResponse({'string': args['structure']})
+						args['structurelength'] = groupStructureByLength(args['chronology'])
+						args[report_structure.TemplateParameter] = \
+					 render_to_string(report_structure.TemplateFileName, args)
+						return JsonResponse({'string': args[report_structure.TemplateParameter]})
 					#landscape_id, building_id
 					###############################
 					elif ('kabinet_id' not in str_n_uzone['structure']) \
 					 and('floor_id' not in str_n_uzone['structure']) \
 					  and('building_id' in str_n_uzone['structure']):
 					  	args['chronology'] = getByType('building_id', chronology, str_n_uzone)
-					  	args['structure'] = render_to_string('structuretable.html', args)
-					  	return JsonResponse({'string': args['structure']})
+					  	args['structurelength'] = groupStructureByLength(args['chronology'])
+				  		args[report_structure.TemplateParameter] = \
+					 render_to_string(report_structure.TemplateFileName, args)
+					  	return JsonResponse({'string': args[report_structure.TemplateParameter]})
 					#landscape_id, building_id, floor_id
 					###############################
 					if ('kabinet_id' not in str_n_uzone['structure']) \
 					 and ('floor_id' in str_n_uzone['structure']):
 						args['chronology'] = getByType('floor_id', chronology, str_n_uzone)
-						args['structure'] = render_to_string('structuretable.html', args)
-						return JsonResponse({'string': args['structure']})
+						args['structurelength'] = groupStructureByLength(args['chronology'])
+						args[report_structure.TemplateParameter] = \
+					 render_to_string(report_structure.TemplateFileName, args)
+						return JsonResponse({'string': args[report_structure.TemplateParameter]})
 					#landscape_id, building_id, floor_id, kabinet_id
 					###############################
 					if ('kabinet_id' in str_n_uzone['structure']):
 						args['chronology'] = getByType('kabinet_id', chronology, str_n_uzone)
-						args['structure'] = render_to_string('structuretable.html', args)
-						return JsonResponse({'string': args['structure']})
+						args['structurelength'] = groupStructureByLength(args['chronology'])
+						args[report_structure.TemplateParameter] = \
+					 render_to_string(report_structure.TemplateFileName, args)
+						return JsonResponse({'string': args[report_structure.TemplateParameter]})
 				# userzone
 				################
 				if 'uzone' in str_n_uzone:
@@ -186,22 +200,85 @@ def reportparameters(request, report=1):
 					if 'userzone' in str_n_uzone['uzone']:
 						if str_n_uzone['uzone']['userzone'] == 'all':
 							args['chronology'] = chronology
-							args['uzones'] = render_to_string('uzonetable.html', args)
+							args['uzonelength'] = groupUzoneByLength(args['chronology'])
+							args[report_uzone.TemplateParameter] = \
+							 render_to_string(report_uzone.TemplateFileName, args)
 						elif str_n_uzone['uzone']['userzone'] != 'all':
 							# указана зона пользователя
 							args['chronology'] = getUzoneByType('userzone', chronology, str_n_uzone)
-							args['uzones'] = render_to_string('uzonetable.html', args)
+							args['uzonelength'] = groupUzoneByLength(args['chronology'])
+							args[report_uzone.TemplateParameter] = \
+							 render_to_string(report_uzone.TemplateFileName, args)
 					# если не указана конкретная зона пользователя, отобразить перемещения по всем зонам
 					elif 'groupuzone' in str_n_uzone['uzone']:
 						if str_n_uzone['uzone']['groupuzone'] == 'all':
 							args['chronology'] = chronology
-							args['uzones'] = render_to_string('uzonetable.html', args)
+							args['uzonelength'] = groupUzoneByLength(args['chronology'])
+							args[report_uzone.TemplateParameter] = \
+							 render_to_string(report_uzone.TemplateFileName, args)
 						elif str_n_uzone['uzone']['groupuzone'] != 'all':
 							# указана группа зон пользователя
 							args['chronology'] = getUzoneByType('groupuzone', chronology, str_n_uzone)
-							args['uzones'] = render_to_string('uzonetable.html', args)
-					return JsonResponse({'string': args['uzones']})
+							args['uzonelength'] = groupUzoneByLength(args['chronology'])
+							args[report_uzone.TemplateParameter] = \
+							 render_to_string(report_uzone.TemplateFileName, args)
+					return JsonResponse({'string': args[report_uzone.TemplateParameter]})
 	return render(request, 'reportparameters.html', args)
+
+def groupUzoneByLength(chronology):
+	newArr = []
+	for i in chronology:
+		doubled = 0
+		if len(newArr) == 0:
+			ifKeyUzoneInArrayFind(i, newArr)
+		for j in newArr:
+			if i['eventtype'] == j['eventtype']:
+				if 'length' in i:
+					j['length'] += i['length']
+				doubled = 1
+		if doubled == 0:
+			if 'length' in i:
+				ifKeyUzoneInArrayFind(i, newArr)
+	return newArr
+
+def ifKeyUzoneInArrayFind(i, newArr):
+	if 'uzonename' in i:
+		newArr.append({'eventtype': i['eventtype'], 'landscapename': i['landscapename'], \
+			 'uzonename': i['uzonename'], 'gruzonename': i['gruzonename'], 'length': i['length'], \
+			  'color': i['color']})
+	else:
+		if 'length' in i:
+			newArr.append({'eventtype': i['eventtype'], 'length': i['length'], 'color': i['color']})
+
+def groupStructureByLength(chronology):
+	newArr = []
+	for i in chronology:
+		doubled = 0
+		if len(newArr) == 0:
+			ifKeyStructureInArrayFind(i, newArr)
+		for j in newArr:
+			if i['eventtype'] == j['eventtype']:
+				if 'length' in i:
+					j['length'] += i['length']
+				doubled = 1
+		if doubled == 0:
+			if 'length' in i:
+				ifKeyStructureInArrayFind(i, newArr)
+	return newArr
+
+def ifKeyStructureInArrayFind(i, newArr):
+	if 'landscapename' in i and 'buildingname' in i and 'floorname' in i and 'kabinetname' in i:
+		newArr.append({'eventtype': i['eventtype'], 'length': i['length'], 'color': i['color'], \
+			 'landscapename': i['landscapename'], 'buildingname': i['buildingname'], \
+			  'floorname': i['floorname'], 'kabinetname': i['kabinetname']})
+	elif 'landscapename' in i and 'buildingname' in i and 'floorname' in i \
+	 and not 'kabinetname' in i:
+		newArr.append({'eventtype': i['eventtype'], 'length': i['length'], 'color': i['color'], \
+		 'landscapename': i['landscapename'], 'buildingname': i['buildingname'], \
+		 'floorname': i['floorname']})
+	else:
+		if 'length' in i:
+			newArr.append({'eventtype': i['eventtype'], 'length': i['length'], 'color': i['color']})
 
 def getByType(Type, chronology, str_n_uzone):
 	newArr = []
@@ -227,9 +304,11 @@ def getUzoneByType(Type, chronology, str_n_uzone):
 def getAllUz(strFrom, strTo, tag_id, user):
 	turnonofftag = TurnOnOffTag.objects.filter(OnOffTime__gte=strFrom, OnOffTime__lte=strTo, \
 		 Tag_id=tag_id)
-	tagnouzone = TagNoUzone.objects.filter(Tag_id=tag_id, User_id=user)
-	taguzoneuserorder = TagUzoneUserOrder.objects.filter(Tag_id=tag_id, \
-		User_id=user).values('WriteTime', 'Tag_id', 'User_id', 'UserZone_id', 'UserZone__LoadLandscape_id')
+	tagnouzone = TagNoUzone.objects.filter(Tag_id=tag_id, User_id=user, WriteTime__gte=strFrom, \
+	 WriteTime__lte=strTo)
+	taguzoneuserorder = TagUzoneUserOrder.objects.filter(Tag_id=tag_id, WriteTime__gte=strFrom, \
+	 WriteTime__lte=strTo, User_id=user).values('WriteTime', 'Tag_id', \
+	  'User_id', 'UserZone_id', 'UserZone__LoadLandscape_id')
 	groupuserzoneuserzone = GroupUserZoneUserZone.objects.all()
 	#создаем словарь перемещений
 	chronology = []
@@ -237,12 +316,12 @@ def getAllUz(strFrom, strTo, tag_id, user):
 		#если включается-выключается метка
 		parameters = {'on': toot.OnOff, 'landscape_id': toot.LoadLandscape_id}
 		chronology.append({'time': toot.OnOffTime, 'table': 'turnonofftag', \
-		 'parameters': parameters})
+		 'parameters': parameters, 'landscapename': toot.LoadLandscape_id})
 	for tnuz in tagnouzone:
 		#если отсутствует uzone
 		parameters = {'landscape_id': tnuz.LoadLandscape_id}
 		chronology.append({'time': tnuz.WriteTime, 'table': 'tagnouzone', \
-			 'parameters': parameters})
+			 'parameters': parameters, 'landscapename': tnuz.LoadLandscape_id})
 	for tuuo in taguzoneuserorder:
 		#перемещения в зоны
 		for i in groupuserzoneuserzone:
@@ -255,13 +334,15 @@ def getAllUz(strFrom, strTo, tag_id, user):
 			gruzonename = uzoneName(gruzone_id, 'gruzone')
 		  	chronology.append({'time': tuuo['WriteTime'], 'gruzonename': gruzonename['groupuserzonename'], \
 		  	 'uzonename': uzonename['userzonename'], \
-		  	 'table': 'taguzoneuserorder', 'parameters': parameters})
+		  	 'table': 'taguzoneuserorder', 'parameters': parameters, \
+		  	  'landscapename': tuuo['UserZone__LoadLandscape_id']})
 		else:
 			parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
 			 'userzone': tuuo['UserZone_id']}
 			uzonename = uzoneName(tuuo['UserZone_id'], 'uzone')
 		  	chronology.append({'time': tuuo['WriteTime'], 'table': 'taguzoneuserorder', \
-		  		 'uzonename': uzonename['userzonename'], 'parameters': parameters})
+		  		 'uzonename': uzonename['userzonename'], 'parameters': parameters, \
+		  		  'landscapename': tuuo['UserZone__LoadLandscape_id']})
 	chronology = sorted(chronology, key=lambda k: k['time'])
 	# добавляем время до следующего события
 	no = 0
@@ -272,7 +353,7 @@ def getAllUz(strFrom, strTo, tag_id, user):
 	# добавляем поля eventtype, color тип события, цвет
 	for c in chronology:
 		if c['table'] == 'taguzoneuserorder':
-			c['eventtype'] = u'Переход в зону "%s"' %(c['uzonename'])
+			c['eventtype'] = u'Переход в зону %s' %(c['uzonename'])
 			c['color'] = 'c9c9ff'
 		elif c['table'] == 'turnonofftag' and c['parameters']['on'] == True:
 			c['eventtype'] = u'Включение метки'
@@ -347,10 +428,10 @@ def getAll(strFrom, strTo, tag_id):
 	# добавляем поля eventtype, color тип события, цвет
 	for c in chronology:
 		if c['table'] == 'tagkabinetorder':
-			c['eventtype'] = u'Переход в кабинет "%s"' %(c['kabinetname'])
+			c['eventtype'] = u'Переход в кабинет %s' %(c['kabinetname'])
 			c['color'] = 'c9c9ff'
 		elif c['table'] == 'tagfloororder':
-			c['eventtype'] = u'Перемещение на этаж "%s"' %(c['floorname'])
+			c['eventtype'] = u'Перемещение на этаж %s' %(c['floorname'])
 			c['color'] = 'feffa3'
 		elif c['table'] == 'turnonofftag' and c['parameters']['on'] == True:
 			c['eventtype'] = u'Включение метки'

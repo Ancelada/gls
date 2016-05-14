@@ -23,7 +23,22 @@ class ParameterAdmin(admin.ModelAdmin):
 		('Наименование', {'fields': ['Name']}),
 		('dom наименование', {'fields': ['domName']}),
 	]
+class ReportUzoneAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование параметра к template файлу', {'fields': ['TemplateParameter']}),
+		('Наименование template файла', {'fields': ['TemplateFileName']}),
+		('Отчет', {'fields': ['Report']}),
+	]
+
+class ReportStructureAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование параметра к template файлу', {'fields': ['TemplateParameter']}),
+		('Наименование template файла', {'fields': ['TemplateFileName']}),
+		('Отчет', {'fields': ['Report']}),
+	]
 # Register your models here.
+admin.site.register(ReportUzone, ReportUzoneAdmin)
+admin.site.register(ReportStructure, ReportStructureAdmin)
 admin.site.register(Report, ReportAdmin)
 admin.site.register(ReportUser, ReportUserAdmin)
 admin.site.register(ReportParameter, ReportParameterAdmin)

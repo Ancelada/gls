@@ -36,3 +36,21 @@ class ReportParameter(models.Model):
 		db_table = 'ReportParameter'
 	Parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE)
 	Report = models.ForeignKey(Report, on_delete=models.CASCADE)
+
+class ReportUzone(models.Model):
+	class Meta():
+		db_table = 'ReportUzone'
+	TemplateParameter = models.CharField(max_length=200)
+	TemplateFileName = models.CharField(max_length=200)
+	Report = models.ForeignKey(Report, on_delete=models.CASCADE)
+	def __str__(self):
+		return self.TemplateFileName.encode('utf-8')
+
+class ReportStructure(models.Model):
+	class Meta():
+		db_table = 'ReportStructure'
+	TemplateParameter = models.CharField(max_length=200)
+	TemplateFileName = models.CharField(max_length=200)
+	Report = models.ForeignKey(Report, on_delete=models.CASCADE)
+	def __str__(self):
+		return self.TemplateFileName.encode('utf-8')

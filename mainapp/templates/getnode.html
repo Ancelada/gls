@@ -1,0 +1,83 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% if username %}
+		<h1>Корректировка информации node: "{{node_name}}"</h1>
+		<a href="/nodes">Назад к списку Nodes</a>
+			<div id="success">
+				
+			</div>
+		{% for i in node %}
+			<label for="nodename">Наименование
+				<input type="text" value="{{i.Node__Name}}" id="nodename">	
+			</label>
+			<label for="nodedescription">Описание
+				<textarea name="" cols="30" rows="10" id="nodedescription">{{i.Node__Description}}</textarea>	
+			</label>
+			<label for="serverid">server_id
+				<input type="text" id="serverid" value="{{i.Node__server_id}}" disabled="disabled">
+			</label>
+			<label for="serveridhex">id_hex
+				<input type="text" id="serveridhex" value="{{i.Node__id_hex}}">
+			</label>
+			<div id="error"></div>
+			<label for="tagid">
+				<select name="" id="tagid">
+					{% for t in tags %}
+						<option value="{{t.TagId}}" {% if i.Tag_id == t.TagId %}selected="selected"{% endif %}>{{t.TagId}}</option>
+					{% endfor %}
+				</select>
+			</label>
+			<button class="button" id="save">Сохранить</button>
+		{% endfor %}
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif %}
+	<script>
+		var node;
+		node = parseInt('{{nodeid}}');
+		$('body').delegate('#save', 'click', function(){
+			parameters = {};
+			parameters['name'] = $('#nodename').val();
+			parameters['description'] = $('#nodedescription').val();
+			parameters['id_hex'] = $('#serveridhex').val();
+			parameters['tagid'] = $('#tagid')[0].value;
+			parameters['method'] = 'save';
+ 			sendAjax(parameters);
+		});
+		$('#serveridhex').on('keyup', function(){
+			$('#error').html('');
+			parameters = {};
+			parameters['method'] = 'checkhex';
+			parameters['string'] = $('#serveridhex').val();
+			sendAjax(parameters);
+		});
+		function sendAjax(parameters){
+			$.ajax({
+				type: "POST",
+				url: "/getnode/"+node,
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					if (parameters['method'] == 'checkhex'){
+						if (data['string'] != 0){
+							$('#error').html('<span class="label alert">'+data['string']+'</span>');	
+						}
+					} else if(parameters['method'] == 'save'){
+						if ('success' in data['string']){
+							$('#success').html('<span class="label success">' + data['string']['success']+'</span>');
+						} else if ('error' in data['string']){
+							$('#error').html('<span class="label alert">'+data['string']['error']+'</span>');
+						}
+					}
+					console.log(data);
+				}
+			});
+		}
+	</script>
+{% endblock %}

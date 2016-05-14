@@ -11,18 +11,77 @@
 		<div id="mysessiondetail">
 			{{mysessiondetail}}
 		</div>
+		<div id="differencetable">
+			{{differencetable}}
+		</div>
 	{% else %}
 	  <div class="row">
     	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
   	</div>
 	{% endif%}
 	<script>
+		var plans_only_in_ws;
+		var landscape_id;
+		//jnrорректировать параметры layer
+		$('#differencetable').delegate('#correctlayer', 'click', function(){
+			parameters['method'] = 'correctlayer';
+			parameters['layer_id'] = parseInt($(this).attr('data-id'));
+			parameters['field'] = $(this).attr('data-field');
+			parameters['value'] = $(this).attr('data-value');
+			parameters['session_id'] = parseInt($(this).attr('data-session'));
+			sendRequest(parameters);
+		});
+
+		//есть ws нет sp, отправить объекты на sp
+		$('#differencetable').delegate('#sendtosp', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendtosp';
+			parameters['plans'] = plans_only_in_ws;
+			parameters['sp_session_id'] = parseInt($(this).attr('data-session'));
+			parameters['landscape_id'] = landscape_id;
+			sendRequest(parameters);
+		});
+		// откорректировать PlansTree
+		$('#differencetable').delegate('#correcttree', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'correcttree';
+			parameters['id'] = parseInt($(this).attr('data-id'));
+			parameters['parent'] = parseInt($(this).attr('data-parent'));
+			parameters['session_id'] = parseInt($(this).attr('data-session'));
+			parameters['layer_id'] = parseInt($(this).attr('data-layer'));
+			parameters['session_name'] = $(this).attr('data-sessionname');
+			sendRequest(parameters);
+		});
+
+		//откорректировать поле Plans
+		$('#differencetable').delegate('#correct', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'correct';
+			parameters['id'] = $(this).attr('data-id');
+			parameters['field'] = $(this).attr('data-field');
+			parameters['value'] = $(this).attr('data-value');
+			parameters['session_id'] = $(this).attr('data-session');
+			parameters['layer_id'] = $(this).attr('data-layer');
+			parameters['parent'] = $(this).attr('data-parent');
+			parameters['session_name'] = $(this).attr('data-sessionname');
+			sendRequest(parameters);
+		});
+
+		//расхождения между ws с sp
+		$('#mysessiontable').delegate('#getdifferences', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'getdifferences';
+			parameters['session_id'] = parseInt($(this).attr('data-id'));
+			sendRequest(parameters);
+		});
+
+		//список сессий ws
 		$('body').delegate('#getlistsessions', 'click', function(){
 			parameters = {}
 			parameters['method'] = 'mysessiontable';
 			sendRequest(parameters);
 		});
-
+		//элемениы сессии ws
 		$('body').delegate('#getsessiondetail', 'click', function(){
 			parameters = {};
 			parameters['method'] = 'mysessiondetail';
@@ -49,6 +108,16 @@
 					} else if (parameters['method'] == 'mysessiondetail'){
 						$('#mysessiondetail').html(data['string']);
 					} else if (parameters['method'] == 'sendtosp'){
+						console.log(data);
+					} else if (parameters['method'] == 'getdifferences'){
+						$('#differencetable').html(data['string']);
+					} else if (parameters['method'] == 'correct') {
+						console.log(data);
+					} else if (parameters['method'] == 'sendtosp') {
+						console.log(data);
+					} else if (parameters['method'] == 'correcttree'){
+						console.log(data);
+					} else if (parameters['method'] == 'correctlayer'){
 						console.log(data);
 					}
 				}

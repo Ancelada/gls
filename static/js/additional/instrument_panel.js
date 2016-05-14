@@ -39,6 +39,17 @@ $('#objecttable').delegate('#linkobjecttostatic', 'click', function(){
 });
 
 //***********************************
+//отвязать конкретный объект от статики
+$('#objecttable').delegate('#unlinkobject', 'click', function(){
+	parameters = {};
+	parameters['static_type'] = $(this).attr('data-type');
+	parameters['obj_id'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'unlinkobject';
+	objectTable(parameters);
+});
+
+//***********************************
 //*Отправить конкретный объект на сервер
 //команда обновить
 $('body').delegate('#sendobjectupdatetoserver', 'click', function(){

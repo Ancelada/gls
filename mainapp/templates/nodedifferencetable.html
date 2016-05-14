@@ -1,0 +1,88 @@
+{% load poll_extras %}
+{% if success %}
+	<span class="label success">{{success}}</span>
+{% endif %}
+{% if error %}
+	<span class="label alert">{{error}}</span>
+{% endif %}
+<h3>Есть WS и SP</h3>
+<table>
+	<thead>
+		<tr>
+			<th>type</th>
+			<th>id</th>
+			<th>name</th>
+			<th>description</th>
+			<th>tagId</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for i in ws %}
+			{% for j in sp %}
+				{% if i.id == j.id %}
+					<tr>
+						<td>WS</td>
+						<td>{{i.id}}</td>
+						<td {% if i.name != j.name %}style="background:#fb9f9f;"{% endif %}>{{i.name}}{% if i.name != j.name %}<br><button class="button secondary">Откорректировать</button>{% endif %}</td>
+						<td {% if i.description != j.description %}style="background:#fb9f9f;"{% endif %}>{{i.description}}{% if i.description != j.description %}<br><button class="button secondary">Откорректировать</button>{% endif %}</td>
+						<td>{{i.tagId|longHexToSmall}}</td>
+					</tr>
+					<tr>
+						<td>SP</td>
+						<td>{{j.id}}</td>
+						<td>{{j.name}}</td>
+						<td>{{j.description}}</td>
+						<td>{{j.tagId|longHexToSmall}}</td>
+					</tr>
+				{% endif %}
+			{% endfor %}
+		{% endfor %}
+	</tbody>
+</table>
+{% if haveinsp|length > 0 %}
+	<h3>Отсутствуют в WS</h3>
+	<table>
+		<thead>
+			<th>id</th>
+			<th>name</th>
+			<th>description</th>
+			<th>tagId</th>
+			<th>действие</th>
+		</thead>
+		<tbody>
+			{% for i in haveinsp %}
+				<tr>
+					<td>{{i.id}}</td>
+					<td>{{i.name}}</td>
+					<td>{{i.description}}</td>
+					<td>{{i.tagId}}</td>
+					<td>
+						<button class="button alert" id="delete" data-id="{{i.id}}">Удалить</button>
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endif %}
+{% if haveinws|length > 0 %}
+	<h3>Отсутствуют в SP</h3>
+	<table>
+		<thead>
+			<th>id</th>
+			<th>name</th>
+			<th>description</th>
+			<th>tagId</th>
+		</thead>
+		<tbody>
+			{% for i in haveinws %}
+				<td>{{i.id}}</td>
+				<td>{{i.name}}</td>
+				<td>{{i.description}}</td>
+				<td>{{i.tagId}}</td>
+			{% endfor %}
+		</tbody>
+	</table>
+	<script>
+		$('#nodedifferencetable').foundation();
+	</script>
+{% endif %}

@@ -1,0 +1,347 @@
+{% load jsonify %}
+<h3>session</h3>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>id</th>
+			<th>name</th>
+			<th>idLayer</th>
+			<th>inuse</th>
+		</tr>
+		<tbody>
+				<tr>
+					<td>{{session_ws.id}}</td>
+					<td>{{session_ws.name}}</td>
+					<td>{{session_ws.idLayer}}</td>
+					<td>{{session_ws.inuse}}</td>
+				</tr>
+				<tr>
+					<td>{{session_sp.id}}</td>
+					<td>{{session_sp.name}}</td>
+					<td>{{session_sp.idLayer}}</td>
+					<td>{{session_sp.inuse}}</td>
+				</tr>
+		</tbody>
+	</thead>
+</table>
+
+<h3>layer</h3>
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>id</th>
+			<th>name</th>
+			<th>latitude1</th>
+			<th>longitude1</th>
+			<th>height1</th>
+			<th>x1</th>
+			<th>y1</th>
+			<th>z1</th>
+			<th>latitude2</th>
+			<th>longitude2</th>
+			<th>height2</th>
+			<th>x2</th>
+			<th>y2</th>
+			<th>z2</th>
+			<th>scaleX</th>
+			<th>scaleY</th>
+		</tr>
+		<tbody>
+				<tr>
+					<td>{{layer_ws.id}}</td>
+
+					<td {% if layer_ws.name != layer_sp.name %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.name}}{% if layer_ws.name != layer_sp.name %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="name" data-value="{{layer_ws.name}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif%}</td>
+
+					<td {% if layer_ws.latitude1 != layer_sp.latitude1 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.latitude1}}{% if layer_ws.latitude1 != layer_sp.latitude1 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="latutude1" data-value="{{layer_ws.latitude}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.longitude1 != layer_sp.longitude1 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.longitude1}}{% if layer_ws.longitude1 != layer_sp.longitude1 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="longitude1" data-value="{{layer_ws.longitude1}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.height1 != layer_sp.height1 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.height1}}{% if layer_ws.height1 != layer_sp.height1 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="height1" data-value="{{layer_ws.height}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.x1|floatformat:2 != layer_sp.x1|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.x1|floatformat:2}}{% if layer_ws.x1|floatformat:2 != layer_sp.x1|floatformat:2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="x1" data-value="{{layer_ws.x1}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.y1|floatformat:2 != layer_sp.y1|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.y1|floatformat:2}}{% if layer_ws.y1|floatformat:2 != layer_sp.y1|floatformat:2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="y1" data-value="{{layer_ws.y1}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.z1|floatformat:2 != layer_sp.z1|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.z1|floatformat:2}}{% if layer_ws.z1|floatformat:2 != layer_sp.z1|floatformat:2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="z1" data-value="{{layer_ws.z1}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.latitude2 != layer_sp.latitude2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.latitude2}}{% if layer_ws.latitude2 != layer_sp.latitude2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="latitude2" data-value="{{layer_ws.latitude2}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.longitude2 != layer_sp.longitude2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.longitude2}}{% if layer_ws.longitude2 != layer_sp.longitude2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="longitude2" data-value="{{layer_ws.longitude2}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.height2 != layer_sp.height2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.height2}}{% if layer_ws.height2 != layer_sp.height2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="height2" data-value="{{layer_ws.height2}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.x2|floatformat:2 != layer_sp.x2|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.x2|floatformat:2}}{% if layer_ws.x2|floatformat:2 != layer_sp.x2|floatformat:2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="x2" data-value="{{layer_ws.x2}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.y2|floatformat:2 != layer_sp.y2|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.y2|floatformat:2}}{% if layer_ws.y2|floatformat:2 != layer_sp.y2|floatformat:2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="y2" data-value="{{layer_ws.y2}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.z2|floatformat:2 != layer_sp.z2|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.z2|floatformat:2}}{% if layer_ws.z2|floatformat:2 != layer_sp.z2|floatformat:2 %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="z2" data-value="{{layer_ws.z2}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.scaleX != layer_sp.scaleX %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.scaleX}}{% if layer_ws.scaleX != layer_sp.scaleX %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="scaleX" data-value="{{layer_ws.scaleX}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if layer_ws.scaleY != layer_sp.scaleY %}style="background:#fb9f9f;"{% endif %}>{{layer_ws.scaleY}}{% if layer_ws.scaleY != layer_sp.scaleY %}<button class="button secondary" id="correctlayer" data-id="{{layer_ws.id}}" data-field="scaleY" data-value="{{layer_ws.scaleY}}" data-session="{{session_ws.id}}">Откорректировать</button>{% endif %}</td>
+				</tr>
+				<tr>
+					<td>{{layer_sp.id}}</td>
+					<td>{{layer_sp.name}}</td>
+					<td>{{layer_sp.latitude1}}</td>
+					<td>{{layer_sp.longitude1}}</td>
+					<td>{{layer_sp.height1}}</td>
+					<td>{{layer_sp.x1|floatformat:2}}</td>
+					<td>{{layer_sp.y1|floatformat:2}}</td>
+					<td>{{layer_sp.z1|floatformat:2}}</td>
+					<td>{{layer_sp.latitude2}}</td>
+					<td>{{layer_sp.longitude2}}</td>
+					<td>{{layer_sp.height2}}</td>
+					<td>{{layer_sp.x2|floatformat:2}}</td>
+					<td>{{layer_sp.y2|floatformat:2}}</td>
+					<td>{{layer_sp.z2|floatformat:2}}</td>
+					<td>{{layer_sp.scaleX}}</td>
+					<td>{{layer_sp.scaleY}}</td>
+				</tr>
+		</tbody>
+	</thead>
+</table>
+<!-- есть в ws и sp -->
+<h3> есть plans в ws и sp</h3>
+{% for i in plans_ws %}
+	{% for j in plans_sp %}
+		{% if i.id == j.id %}
+<table class="large-12 small-12 columns">
+	<thead>
+		<tr>
+			<th>id</th>
+			<th>name</th>
+			<th>description</th>
+			<th>x</th>
+			<th>y</th>
+			<th>z</th>
+			<th>sizeX</th>
+			<th>sizeY</th>
+			<th>sizeZ</th>
+			<th>angleRotateX</th>
+			<th>angleRotateY</th>
+			<th>angleRotateZ</th>
+			<th>objType</th>
+		</tr>
+		<tbody>
+				<tr>
+					<td>{{i.id}}</td>
+
+					<td {% if i.name != j.name %}style="background:#fb9f9f;"{% endif %}>{{i.name}}
+					{% if i.name != j.name %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="name" data-value="{{i.name}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+
+					</td>
+
+					<td {% if i.description != j.description %}style="background:#fb9f9f;"{% endif%}>{{i.description}}
+					{% if i.description != j.description %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="description" data-value="{{i.description}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.x|floatformat:2 != j.x|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.x|floatformat:2}}{% if i.x|floatformat:2 != j.x|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="x" data-value="{{i.x}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.y|floatformat:2 != j.y|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.y|floatformat:2}}{% if i.y|floatformat:2 != j.y|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="y" data-value="{{i.y}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.z|floatformat:2 != j.z|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.z|floatformat:2}}{% if i.z|floatformat:2 != j.z|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="z" data-value="{{i.z}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.sizeX|floatformat:2 != j.sizeX|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.sizeX|floatformat:2}}{% if i.sizeX|floatformat:2 != j.sizeX|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="sizeX" data-value="{{i.sizeX}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}</td>
+
+					<td {% if i.sizeY|floatformat:2 != j.sizeY|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.sizeY|floatformat:2}}{% if i.sizeY|floatformat:2 != j.sizeY|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="sizeY" data-value="{{i.sizeY}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.sizeZ|floatformat:2 != j.sizeZ|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.sizeZ|floatformat:2}}{% if i.sizeZ|floatformat:2 != j.sizeZ|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="sizeZ" data-value="{{i.sizeZ}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.angleRotateX|floatformat:2 != j.angleRotateX|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.angleRotateX|floatformat:2}}{% if i.angleRotateX|floatformat:2 != j.angleRotateX|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="angleRotateX" data-value="{{i.angleRotateX}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.angleRotateY|floatformat:2 != j.angleRotateY|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.angleRotateY}}{% if i.angleRotateY|floatformat:2 != j.angleRotateY|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="angleRotateY" data-value="{{i.angleRotateY}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.angleRotateZ|floatformat:2 != j.angleRotateZ|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{i.angleRotateZ|floatformat:2}}{% if i.angleRotateZ|floatformat:2 != j.angleRotateZ|floatformat:2 %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="angleRotateZ" data-value="{{i.angleRotateZ}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+
+					<td {% if i.objType != j.objType %}style="background:#fb9f9f;"{% endif %}>{{i.objType}}{% if i.objType != j.objType %}<button class="button secondary" id="correct" data-id="{{i.id}}" data-field="objType" data-value="{{i.objType}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" {% for x in plansTree_ws %}{% if x.id == i.id %}data-parent="{{x.idParent}}"{% endif %}{% endfor%} data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+					</td>
+				</tr>
+				<tr>
+					<td>{{j.id}}</td>
+					<td {% if i.name != j.name %}style="background:#fb9f9f;"{% endif %}>{{j.name}}</td>
+					<td>{{j.description}}</td>
+					<td {% if i.x|floatformat:2 != j.x|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.x|floatformat:2}}</td>
+					<td {% if i.y|floatformat:2 != j.y|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.y|floatformat:2}}</td>
+					<td {% if i.z|floatformat:2 != j.z|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.z|floatformat:2}}</td>
+					<td {% if i.sizeX|floatformat:2 != j.sizeX|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.sizeX|floatformat:2}}</td>
+					<td {% if i.sizeY|floatformat:2 != j.sizeY|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.sizeY|floatformat:2}}</td>
+					<td {% if i.sizeZ|floatformat:2 != j.sizeZ|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.sizeZ|floatformat:2}}</td>
+					<td {% if i.angleRotateX|floatformat:2 != j.angleRotateX|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.angleRotateX|floatformat:2}}</td>
+					<td {% if i.angleRotateY|floatformat:2 != j.angleRotateY|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.angleRotateY|floatformat:2}}</td>
+					<td {% if i.angleRotateZ|floatformat:2 != j.angleRotateZ|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{j.angleRotateZ|floatformat:2}}</td>
+					<td {% if i.objType != j.objType %}style="background:#fb9f9f;"{% endif %}>{{j.objType}}</td>
+				</tr>
+		</tbody>
+	</thead>
+</table>
+		{% endif %}
+	{% endfor %}
+{% endfor %}
+<!-- есть только в ws -->
+{% if plans_only_in_ws|length > 0 %}
+	<h3>есть plans только в ws</h3>
+	{% for i in plans_only_in_ws %}
+	<table class="large-12 small-12 columns">
+		<thead>
+			<tr>
+				<th>id</th>
+				<th>name</th>
+				<th>description</th>
+				<th>x</th>
+				<th>y</th>
+				<th>z</th>
+				<th>sizeX</th>
+				<th>sizeY</th>
+				<th>sizeZ</th>
+				<th>angleRotateX</th>
+				<th>angleRotateY</th>
+				<th>angleRotateZ</th>
+				<th>objType</th>
+			</tr>
+			<tbody>
+					<tr>
+						<td>{{i.id}}</td>
+						<td>{{i.name}}</td>
+						<td>{{i.description}}</td>
+						<td>{{i.x}}</td>
+						<td>{{i.y}}</td>
+						<td>{{i.z}}</td>
+						<th>{{i.sizeX}}</th>
+						<th>{{i.sizeY}}</th>
+						<th>{{i.sizeZ}}</th>
+						<th>{{i.angleRotateX}}</th>
+						<th>{{i.angleRotateY}}</th>
+						<th>{{i.angleRotateZ}}</th>
+						<th>{{i.objType}}</th>
+					</tr>
+			</tbody>
+		</thead>
+	</table>
+	<button class="button" id="sendtosp" data-session="{{session_sp.id}}">Отправить на sp</button>
+	{% endfor %}
+{% endif%}
+<!-- есть plans только в sp -->
+{% if plans_only_in_sp|length > 0 %}
+	<h3>есть plans только в sp</h3>
+	{% for i in plans_only_in_sp %}
+	<table class="large-12 small-12 columns">
+		<thead>
+			<tr>
+				<th>id</th>
+				<th>name</th>
+				<th>description</th>
+				<th>x</th>
+				<th>y</th>
+				<th>z</th>
+				<th>sizeX</th>
+				<th>sizeY</th>
+				<th>sizeZ</th>
+				<th>angleRotateX</th>
+				<th>angleRotateY</th>
+				<th>angleRotateZ</th>
+				<th>objType</th>
+			</tr>
+			<tbody>
+					<tr>
+						<td>{{i.id}}</td>
+						<td>{{i.name}}</td>
+						<td>{{i.description}}</td>
+						<td>{{i.x}}</td>
+						<td>{{i.y}}</td>
+						<td>{{i.z}}</td>
+						<th>{{i.sizeX}}</th>
+						<th>{{i.sizeY}}</th>
+						<th>{{i.sizeZ}}</th>
+						<th>{{i.angleRotateX}}</th>
+						<th>{{i.angleRotateY}}</th>
+						<th>{{i.angleRotateZ}}</th>
+						<th>{{i.objType}}</th>
+					</tr>
+			</tbody>
+		</thead>
+	</table>
+	{% endfor %}
+{% endif%}
+<!-- есть  plansTree в ws и sp-->
+<h3>есть  plansTree в ws и sp</h3>
+{% for i in plansTree_ws %}
+	{% for j in plansTree_sp %}
+		{% if i.id == j.id %}
+		<table class="large-12 small-12 columns">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>idParent</th>
+				</tr>
+				<tbody>
+						<tr>
+							<td>{{i.id}}</td>
+							<td {% if i.idParent != j.idParent %}style="background:#fb9f9f;"{% endif %}>
+							{{i.idParent}}{% if i.idParent != j.idParent %}<button class="button secondary" id="correcttree" data-id="{{i.id}}" data-parent="{{i.idParent}}" data-session="{{session_ws.id}}" data-layer="{{session_ws.idLayer}}" data-sessionname="{{session_ws.name}}">Откорректировать</button>{% endif %}
+							</td>
+						</tr>
+						<tr>
+							<td>{{j.id}}</td>
+							<td  {% if i.idParent != j.idParent %}style="background:#fb9f9f;"{% endif %}>
+							{{j.idParent}}
+							</td>	
+						</tr>
+				</tbody>
+			</thead>
+		</table>
+		{% endif %}
+	{% endfor %}
+{% endfor %}
+<!-- есть plansTree только в ws -->
+{% if plansTree_only_in_ws|length > 0 %}
+	<h3>есть plansTree только в ws</h3>
+	{% for i in plansTree_only_in_ws %}
+		<table class="large-12 small-12 columns">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>idParent</th>
+				</tr>
+				<tbody>
+						<tr>
+							<td>{{i.id}}</td>
+							<td>{{i.idParent}}</td>
+						</tr>
+				</tbody>
+			</thead>
+		</table>
+	{% endfor %}
+{% endif %}
+<!-- есть plansTree только в sp -->
+{% if plansTree_only_in_sp|length > 0 %}
+	<h3>есть plansTree только в sp</h3>
+	{% for i in plansTree_only_in_sp %}
+		<table class="large-12 small-12 columns">
+			<thead>
+				<tr>
+					<th>id</th>
+					<th>idParent</th>
+				</tr>
+				<tbody>
+						<tr>
+							<td>{{i.id}}</td>
+							<td>{{i.idParent}}</td>
+						</tr>
+				</tbody>
+			</thead>
+		</table>
+	{% endfor %}
+{% endif %}
+<script>
+	$('#differencetable').foundation();
+	plans_only_in_ws = JSON.parse('{{plans_only_in_ws|jsonify}}');
+</script>

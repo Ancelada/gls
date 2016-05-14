@@ -23,6 +23,7 @@
 						{% for b in buildings %}
 							{% if b.id == ob.Building_id %}
 								Привязан: {% if b.BuildingName != None %}{{b.BuildingName}}{%else%}{{b.dae_BuildingName}}{% endif%}
+								<a href="#" id="unlinkobject" data-type="building" data-id="{{o.id}}">Отвязать</a>
 							{% endif %}
 						{% endfor%}
 					{% endif %}
@@ -32,6 +33,7 @@
 						{% for f in floors %}
 							{% if f.id == of.Floor_id %}
 								Привязан: {% if f.FloorName != None %}{{f.FloorName}}{% else %}{{f.dae_FloorName}}{% endif %}
+								<a href="#" id="unlinkobject" data-type="floor" data-id="{{o.id}}">Отвязать</a>
 							{% endif %}
 						{% endfor %}
 					{% endif %}
@@ -41,6 +43,7 @@
 						{% for k in kabinet_n_outer %}
 							{% if k.id == ok.Kabinet_id %}
 								Привязан: {% if k.Kabinet_n_OuterName != None %}{{k.Kabinet_n_OuterName}}{% else %}{{k.dae_Kabinet_n_OuterName}}{% endif %}
+								<a href="#" id="unlinkobject" data-type="kabinet" data-id="{{o.id}}">Отвязать</a>
 							{% endif %}
 						{% endfor %}
 					{% endif %}

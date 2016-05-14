@@ -12,9 +12,17 @@
 			</select>
 		</label>
 		<fieldset class="large-12 small-12 columns">
-			<legend>Показать расхождение между ВС и СП</legend>
-			<input id="difference" type="checkbox">	
+			<label for="difference">Показать расхождение между WS и SP
+				<input id="difference" type="checkbox">	
+			</label>
 		</fieldset>
+		<label for="landscapeselect">Сцена
+			<select name="" id="landscapeselect">
+				{% for l in LoadLandscape %}
+					<option value="{{l.server_id}}" data-id="{{l.landscape_id}}">{{l.landscape_name}}</option>
+				{% endfor %}
+			</select>
+		</label>
 		<button class="button secondary" id="sendquery">Отправить запрос</button>
 			<div id="getlisttable">
 				{{getlisttable}}
@@ -26,20 +34,34 @@
 	{% endif%}
 	<script>
 		objects = [];
+		var landscape_id;
+		//откорректировать anchors masterAnchors
+		$('#getlisttable').delegate('#correctobject', 'click', function(){
+			parameters = {};
+			parameters['obj_id'] = $(this).attr('data-id');
+			parameters['method'] = 'correctobject';
+			parameters['landscape_id'] = $('#landscapeselect option:selected')[0].dataset['id'];
+			sendAjax(parameters);
+		});
+
 		$('#sendquery').on('click', function(){
 			if ($('#difference')[0].checked == false ){
+				$('#getlisttable').html('');
 				//получить json список объектов конкретного типа
 				obj_type = parseInt($('#objecttype option:selected')[0].value);
 				parameters = {};
 				parameters['method'] = 'sendrequest';
 				parameters['obj_type'] = obj_type;
+				parameters['sp_layer_id'] = parseInt($('#landscapeselect option:selected')[0].value);
 				sendAjax(parameters);
 			} else {
+				$('#getlisttable').html('');
 				//получить списки расхождений
 				obj_type = parseInt($('#objecttype option:selected')[0].value);
 				parameters = {};
 				parameters['method'] = 'difference';
 				parameters['obj_type'] = obj_type;
+				parameters['sp_layer_id'] = parseInt($('#landscapeselect option:selected')[0].value);
 				sendAjax(parameters);
 			}
 		});
@@ -49,7 +71,7 @@
 			obj_type = parseInt($('#objecttype option:selected')[0].value);
 			parameters['obj_type'] = obj_type;
 			parameters['objects'] = objects;
-			console.log(parameters['objects']);
+			parameters['server_id'] = parseInt($('#landscapeselect option:selected')[0].value);
 			$.ajax({
 				type: "POST",
 				url: "/getobjectlistfromserver",
@@ -71,8 +93,17 @@
 				dataType: "json",
 				async: true,
 				success: function(data, textStatus, jqXHR){
-					$('#getlisttable').html(data['string']);
-					objects = data['arr'];
+					if (parameters['method'] == 'correctobject'){
+						$('#getlisttable').html(data['string']);
+						objects = data['arr'];	
+					} else if (parameters['method'] == 'difference') {
+						$('#getlisttable').html(data['string']);
+						objects = data['arr'];
+					} else {
+						console.log(data);
+						$('#getlisttable').html(data['string']);
+						objects = data['arr'];
+					}
 				}
 			});
 		}

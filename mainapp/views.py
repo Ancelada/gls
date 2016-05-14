@@ -161,7 +161,8 @@ def fillStatic():
 	landscape = LoadLandscape.objects.all()
 	users = User.objects.all()
 	for l in landscape:
-		static.append({'landscape_id': l.landscape_id, 'buildings': [], 'userzones': []})
+		static.append({'landscape_id': l.landscape_id, 'buildings': [], 'userzones': [], \
+		 'session_id': l.session_id})
 		for i in static:
 			if i['landscape_id'] == l.landscape_id:
 				#прежде чем заполнить статику, заполняем зоны пользователя на каждой сцене
@@ -533,6 +534,7 @@ def findMatchingUserZone(obj, landscape_id):
 									user['UserZoneLocation'] = {'id': i['id'], 'type': 'inuzone'}
 									#очищаем Candidate и IncomeZones
 									del user['candidate'][:]
+								i['cron'] = 0
 				#проверка если candidate incomezone отсутствует в incomezone cron == 20, 
 				# matchCount > 15
 				elif i['cron'] == 20 and i['matchCount']>15:
@@ -550,10 +552,12 @@ def findMatchingUserZone(obj, landscape_id):
 								pass
 							#очищаем Candidate и IncomeZones
 							del user['candidate'][:]
+							i['cron'] = 0
 					else:
 						user['UserZoneLocation'] = {'id': i['id'], 'type': 'inuzone'}
 						#очищаем Candidate и IncomeZones
 						del user['candidate'][:]
+						i['cron'] = 0
 		# добавить userzones в candidate
 		user_id = user['user_id']
 		for s in static:
@@ -729,8 +733,8 @@ def findMatchingKabinet(obj, landscape_id):
 				# фиксация попадания floor на этаж, если отсутствует kabinet
 				for floor in building['floors']:
 					#если нет candidates, есть зона входа floor, noLocation.cron = 6
-					if (obj['noLocation']['cron'] == 6 and 'candidate' in obj and \
-					 len(obj['candidate']) == 0) or (obj['noLocation']['cron'] == 6 and \
+					if (obj['noLocation']['cron'] == 4 and 'candidate' in obj and \
+					 len(obj['candidate']) == 0) or (obj['noLocation']['cron'] == 4 and \
 					  not 'candidate' in obj):
 						floorincomezone = floor['IncomeZones']
 						inZone = 0
@@ -758,8 +762,8 @@ def findMatchingKabinet(obj, landscape_id):
 										pass
 								obj['noLocation']['cron'] = 0
 					# если нет candidates, нет зоны входа floor, noLocation.cron > 20
-					if (obj['noLocation']['cron'] > 20 and 'candidate' in obj and \
-					 len(obj['candidate']) == 0) or (obj['noLocation']['cron'] > 20 and \
+					if (obj['noLocation']['cron'] > 10 and 'candidate' in obj and \
+					 len(obj['candidate']) == 0) or (obj['noLocation']['cron'] > 10 and \
 					  not 'candidate' in obj):
 						# проверяем, входит ли вектор во floor
 						if inObject(floor, x, y, z):
@@ -1049,14 +1053,37 @@ def receive_slmp(request):
 			line = line[2]
 			line = line.split(',')
 			for i in line:
-				dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': int(line[10], 16)}
+				if len(static)> 0:
+					for s in static:
+						if s['session'] == int(line[10], 16):
+							dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), \
+							 'z': float(line[6]), 'zone':line[8], 'zone_id': s['landscape_id']}
+							break
+				else:
+					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), \
+							 'z': float(line[6]), 'zone':line[8], 'zone_id': int(line[10], 16)}
 		# second and other lines
 		else:
 			line = line[0].split('\r\n')
 			for i in line:
 				line = i.split(',')
 				if len(line) > 0 and len(line) > 4:
-					dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], 'zone_id': int(line[10], 16)}
+					print hex(int(line[3], 16))
+					if len(static)>0:
+						for s in static:
+							if s['session_id'] == int(line[10], 16):
+								dictionary = {'tag_id':line[3], 'x': float(line[4]), \
+								 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], \
+								  'zone_id': s['landscape_id']}
+								break
+							else:
+								dictionary = {'tag_id':line[3], 'x': float(line[4]), \
+								 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], \
+								  'zone_id': int(line[10], 16)}		
+					else:
+						dictionary = {'tag_id':line[3], 'x': float(line[4]), \
+								 'y': float(line[5]), 'z': float(line[6]), 'zone':line[8], \
+								  'zone_id': int(line[10], 16)}
 					#наполняем unique
 					doubled = 0
 					for i in unique:
@@ -1193,7 +1220,7 @@ def values(request, landscape_id='0000'):
 			args['unique'].append(i)
 	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
-	args['lcolor'] = LandscapeColor.objects.all()
+	args['lcolor'] = LandscapeColor.objects.filter(LoadLandscape_id=landscape_id)
 	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id)
 	args['bcolor'] = BuildingColor.objects.all()
 	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id)
@@ -1271,39 +1298,65 @@ def landscapetreeload(request, landscape_id='0000', source=''):
 			data = string['session']
 			# session
 			# ищем уже загруженную сессию
-			a = SessionTable.objects.filter(LoadLandscape_id=landscape_id)
+			a = SessionTable.objects.filter(LoadLandscape_id=landscape_id, \
+			 idLayer=data['session']['idLayer'])
 			if len(a) == 0:
 				# если нет, создаем строку
-				a = SessionTable.objects.create(LoadLandscape_id=landscape_id, \
+				SessionTable(LoadLandscape_id=landscape_id, \
 				 idLayer=data['session']['idLayer'], \
-					inuse=data['session']['inuse'], name=data['session']['name'])
+					inuse=data['session']['inuse'], name=data['session']['name']).save()
+				a = SessionTable.objects.filter(LoadLandscape_id=landscape_id, \
+			 idLayer=data['session']['idLayer'])
 			else:
 				#если да, обновляем
-				a.update( \
-				 idLayer=data['session']['idLayer'], inuse=data['session']['inuse'], \
-				  name=data['session']['name'], server_id=0, server_idLayer=0)
+				a.update(inuse=data['session']['inuse'], \
+				  name=data['session']['name'])
 			# layer
-			SessionLayer.objects.filter(SessionTable_id=a[0].id).delete()
-			SessionLayer.objects.create(SessionTable_id=a[0].id, height1=data['layer']['height1'], \
-				height2=data['layer']['height2'], ws_id=data['layer']['id'], \
-				latitude1=data['layer']['latitude1'], latitude2=data['layer']['latitude2'], \
-				 longitude1=data['layer']['longitude1'], longitude2=data['layer']['longitude2'], \
-				 name=data['layer']['name'], scaleX=data['layer']['scaleX'], scaleY=data['layer']['scaleY'], \
-				 x1=data['layer']['x1'], x2=data['layer']['x2'], y1=data['layer']['y1'], y2=data['layer']['y2'], \
-				  z1=data['layer']['z1'], z2=data['layer']['z2'], server_id=0)
+			# ищем уже загруженный layer
+			b = SessionLayer.objects.filter(SessionTable_id=a[0].id, ws_id=data['session']['idLayer'])
+			if len(b) == 0:
+				SessionLayer.objects.create(SessionTable_id=a[0].id, height1=data['layer']['height1'], \
+					height2=data['layer']['height2'], ws_id=data['layer']['id'], \
+					latitude1=data['layer']['latitude1'], latitude2=data['layer']['latitude2'], \
+					 longitude1=data['layer']['longitude1'], longitude2=data['layer']['longitude2'], \
+					 name=data['layer']['name'], scaleX=data['layer']['scaleX'], scaleY=data['layer']['scaleY'], \
+					 x1=data['layer']['x1'], x2=data['layer']['x2'], y1=data['layer']['y1'], y2=data['layer']['y2'], \
+					  z1=data['layer']['z1'], z2=data['layer']['z2'], server_id=0)
+			else:
+				b.update(height1=data['layer']['height1'], \
+					height2=data['layer']['height2'], ws_id=data['layer']['id'], \
+					latitude1=data['layer']['latitude1'], latitude2=data['layer']['latitude2'], \
+					 longitude1=data['layer']['longitude1'], longitude2=data['layer']['longitude2'], \
+					 name=data['layer']['name'], scaleX=data['layer']['scaleX'], scaleY=data['layer']['scaleY'], \
+					 x1=data['layer']['x1'], x2=data['layer']['x2'], y1=data['layer']['y1'], y2=data['layer']['y2'], \
+					  z1=data['layer']['z1'], z2=data['layer']['z2'])
 			# plans
-			SessionPlan.objects.filter(SessionTable_id=a[0].id).delete()
+			session_plan_ids = []
 			for p in data['plans']:
-				SessionPlan.objects.create(SessionTable_id=a[0].id, ws_id=p['id'], name=p['name'], \
-					description=p['description'], x=p['x'], y=p['y'], z=p['z'], sizeX=p['sizex'], \
-					sizeY=p['sizey'], sizeZ=p['sizez'], angleRotateX=p['angleRotateX'], \
-					angleRotateY=p['angleRotateY'], angleRotateZ=p['angleRotateZ'], \
-					 objType=p['objType'], server_id=0)
+				c = SessionPlan.objects.filter(SessionTable_id=a[0].id, ws_id=p['id'])
+				if len(c) == 0:
+					SessionPlan.objects.create(SessionTable_id=a[0].id, ws_id=p['id'], name=p['name'], \
+						description=p['description'], x=p['x'], y=p['y'], z=p['z'], sizeX=p['sizex'], \
+						sizeY=p['sizey'], sizeZ=p['sizez'], angleRotateX=p['angleRotateX'], \
+						angleRotateY=p['angleRotateY'], angleRotateZ=p['angleRotateZ'], \
+						 objType=p['objType'], server_id=0)
+				else:
+					c.update(name=p['name'], \
+						description=p['description'], x=p['x'], y=p['y'], z=p['z'], sizeX=p['sizex'], \
+						sizeY=p['sizey'], sizeZ=p['sizez'], angleRotateX=p['angleRotateX'], \
+						angleRotateY=p['angleRotateY'], angleRotateZ=p['angleRotateZ'], \
+						 objType=p['objType'])
+				session_plan_ids.append(p['id'])
+			SessionPlan.objects.exclude(ws_id__in=session_plan_ids).delete()
 			#plans_tree
-			SessionPlanTree.objects.filter(SessionTable_id=a[0].id).delete()
+			session_plan_tree_ids = []
 			for t in data['plans_tree']:
-				SessionPlanTree.objects.create(SessionTable_id=a[0].id, ws_id=t['id'], server_id=0, \
-					ws_parent_id=t['idparent'], server_parent_id=0)
+				d = SessionPlanTree.objects.filter(SessionTable_id=a[0].id, ws_id=t['id'])
+				if len(d) == 0:
+					SessionPlanTree.objects.create(SessionTable_id=a[0].id, ws_id=t['id'], server_id=0, \
+						ws_parent_id=t['idparent'], server_parent_id=0)
+				session_plan_tree_ids.append(t['id'])
+			SessionPlanTree.objects.exclude(ws_id__in=session_plan_tree_ids).delete()
 			return JsonResponse({'string': data})
 		if string['method'] == 'sendsession':
 			data = json(string['data'])
@@ -1356,17 +1409,22 @@ def landscape_save(request):
 		p.light_target_symbol = string['sceneOptions']['LightTargetSymbol']
 		p.save()
 
-		Wall.objects.filter(LoadLandscape_id=landscape_id).delete()
-		Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id).delete()
-		Floor.objects.filter(LoadLandscape_id=landscape_id).delete()
-		Building.objects.filter(LoadLandscape_id=landscape_id).delete()
+		# Wall.objects.filter(LoadLandscape_id=landscape_id).delete()
+		# Kabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id).delete()
+		# Floor.objects.filter(LoadLandscape_id=landscape_id).delete()
+		# Building.objects.filter(LoadLandscape_id=landscape_id).delete()
 		VerticesBuilding.objects.filter(LoadLandscape_id=landscape_id).delete()
 		VerticesFloor.objects.filter(LoadLandscape_id=landscape_id).delete()
 		VerticesKabinet_n_Outer.objects.filter(LoadLandscape_id=landscape_id).delete()
 
+		dae_building_names = []
+		dae_floor_names = []
+		dae_kabinet_n_outer_names = []
+		dae_wall_names = []
 		for i in landscape['object']['children']:
 			if 'building' in i['name']:
 				dae_BuildingName = i['name']
+				dae_building_names.append(dae_BuildingName)
 				landscape_id = landscape_id
 				#наполняем BoxMin, BoxMax
 				for v in vertices['element']:
@@ -1378,16 +1436,26 @@ def landscape_save(request):
 						minx = v['BoxMin']['x']
 						miny = v['BoxMin']['y']
 						minz = v['BoxMin']['z']
-				building = Building(dae_BuildingName=dae_BuildingName, LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
-				building.save()
+				a = Building.objects.filter(dae_BuildingName=dae_BuildingName, LoadLandscape_id=landscape_id)
+				if len(a) == 0:
+					building = Building(dae_BuildingName=dae_BuildingName, LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
+					building.save()
+					building_id = building.id
+				else:
+					Building.objects.filter(dae_BuildingName=dae_BuildingName, \
+					 LoadLandscape_id=landscape_id).update( maxx=maxx, maxy=maxy, maxz=maxz, \
+					  minx=minx, miny=miny, minz=minz)
+					building_id = Building.objects.get(dae_BuildingName=dae_BuildingName, \
+					 LoadLandscape_id=landscape_id).id
 				#наполняем вершины building
 				for v in vertices['element']:
 					if v['name'] == dae_BuildingName:
 						for vert in v['vertices']:
-							VerticesBuilding(x=vert['x'], y=vert['y'], Building_id=building.id, LoadLandscape_id=landscape_id).save()
+							VerticesBuilding(x=vert['x'], y=vert['y'], Building_id=building_id, LoadLandscape_id=landscape_id).save()
 				for j in i['children']:
 					if 'floor' in j['name']:
 						dae_FloorName = j['name']
+						dae_floor_names.append(dae_FloorName)
 						#наполняем BoxMin, BoxMax
 						for v in vertices['element']:
 							if v['name'] == dae_FloorName:
@@ -1398,15 +1466,28 @@ def landscape_save(request):
 								minx = v['BoxMin']['x']
 								miny = v['BoxMin']['y']
 								minz = v['BoxMin']['z']
-						floor = Floor(dae_FloorName=dae_FloorName, Building_id=building.id, LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
-						floor.save()
+						a = Floor.objects.filter(dae_FloorName=dae_FloorName, Building_id=building_id, \
+							LoadLandscape_id=landscape_id)
+						if len(a) == 0: 
+							floor = Floor(dae_FloorName=dae_FloorName, Building_id=building_id, \
+							 LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, \
+							  minx=minx, miny=miny, minz=minz)
+							floor.save()
+							floor_id = floor.id
+						else:
+							floor = Floor.objects.filter(dae_FloorName=dae_FloorName, \
+							 Building_id=building_id, LoadLandscape_id=landscape_id).update(maxx=maxx, \
+							  maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
+							floor_id = Floor.objects.get(dae_FloorName=dae_FloorName, \
+							 Building_id=building_id, LoadLandscape_id=landscape_id).id
 						# наполняем вершины floor
 						for v in vertices['element']:
 							if v['name'] == dae_FloorName:
 								for vert in v['vertices']:
-									VerticesFloor(x=vert['x'], y=vert['y'], Floor_id=floor.id, LoadLandscape_id=landscape_id).save()
+									VerticesFloor(x=vert['x'], y=vert['y'], Floor_id=floor_id, LoadLandscape_id=landscape_id).save()
 						for x in j['children']:
 							dae_Kabinet_n_OuterName = x['name']
+							dae_kabinet_n_outer_names.append(dae_Kabinet_n_OuterName)
 							# наполняем BoxMin, BoxMax
 							for v in vertices['element']:
 								if v['name'] == dae_Kabinet_n_OuterName:
@@ -1417,21 +1498,50 @@ def landscape_save(request):
 									minx = v['BoxMin']['x']
 									miny = v['BoxMin']['y']
 									minz = v['BoxMin']['z']
-							kabinet_n_outer = Kabinet_n_Outer(dae_Kabinet_n_OuterName=dae_Kabinet_n_OuterName, Floor_id=floor.id, LoadLandscape_id=landscape_id, maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, miny=miny, minz=minz)
-							kabinet_n_outer.save()
+							a = Kabinet_n_Outer.objects.filter(dae_Kabinet_n_OuterName=dae_Kabinet_n_OuterName, \
+								Floor_id=floor_id, LoadLandscape_id=landscape_id)
+							if len(a) == 0:
+								kabinet_n_outer = Kabinet_n_Outer(dae_Kabinet_n_OuterName= \
+									dae_Kabinet_n_OuterName, \
+								 Floor_id=floor_id, LoadLandscape_id=landscape_id, \
+								  maxx=maxx, maxy=maxy, maxz=maxz, minx=minx, \
+								   miny=miny, minz=minz)
+								kabinet_n_outer.save()
+								kabinet_n_outer_id = kabinet_n_outer.id
+							else:
+								kabinet_n_outer = Kabinet_n_Outer.objects.filter(dae_Kabinet_n_OuterName= \
+									dae_Kabinet_n_OuterName, Floor_id=floor_id, \
+									 LoadLandscape_id=landscape_id).update(maxx=maxx, maxy=maxy, \
+									  maxz=maxz, minx=minx, miny=miny, minz=minz)
+								kabinet_n_outer_id = Kabinet_n_Outer.objects.get(dae_Kabinet_n_OuterName= \
+									dae_Kabinet_n_OuterName, Floor_id=floor_id, \
+									 LoadLandscape_id=landscape_id).id
 							# наполняем вершины kabinet
 							for v in vertices['element']:
 								if v['name'] == dae_Kabinet_n_OuterName:
 									for vert in v['vertices']:
-										VerticesKabinet_n_Outer(x=vert['x'], y=vert['y'], Kabinet_n_Outer_id=kabinet_n_outer.id, LoadLandscape_id=landscape_id).save()
+										VerticesKabinet_n_Outer(x=vert['x'], y=vert['y'], \
+										 Kabinet_n_Outer_id=kabinet_n_outer_id, \
+										  LoadLandscape_id=landscape_id).save()
 							if 'kabinet' in x['name']:
 								try:
 									for y in x['children']:
 										dae_WallName = y['name']
-										wall = Wall(dae_WallName=dae_WallName, Kabinet_n_Outer_id=kabinet_n_outer.id, LoadLandscape_id=landscape_id)
-										wall.save()
+										dae_wall_names.append(dae_WallName)
+										a = Wall.objects.filter(dae_WallName=dae_WallName, \
+											Kabinet_n_Outer_id=kabinet_n_outer_id, \
+											LoadLandscape_id=landscape_id)
+										if len(a) == 0:
+											wall = Wall(dae_WallName=dae_WallName, \
+											 Kabinet_n_Outer_id=kabinet_n_outer.id, \
+											  LoadLandscape_id=landscape_id)
+											wall.save()
 								except:
 									pass
+		#удаляем лишние элементы
+		Building.objects.exclude(dae_BuildingName__in=dae_building_names).delete()
+		Floor.objects.exclude(dae_FloorName__in=dae_floor_names).delete()
+		Kabinet_n_Outer.objects.exclude(dae_Kabinet_n_OuterName__in=dae_kabinet_n_outer_names).delete() 
 		return JsonResponse({'string': string})
 
 # sockjs manipulations
@@ -1864,7 +1974,7 @@ def incomezonedefine(request, landscape_id='0000'):
 	landscape_id = landscape_id
 	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
-	args['lcolor'] = LandscapeColor.objects.all()
+	args['lcolor'] = LandscapeColor.objects.filter(LoadLandscape_id=landscape_id)
 	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id)
 	args['bcolor'] = BuildingColor.objects.all()
 	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id)
@@ -1924,6 +2034,21 @@ def incomezonedefine(request, landscape_id='0000'):
 				error = 1
 				text = "Введенное значение не соответствует hex."
 			return JsonResponse({'error': error, 'text': text })
+		# отвязать объект от статики
+		if string['method'] == 'unlinkobject':
+			static_type = string['static_type']
+			obj_id = string['obj_id']
+			if static_type == 'building':
+				ObjectBuilding.objects.filter(Object_id=obj_id).delete()
+			elif static_type == 'floor':
+				ObjectFloor.objects.filter(Object_id=obj_id).delete()
+			elif static_type == 'kabinet':
+				ObjectKabinet.objects.filter(Object_id=obj_id).delete()
+			args['objectbuilding'] = ObjectBuilding.objects.all()
+			args['objectfloor'] = ObjectFloor.objects.all()
+			args['objectkabinet'] = ObjectKabinet.objects.all()
+			args['objecttable'] = render_to_string('objecttable.html', args)
+			return JsonResponse({'string': args['objecttable']})
 		# привязать конекретный объект к статике
 		if string['method'] == 'linkobjecttostatic':
 			static_id = string['static_id']
@@ -2021,10 +2146,12 @@ def incomezonedefine(request, landscape_id='0000'):
 		# отправить objecttype на сервер
 		if string['method'] == 'sendobjectstypetoserver':
 			obj_type = string['obj_type']
+			layer_id = LoadLandscape.objects.get(landscape_id=landscape_id).server_id
 			objecttype = ObjectType.objects.get(id=obj_type)
 			data = {}
 			data['command'] = objecttype.Command
-			obj = ObjectObjectType.objects.filter(ObjectType_id=objecttype.id).values('Object__id', \
+			obj = ObjectObjectType.objects.filter(ObjectType_id=objecttype.id, \
+			 Object__LoadLandscape_id=landscape_id).values('Object__id', \
 					 'Object__Name', 'Object__Description', 'Object__xCoord', 'Object__yCoord', \
 					  'Object__zCoord', 'Object__server_id', 'Object__server_inUse', \
 					   'Object__server_minNumPoints', 'Object__server_radius', 'Object__server_type')
@@ -2032,18 +2159,18 @@ def incomezonedefine(request, landscape_id='0000'):
 				data['masterAnchors'] = []
 				for i in obj:
 					data['masterAnchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
-						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
-						 'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
+						 'description': i['Object__Description'], 'x': i['Object__yCoord'], \
+						 'y': i['Object__zCoord'], 'z': i['Object__xCoord'], \
 						  'inUse': bool(i['Object__server_inUse']), \
-						  'idLayer': int(landscape_id)})
+						  'idLayer': layer_id})
 			elif obj_type == 2:
 				data['anchors'] = []
 				for i in obj:
 					data['anchors'].append({'id': i['Object__server_id'], 'name': i['Object__Name'], \
-						 'description': i['Object__Description'], 'x': i['Object__zCoord'], \
-						  'y': i['Object__xCoord'], 'z': i['Object__yCoord'], \
+						 'description': i['Object__Description'], 'x': i['Object__yCoord'], \
+						  'y': i['Object__zCoord'], 'z': i['Object__xCoord'], \
 						   'inUse': bool(i['Object__server_inUse']), \
-						    'idLayer': int(landscape_id), 'type': i['Object__server_type'], \
+						    'idLayer': layer_id, 'type': i['Object__server_type'], \
 						    'radius': i['Object__server_radius'], \
 						     'minNumPoints': i['Object__server_minNumPoints']})
 			url = 'http://192.168.1.111:8000'
@@ -2972,56 +3099,48 @@ def getobjectlistfromserver(request):
 	args = {}
 	args['username'] = auth.get_user(request).id
 	args['objecttype'] = ObjectType.objects.all()
+	args['LoadLandscape'] = LoadLandscape.objects.all()
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
-		# отправть запрос получить списки расхождений объектов типа между ВС и СП
+		url = 'http://192.168.1.111:8000'
+		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		# откорректировать информацию object
+		if string['method'] == 'correctobject':
+			obj_id = string['obj_id']
+			landscape_id = string['landscape_id']
+			layer_id = LoadLandscape.objects.get(landscape_id=landscape_id).server_id
+			obj = Object.objects.get(server_id=obj_id, LoadLandscape_id=landscape_id)
+			objType = ObjectObjectType.objects.filter(Object_id=obj.id)
+			data = {}
+			data['command'] = ObjectType.objects.get(id=objType[0].ObjectType_id).CommandUpdate
+			if data['command'] == 'updateMasterAnchors':
+				data['masterAnchors'] = []
+				data['masterAnchors'].append({'id': obj_id, 'name': obj.Name, \
+				 'description': obj.Description, 'x': obj.yCoord, 'y': obj.zCoord, \
+				  'z': obj.xCoord, 'inUse': obj.server_inUse, 'idLayer': layer_id})
+			elif data['command'] == 'updateAnchors':
+				data['anchors'] = []
+				data['anchors'].append({'id': obj_id, 'name': obj.Name, 'description': obj.Description, \
+					'x': obj.yCoord, 'y': obj.zCoord, 'z': obj.xCoord, 'inUse': obj.server_inUse, \
+					'idLayer': layer_id, 'type': obj.server_type, 'radius': obj.server_radius, \
+					'minNumPoints': obj.server_minNumPoints})
+			r = requests.post(url, data=json(data), headers=headers)
+			# переформировываем таблицу
+			kwargs = getObjectDifference(layer_id, objType[0].ObjectType_id)
+			args['getlisttable'] = render_to_string('getlistdifference.html', kwargs)
+			args['sp'] = kwargs['sp']
+			return JsonResponse({'string': args['getlisttable'], 'arr': args['sp']})
+		# отправить запрос получить списки расхождений объектов типа между ВС и СП
 		if string['method'] == 'difference':
+			sp_layer_id = string['sp_layer_id']
 			obj_type = string['obj_type']
-			a = ObjectType.objects.get(id=obj_type)
-			commandList = a.CommandList
-			url = 'http://192.168.1.111:8000'
-			data = json({"command": commandList})
-			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
-			args['ws'] = list(Object.objects.filter(objectobjecttype__ObjectType_id=obj_type).values( \
-				'server_id', 'Name', 'Description', 'xCoord', 'yCoord', 'zCoord', 'server_inUse', \
-				 'LoadLandscape__server_id', 'server_type', 'server_radius', 'server_minNumPoints'))
-			try:
-				r = requests.post(url, data=data, headers=headers)
-				json_data = simplejson.loads(r.text)
-				args['sp'] = list(json_data[a.Name_eng])
-			except:
-				args['error'] = 'сервер не отвечает'
-				
-			# меняем систему координат sp
-			# for s in args['sp']:
-			# 	s['x'] = s['z']
-			# 	s['y'] = s['x']
-			# 	s['z'] = s['y']
-
-			# есть ws, нет sp
-			for w in args['ws']:
-				for s in args['sp']:
-					if w['server_id'] == s['id']:
-						w['got'] = 1
-			haveinweb = []
-			for w in args['ws']:
-				if not('got' in w):
-					haveinweb.append(w)
-			args['haveinweb'] = haveinweb
-			# есть sp, нет ws
-			for s in args['sp']:
-				for w in args['ws']:
-					if s['id'] == w['server_id']:
-						s['got'] = 1
-			haveinsp = []
-			for s in args['sp']:
-				if not('got' in s):
-					haveinsp.append(s)
-			args['haveinsp'] = haveinsp
-			args['getlisttable'] = render_to_string('getlistdifference.html', args)
-			return JsonResponse({'string': args['getlisttable']})
+			kwargs = getObjectDifference(sp_layer_id, obj_type)
+			args['getlisttable'] = render_to_string('getlistdifference.html', kwargs)
+			args['sp'] = kwargs['sp']
+			return JsonResponse({'string': args['getlisttable'], 'arr': args['sp']})
 		# отправить запрос получить список всех объектов типа от СП
 		if string['method'] == 'sendrequest':
+			sp_layer_id = string['sp_layer_id']
 			obj_type = string['obj_type']
 			a = ObjectType.objects.get(id=obj_type)
 			commandList = a.CommandList
@@ -3031,13 +3150,19 @@ def getobjectlistfromserver(request):
 			try:
 				r = requests.post(url, data=data, headers=headers)
 				json_data = simplejson.loads(r.text)
-				args['json_data'] = list(json_data[a.Name_eng])
+				b = list(json_data[a.Name_eng])
+				args['json_data'] = []
+				for i in b:
+					if i['idLayer'] == sp_layer_id:
+						args['json_data'].append(i)
 			except:
 				args['error'] = 'сервер не отвечает'
 			args['getlisttable'] = render_to_string('getlisttable.html', args)
 			return JsonResponse({'string': args['getlisttable'], 'arr': args['json_data']})
 		# отправить список объектов конкретного типа на WS
 		if string['method'] == 'loadtoserver':
+			server_id = string['server_id']
+			landscape_id = LoadLandscape.objects.get(server_id=server_id).landscape_id
 			obj_type = string['obj_type']
 			obj_server = string['objects']
 			landscapes = list(LoadLandscape.objects.all())
@@ -3053,7 +3178,7 @@ def getobjectlistfromserver(request):
 						o.yCoord = obj['z']
 						o.zCoord = obj['y']
 						o.server_inUse = obj['inUse']
-						o.LoadLandscape_id = l['landscape_id']
+						o.LoadLandscape_id = landscape_id
 						o.server_type = obj['type']
 						o.server_radius = obj['radius']
 						o.server_minNumPoints = obj['minNumPoints']
@@ -3084,6 +3209,51 @@ def getobjectlistfromserver(request):
 			return JsonResponse({'string': 'ok'})
 	return render(request, 'getobjectlistfromserver.html', args)
 
+def getObjectDifference(layer_id, obj_type):
+	url = 'http://192.168.1.111:8000'
+	headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+	args = {}
+	sp_layer_id = layer_id
+	obj_type = obj_type
+	a = ObjectType.objects.get(id=obj_type)
+	commandList = a.CommandList
+	data = json({"command": commandList})
+	args['ws'] = list(Object.objects.filter(objectobjecttype__ObjectType_id=obj_type, \
+	 LoadLandscape__server_id=sp_layer_id).values( \
+		'server_id', 'Name', 'Description', 'xCoord', 'yCoord', 'zCoord', 'server_inUse', \
+		 'LoadLandscape__server_id', 'server_type', 'server_radius', 'server_minNumPoints'))
+	try:
+		r = requests.post(url, data=data, headers=headers)
+		json_data = simplejson.loads(r.text)
+		b = list(json_data[a.Name_eng])
+		args['sp'] = []
+		for i in b:
+			if i['idLayer'] == sp_layer_id:
+				args['sp'].append(i)
+	except:
+		args['error'] = 'сервер не отвечает'
+	# есть ws, нет sp
+	for w in args['ws']:
+		for s in args['sp']:
+			if w['server_id'] == s['id']:
+				w['got'] = 1
+	haveinweb = []
+	for w in args['ws']:
+		if not('got' in w):
+			haveinweb.append(w)
+	args['haveinweb'] = haveinweb
+	# есть sp, нет ws
+	for s in args['sp']:
+		for w in args['ws']:
+			if s['id'] == w['server_id']:
+				s['got'] = 1
+	haveinsp = []
+	for s in args['sp']:
+		if not('got' in s):
+			haveinsp.append(s)
+	args['haveinsp'] = haveinsp
+	return args
+
 # работа с сессиями
 # сессии от SP
 def getsessionsfromserver(request):
@@ -3094,6 +3264,32 @@ def getsessionsfromserver(request):
 		string = simplejson.loads(request.body)
 		url = 'http://192.168.1.111:8000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		# изменить параметр сессии
+		if string['method'] == 'inusechange':
+			session_id = string['session_id']
+			layer_id = string['layer_id']
+			name = string['name']
+			inuse = string['inuse']
+			data = {}
+			data['command'] = Command.objects.get(id=5).Name
+			data['id'] = 1
+			data['session'] = {'id': session_id, 'name': name, 'idLayer': layer_id, \
+			 'inuse': inuse}
+			try:
+				r = requests.post(url, data=json(data), headers=headers)
+				json_data = simplejson.loads(r.text)
+				args['success'] = 'данные обновлены'
+			except:
+				args['error'] = 'сервер не отвечает'
+			data = json({"command": command[2].Name})
+			try:
+				r = requests.post(url, data=data, headers=headers)
+				json_data = simplejson.loads(r.text)
+				args['sessions'] = json_data['sessions']
+			except:
+				args['error'] = 'сервер не отвечает'
+			args['sessionstable'] = render_to_string('sessionstable.html', args)
+			return JsonResponse({'string': args['sessionstable']})
 		# список сессий
 		if string['method'] == 'getlistsessions':
 			data = json({"command": command[2].Name})
@@ -3137,50 +3333,321 @@ def getsessionsfromserver(request):
 		if string['method'] == 'linktows':
 			ws_session_id = string['ws_session_id']
 			sp_session_id = string['sp_session_id']
-			data = json({"command": command[1].Name, "id": sp_session_id})
-			r = requests.post(url, data=data, headers=headers)
-			sp_json_data = simplejson.loads(r.text)
-			for p in sp_json_data['plansTree']:
-				for i in sp_json_data['plans']:
-					if p['id'] == i['id']:
-						p['name'] = i['name']
-					elif p['idParent'] == i['id']:
-						p['nameParent'] = i['name']
-			ws_json_data = {}
-			ws_json_data['session'] = SessionTable.objects.get(id=ws_session_id)
-			ws_json_data['layer'] = SessionLayer.objects.get(SessionTable_id=ws_session_id)
-			ws_json_data['plans'] = list(SessionPlan.objects.filter(SessionTable_id=ws_session_id))
-			ws_json_data['plansTree'] = list(SessionPlanTree.objects.filter(SessionTable_id=ws_session_id))
-			# id session
-			ws_json_data['session'].server_id = sp_json_data['session']['id']
-			ws_json_data['session'].server_idLayer = sp_json_data['session']['idLayer']
-			ws_json_data['session'].save()
-			# id layer
-			ws_json_data['layer'].server_id = sp_json_data['layer']['id']
-			ws_json_data['layer'].save()
-			# id plans
-			for p in ws_json_data['plans']:
-				for s in sp_json_data['plans']:
-					if p.name == s['name']:
-						p.server_id = s['id']
-						p.save()
-			# id plansTree
-			for p in ws_json_data['plansTree']:
-				for i in ws_json_data['plans']:
-					if p.ws_id == i.ws_id:
-						p.server_id = i.server_id
-						p.save()
-					elif p.ws_parent_id == i.ws_id:
-						p.server_parent_id = i.server_id
-						p.save()
+			linktows(ws_session_id, sp_session_id, command, url, headers)
 			return JsonResponse({'string': 'ok'})
 	return render(request, 'getsessionsfromserver.html', args)
+
+def linktows(ws_session_id, sp_session_id, command, url, headers):
+	#обновляем поле session_id в LoadLandscape
+	landscape_id = SessionTable.objects.get(id=ws_session_id).LoadLandscape_id
+	a = LoadLandscape.objects.get(landscape_id=landscape_id)
+	a.session_id = sp_session_id
+	a.save()
+	#подтягиваем id от sp
+	data = json({"command": command[1].Name, "id": sp_session_id})
+	r = requests.post(url, data=data, headers=headers)
+	sp_json_data = simplejson.loads(r.text)
+	for p in sp_json_data['plansTree']:
+		for i in sp_json_data['plans']:
+			if p['id'] == i['id']:
+				p['name'] = i['name']
+			elif p['idParent'] == i['id']:
+				p['nameParent'] = i['name']
+	ws_json_data = {}
+	#обновляем поле server_id в LoadLandscape
+	a.server_id = sp_json_data['session']['idLayer']
+	a.save()
+	# удаляем ранее подтянутые id
+	SessionPlan.objects.filter(SessionTable_id=ws_session_id).update(server_id=0)
+	SessionPlanTree.objects.filter(SessionTable_id=ws_session_id).update(server_id=0, \
+	 server_parent_id=0)
+	# создаем списки объектов
+	ws_json_data['session'] = SessionTable.objects.get(id=ws_session_id)
+	ws_json_data['layer'] = SessionLayer.objects.get(SessionTable_id=ws_session_id)
+	ws_json_data['plans'] = list(SessionPlan.objects.filter(SessionTable_id= \
+		ws_session_id))
+	ws_json_data['plansTree'] = list(SessionPlanTree.objects.filter(SessionTable_id= \
+		ws_session_id))
+	# id session
+	ws_json_data['session'].server_id = sp_json_data['session']['id']
+	ws_json_data['session'].server_idLayer = sp_json_data['session']['idLayer']
+	ws_json_data['session'].save()
+	# id layer
+	ws_json_data['layer'].server_id = sp_json_data['layer']['id']
+	ws_json_data['layer'].save()
+	# id plans
+	for p in ws_json_data['plans']:
+		for s in sp_json_data['plans']:
+			if p.name == s['name']:
+				p.server_id = s['id']
+				p.save()
+	# id plansTree
+	for p in ws_json_data['plansTree']:
+		for i in ws_json_data['plans']:
+			if p.ws_id == i.ws_id:
+				p.server_id = i.server_id
+				p.save()
+			elif p.ws_parent_id == i.ws_id:
+				p.server_parent_id = i.server_id
+				p.save()
 # мои сессии WS
+######################
+# вспомогательная ф-я Откорректировать параметры Plans на для sp
+def correctPlansSpecialField(field, value, a):
+	plans = [{}]
+	for i in a.values('server_id', 'name', 'description', 'x', 'y', 'z', 'sizeX', 'sizeY', \
+	 'sizeZ', 'angleRotateX', 'angleRotateY', 'angleRotateZ', 'objType'):
+		for key in i:
+			if key == field:
+				plans[0][key] = value
+			else:
+				if key == 'server_id':
+					plans[0]['id'] = i[key]
+				else:
+					plans[0][key] = i[key]
+	return plans
+
+def correctLayerSpecialField(field, value, a):
+	layer = {}
+	for i in a.values('server_id', 'name', 'latitude1', 'longitude1', 'height1', 'x1', 'y1', 'z1', \
+		'latitude2', 'longitude2', 'height2', 'x2', 'y2', 'z2', 'scaleX', 'scaleY'):
+		for key in i:
+			if key == field:
+				layer[key] = value
+			else:
+				if key == 'server_id':
+					layer['id'] = i[key]
+				else:
+					layer[key] = i[key]
+	return layer
+
+# вспомогательная ф-я отправить plans to sp
+def sendRequestToSp(url, data, headers):
+	r = requests.post(url, data=json(data), headers=headers)
+	json_resp = simplejson.loads(r.text)
+	return json_resp
+# основная ф-я
 def getmysession(request):
 	args = {}
 	args['username'] = auth.get_user(request).id
 	if request.method == 'POST':
+		url = 'http://192.168.1.111:8000'
+		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 		string = simplejson.loads(request.body)
+		# откорректировать layer:
+		if string['method'] == 'correctlayer':
+			session_server_id = string['session_id']
+			session = SessionTable.objects.get(server_id=session_server_id)
+			layer_id = string['layer_id']
+			data = {}
+			data['command'] = Command.objects.get(id=5).Name
+			data['id'] = 1
+			data['session'] = {'id': session_server_id, 'name': session.name, \
+			'idLayer': layer_id, 'inuse': True }
+			layer = SessionLayer.objects.filter(server_id=layer_id)
+			field = string['field']
+			value = string['value']
+			data['layer'] = correctLayerSpecialField(field, value, layer)
+			json_resp = sendRequestToSp(url, data, headers)
+			return JsonResponse(json_resp)
+		# есть только в ws, отправить пакет plans to sp
+		if string['method'] == 'sendtosp':
+			sp_session_id = string['sp_session_id']
+			plans = string['plans']
+			data = {}
+			data['command'] = Command.objects.get(id=6).Name
+			data['id'] = sp_session_id
+			data['plans'] = plans
+			for i in data['plans']:
+				i['id'] = -1
+			data['plansTree'] = []
+			for i in plans:
+				ws_id = SessionPlan.objects.get(name=i['name']).ws_id
+				idParent = SessionPlanTree.objects.get(ws_id=ws_id).server_parent_id
+				data['plansTree'].append({'id': -1, 'idParent': idParent})
+			json_resp = sendRequestToSp(url, data, headers)
+			landscape_id = string['landscape_id']
+			ws_session_id = LoadLandscape.objects.get(landscape_id=landscape_id).id
+			command = Command.objects.all()
+			# привязываем идентификаторы sp к ws
+			linktows(ws_session_id, sp_session_id, command, url, headers)
+			return JsonResponse({'string': json_resp})
+		# корректировка plansTree расхождений idParent
+		if string['method'] == 'correcttree':
+			server_id = string['id']
+			parent_id = string['parent']
+			session_id = string['session_id']
+			layer_id = string['layer_id']
+			session_name = string['session_name']
+			data = {}
+			data['command'] = Command.objects.get(id=5).Name
+			data['id'] = 1
+			data['session'] = {'id': session_id, 'name': session_name, \
+			 'idLayer': layer_id, 'inuse': True}
+			a = SessionPlan.objects.get(server_id=server_id)
+			data['plans'] = [{'id': server_id, 'name': a.name, 'description': a.description, 'x': a.x, \
+			 'y': a.y, 'z': a.z, 'sizeX': a.sizeX, 'sizeY': a.sizeY, 'sizeZ': a.sizeZ, \
+			  'angleRotateX': a.angleRotateX, 'angleRotateY': a.angleRotateY, \
+			   'angleRotateZ': a.angleRotateZ, 'objType': a.objType}]
+   			data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+   			json_resp = sendRequestToSp(url, data, headers)
+			return JsonResponse(json_resp)
+		# корректировка расхождений ws и sp Plans
+		if string['method'] == 'correct':
+			# поправить name
+			server_id = int(string['id'])
+			field = string['field']
+			value = string['value']
+			session_id = int(string['session_id'])
+			session_name = string['session_name']
+			layer_id = int(string['layer_id'])
+			parent_id = int(string['parent'])
+			data = {}
+			data['command'] = Command.objects.get(id=5).Name
+			data['id'] = 1
+			data['session'] = {'id': session_id, 'name': session_name, \
+			 'idLayer': layer_id, 'inuse': True}
+			a = SessionPlan.objects.filter(server_id=server_id)
+			if field == 'name':
+				data['plans'] = correctPlansSpecialField(field, value, a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'description':
+				data['plans'] = correctPlansSpecialField(field, value, a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'x':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'y':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'z':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'sizeX':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'sizeY':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'sizeZ':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'angleRotateX':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'angleRotateY':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'angleRotateZ':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+			if field == 'objType':
+				data['plans'] = correctPlansSpecialField(field, float(value.replace(',', '.')), a)
+				data['plansTree'] = [{'id': server_id, 'idParent': parent_id}]
+				json_resp = sendRequestToSp(url, data, headers)
+				return JsonResponse(json_resp)
+		# расхождения между ws и sp
+		if string['method'] == 'getdifferences':
+			session_id = string['session_id']
+			server_id = SessionTable.objects.get(id=session_id).server_id
+			data = {}
+			data['command'] = Command.objects.get(id=2).Name
+			data['id'] = server_id
+			r = requests.post(url, data=json(data), headers=headers)
+			#словарь sp
+			sp_dict = simplejson.loads(r.text)
+			#словарь ws
+			ws = {}
+			st = SessionTable.objects.get(id=session_id)
+			ws['session'] = {'id': st.server_id, 'name': st.name, 'idLayer': st.server_idLayer, \
+			 'inuse': bool(st.inuse)}
+			sl = SessionLayer.objects.get(SessionTable_id=session_id)
+			ws['layer'] = {'id': sl.server_id, 'name': sl.name, 'latitude1': sl.latitude1, \
+			 'longitude1': sl.longitude1, 'height1':sl.height1, 'x1': sl.x1, 'y1': sl.y1, 'z1': sl.z1, \
+			  'latitude2': sl.latitude2, 'longitude2': sl.longitude2, 'height2': sl.height2, 'x2': sl.x2, \
+			   'y2': sl.y2, 'z2': sl.z2, 'scaleX': sl.scaleX, 'scaleY': sl.scaleY}
+			sp = SessionPlan.objects.filter(SessionTable_id=session_id)
+			ws['plans'] = []
+			for i in sp:
+				ws['plans'].append({'id': i.server_id, 'name': i.name, 'description': i.description, \
+					'x': i.x, 'y': i.y, 'z': i.z, 'sizeX': i.sizeX, 'sizeY': i.sizeY, \
+					 'sizeZ': i.sizeZ, 'angleRotateX': i.angleRotateX, 'angleRotateY': i.angleRotateY, \
+					 'angleRotateZ': i.angleRotateZ, 'objType': i.objType})
+			spt = SessionPlanTree.objects.filter(SessionTable_id=session_id)
+			ws['plansTree'] = []
+			for i in spt:
+				if i.ws_parent_id == -1:
+					ws['plansTree'].append({'id': i.server_id, 'idParent': -1})
+				else:
+					ws['plansTree'].append({'id': i.server_id, 'idParent': i.server_parent_id})
+			args['session_sp'] = sp_dict['session']
+			args['session_ws'] = ws['session']
+			args['layer_sp'] = sp_dict['layer']
+			args['layer_ws'] = ws['layer']
+			args['plans_sp'] = sp_dict['plans']
+			args['plans_ws'] = ws['plans']
+			#объекты ws отсутствующие в sp
+			args['plans_only_in_ws'] = []
+			for i in args['plans_ws']:
+				doubled = 0
+				for j in args['plans_sp']:
+					if i['id'] == j['id']:
+						doubled = 1
+				if doubled == 0:
+					args['plans_only_in_ws'].append(i)
+			#объекты sp отсутствующие в ws
+			args['plans_only_in_sp'] = []
+			for i in args['plans_sp']:
+				doubled = 0
+				for j in args['plans_ws']:
+					if i['id'] == j['id']:
+						doubled = 1
+				if doubled == 0:
+					args['plans_only_in_sp'].append(i)
+			args['plansTree_sp'] = sp_dict['plansTree']
+			args['plansTree_ws'] = ws['plansTree']
+			# plansTree ws отсутствующие в sp
+			args['plansTree_only_in_ws'] = []
+			for i in args['plansTree_ws']:
+				doubled = 0
+				for j in args['plansTree_sp']:
+					if i['id'] == j['id']:
+						doubled = 1
+				if doubled == 0:
+					args['plansTree_only_in_ws'].append(i)
+			# plansTree sp отсутствующие в ws
+			args['plansTree_only_in_sp'] = []
+			for i in args['plansTree_sp']:
+				doubled = 0
+				for j in args['plansTree_ws']:
+					if i['id'] == j['id']:
+						doubled = 1
+				if doubled == 0:
+					args['plansTree_only_in_ws'].append(i)
+			args['differencetable'] = render_to_string('differencetable.html', args)
+			return JsonResponse({'string': args['differencetable']})
 		#список сессий
 		if string['method'] == 'mysessiontable':
 			args['sessions'] = SessionTable.objects.all()
@@ -3221,9 +3688,187 @@ def getmysession(request):
 			data['plansTree'] = []
 			for i in plansTree:
 				data['plansTree'].append({'id': i.ws_id, 'idParent': i.ws_parent_id})
-			url = 'http://192.168.1.111:8000'
-			headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 			r = requests.post(url, data=json(data), headers=headers)
 			json_data = simplejson.loads(r.text)
 			return JsonResponse(json_data)
 	return render(request, 'getmysession.html', args)
+
+# работа с метками
+def nodes(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	args['tagnodes'] = TagNode.objects.all().values('Node__Name', 'Node__Description', \
+	 'Node__server_id', 'Node__id_hex', 'Tag_id', 'Node_id')
+	args['tags'] = Tag.objects.all()
+	if request.method == 'POST':
+		url = 'http://192.168.1.111:8000'
+		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		string = simplejson.loads(request.body)
+		# удалить node на WS
+		if string['method'] == 'deletews':
+			node_id = string['id']
+			Node.objects.get(id=node_id).delete()
+			return JsonResponse({'string': 'ok'})
+		# удалить node на SP
+		if string['method'] == 'delete':
+			node_id = string['id']
+			data = {}
+			data['command'] = 'deleteNodes'
+			data['nodes'] = []
+			data['nodes'].append({'id': node_id})
+			r = requests.post(url, data=json(data), headers=headers)
+			json_resp = simplejson.loads(r.text)
+			if json_resp['status'] == 'ok':
+				args['success'] = 'Node из SP успешно удалена'
+			else:
+				args['error'] = 'Не удалось удалить'
+			args['nodedifferencetable'] = nodedifference(url, headers, args)
+			return JsonResponse({'string': args['nodedifferencetable']})
+		# отправить новый Node в SP
+		if string['method'] == 'sendtosp':
+			name = string['name']
+			description = string['description']
+			tagId = string['hex']
+			ws_id = string['ws_id']
+			# получаем список подходящих записей sp
+			data = {}
+			data['command'] = 'listNodes'
+			r = requests.post(url, data=json(data), headers=headers)
+			sp = simplejson.loads(r.text)
+			for i in sp['nodes']:
+				if i['name'] == name and i['description'] == description and \
+				 int(i['tagId'], 16) == int(tagId, 16):
+					args['error'] = 'Node с указанными параматрами уже существует на SP'
+			if not 'error' in args:
+				# отправляем на sp
+				data = {}
+				data['command'] = 'addNodes'
+				data['nodes'] = []
+				data['nodes'].append({'id': -1, 'name': name, 'description': description, \
+					 'tagId': tagId})
+				r = requests.post(url, data=json(data), headers=headers)
+				json_resp = simplejson.loads(r.text)
+				server_id = json_resp['nodes'][0]['id']
+				# привязываем server_id к sp
+				a = Node.objects.get(id=ws_id)
+				a.server_id = server_id
+				a.save()
+				return JsonResponse({'ws_id': ws_id, 'server_id': server_id})
+			return JsonResponse({'string': 'ok'})
+		# таблички различий между ws и sp
+		if string['method'] == 'nodedifference':
+			args['nodedifferencetable'] = nodedifference(url, headers, args)
+			return JsonResponse({'string': args['nodedifferencetable']})
+	return render(request, 'nodes.html', args)
+
+def nodedifference(url, headers, args):
+	data = {}
+	data['command'] = 'listNodes'
+	r = requests.post(url, data=json(data), headers=headers)
+	json_data = simplejson.loads(r.text)
+	#списки ws
+	args['ws'] = []
+	for i in args['tagnodes']:
+		args['ws'].append({'id': i['Node__server_id'], 'name': i['Node__Name'], \
+		 'tagId': i['Node__id_hex'], \
+			'description': i['Node__Description']})
+	#списки sp
+	args['sp'] = []
+	for i in json_data['nodes']:
+		args['sp'].append({'id': i['id'], 'name' : i['name'], 'tagId': i['tagId'], \
+		 'description': i['description']})
+	args['haveinsp'] = []
+	for j in args['sp']:
+		doubled = 0
+		for i in args['ws']:
+			if j['id'] == i['id']:
+				doubled = 1
+		if doubled == 0:
+			args['haveinsp'].append(j)
+	args['haveinws'] = []
+	for i in args['ws']:
+		doubled = 0
+		for j in args['sp']:
+			if i['id'] == j['id']:
+				doubled = 1
+		if doubled == 0:
+			args['haveinws'].append(i)
+	return render_to_string('nodedifferencetable.html', args)
+
+def getnode(request, parameters=1):
+	args = {}
+	args['nodeid'] = parameters
+	args['username'] = auth.get_user(request).id
+	args['node'] = TagNode.objects.filter(Node_id=parameters).values('Node__Name', 'Node__Description', \
+		'Node__server_id', 'Node__id_hex', 'Tag_id', 'Node_id')
+	args['tags'] = Tag.objects.all()
+	args['node_name'] = Node.objects.get(id=parameters).Name
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		if string['method'] == 'save':
+			notification = {}
+			name = string['name']
+			description = string['description']
+			id_hex = string['id_hex']
+			tag_id = string['tagid']
+			# проверка на hex
+			try:
+				int(id_hex, 16)
+				a = TagNode.objects.get(Node_id=parameters)
+				a.Tag_id = tag_id
+				a.save()
+
+				b = Node.objects.get(id=parameters)
+				b.Name = name
+				b.Description = description
+				b.id_hex = id_hex
+				b.save()
+				notification['success'] = "Данные успешно откорректированы"
+			except:
+				notification['error'] = "Введенное значение не соответствует hex."
+			return JsonResponse({'string': notification})
+		if string['method'] == 'checkhex':
+			string = string['string']
+			try:
+				int(string, 16)
+				error = 0
+				text = 0
+			except:
+				error = 1
+				text = "Введенное значение не соответствует hex."
+			return JsonResponse({'string': text})
+	return render(request, 'getnode.html', args)
+
+def createnode(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	tagnodes = TagNode.objects.all()
+	haveintagnode = []
+	for t in tagnodes:
+		haveintagnode.append(t.Tag_id)
+	args['tags'] = Tag.objects.exclude(TagId__in=haveintagnode)
+	if request.POST:
+		name = request.POST['nodename']
+		if len(name) == 0:
+			args['error'] = 'пустое поле Наименование'
+		description = request.POST['nodedescription']
+		server_id_hex = request.POST['serveridhex']
+		if len(server_id_hex) == 0:
+			args['error'] = 'пустое поле Идентификатор tag в формате hex'
+		tag_id = request.POST.get('tagid')
+		try:
+			int(server_id_hex)
+		except:
+			args['error'] = 'Введенное значение не соответствует hex'
+		if not 'error' in args:
+			a = Node.objects.create(Name=name, Description=description, id_hex=server_id_hex)
+			TagNode.objects.create(Tag_id=tag_id, Node_id=a.id)
+			args['success'] = 'Node успешно создана'
+			return render(request, 'createnode.html', args)
+		else:
+			args['name'] = name
+			args['description'] = description
+			args['tagid'] = tag_id
+			args['server_id_hex'] = server_id_hex
+			return render(request, 'createnode.html', args)
+	return render(request, 'createnode.html', args)

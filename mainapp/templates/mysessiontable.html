@@ -20,6 +20,7 @@
 					<td>{{s.server_idLayer}}</td>
 					<td>
 						<button class="button secondary" id="getsessiondetail" data-id="{{s.id}}">Отобразить список объектов</button>
+						<button class="button" id="getdifferences" data-id="{{s.id}}">Сравнить данные WS с SP</button>
 					</td>
 				</tr>
 			{% endfor %}
@@ -28,4 +29,7 @@
 </table>
 <script>
 	$('#mysessiontable').foundation();
+	{% for s in sessions %}
+	landscape_id='{{s.LoadLandscape_id}}';
+	{% endfor %}
 </script>

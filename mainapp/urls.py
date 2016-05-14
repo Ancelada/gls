@@ -98,4 +98,9 @@ urlpatterns = patterns('',
 	url(r'getsessionsfromserver', 'mainapp.views.getsessionsfromserver'),
 	# информация от WS
 	url(r'getmysession', 'mainapp.views.getmysession'),
+
+	# работа с метками
+	url(r'nodes', 'mainapp.views.nodes'),
+	url(r'getnode/(?P<parameters>[0-9]+)', 'mainapp.views.getnode'),
+	url(r'createnode', 'mainapp.views.createnode'),
 )

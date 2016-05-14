@@ -68,3 +68,19 @@ class TagTypeAdmin(admin.ModelAdmin):
 		('Наименование', {'fields': ['Name']}),
 	]
 admin.site.register(TagType, TagTypeAdmin)
+
+#Node
+class NodeAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование', {'fields': ['Name']}),
+		('Описание', {'fields': ['Description']})
+	]
+admin.site.register(Node, NodeAdmin)
+
+#TagNode
+class TagNodeAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Tag', {'fields': ['Tag']}),
+		('Node', {'fields': ['Node']})
+	]
+admin.site.register(TagNode, TagNodeAdmin)

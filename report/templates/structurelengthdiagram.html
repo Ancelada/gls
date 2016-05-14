@@ -1,0 +1,91 @@
+{% load staticfiles %}
+{% load jsonify %}
+<div class="row">
+	<div id="diagram">
+			
+	</div>
+</div>
+<!-- <h1>Отчет: "{{report.Name}}"</h1> -->
+<h5 style="text-align:center;">Распределение времени перемещений за период с {{strFrom}} по {{strTo}}</h5>
+<div class="row">
+	<table>
+		<thead>
+			<tr>
+				<th>Тип</th>
+				<th>Сцена</th>
+				<th>Строение</th>
+				<th>Этаж</th>
+				<th>Кабинет</th>
+				<th>Время до следующего события (ч:мм:сс)</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for c in structurelength %}
+				<tr style="background-color:#{{c.color}};">
+					<td>{{c.eventtype}}</td>
+					<td>{{c.landscapename}}</td>
+					<td>{% if c.buildingname %}{{c.buildingname}}{% endif %}</td>
+					<td>{% if c.floorname%}{{c.floorname}}{% endif%}</td>
+					<td>{% if c.kabinetname %}{{c.kabinetname}}{% endif %}</td>
+					<td>{{c.length}}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+<script src="{% static 'js/highcharts/highcharts.js' %}"></script>
+<!-- <script src="{% static 'js/highcharts/themes/dark-blue.js' %}"></script> -->
+<script src="{% static 'js/highcharts/modules/exporting.js' %}"></script>
+<script>
+	$(function () {
+	  $('#diagram').highcharts({
+	    chart: {
+	        plotBackgroundColor: null,
+	        plotBorderWidth: null,
+	        plotShadow: false,
+	        type: 'pie'
+	    },
+		  title: {
+		      text: 'Распределение времени перемещений за период с {{strFrom}} по {{strTo}}'
+		  },
+	    tooltip: {
+	        /*formatter: function() {
+	          return 'Общее время:' + this.description  + '</b> is <b>' + this.y + '%';
+	        }*/
+	        pointFormat: '{series.name}:{point.description}<br>процент от общего времени:{point.percentage:.1f}%'
+	    },
+	    plotOptions: {
+	        pie: {
+	            allowPointSelect: true,
+	            cursor: 'pointer',
+	            dataLabels: {
+	                enabled: true,
+	                format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+	                style: {
+	                    color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+	                }
+	            }
+	        }
+	    },
+	    series: [{
+	        name: 'Время',
+	        colorByPoint: true,
+	        data: [
+	        {% for c in structurelength %}
+	        {
+	        	name: '{{c.eventtype}}',
+	        	y: strToSec('{{c.length}}'),
+	        	description: '{{c.length}}'
+	        },
+	        {% endfor %}
+	        ]
+	        
+	    }]
+		});
+	});
+	function strToSec(hms){
+		var a = hms.split(':');
+		var seconds = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
+		return seconds;
+	}
+</script>

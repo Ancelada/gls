@@ -1,6 +1,4 @@
-{% extends 'main.html' %}
-
-{% block content %}
+  	{% load staticfiles %}
 	{% load jsonify %}
 	<h1>Отчет: "{{report.Name}}"</h1>
 	<h3>Перемещения по структурным подразделениям</h3>
@@ -42,4 +40,3 @@
 			{% endfor %}
 		</tbody>
 	</table>
-{% endblock %}

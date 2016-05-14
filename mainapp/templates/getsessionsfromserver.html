@@ -20,6 +20,28 @@
   	</div>
 	{% endif%}
 	<script>
+		var value, id, idLayer, name;
+
+		//изменить параметр inUse
+		$('#sessionstable').delegate('#inuse', 'change', function(){
+			a = $(this).next().children('p').children('#confirmok');
+			value = $.parseJSON(($(this)[0].value).toLowerCase());
+			id = parseInt($(this).attr('data-id'));
+			idLayer = parseInt($(this).attr('data-idLayer'));
+			name = $(this).attr('data-name');
+			$('#confirmation').foundation('open');
+		})
+
+		$('#sessionstable').delegate('#confirmok', 'click', function(){
+			$('#confirmation').foundation('close');
+			parameters = {}
+			parameters['inuse'] = value;
+			parameters['session_id'] = id;
+			parameters['layer_id'] = idLayer;
+			parameters['name'] = name;
+			parameters['method'] = 'inusechange';
+			sendRequest(parameters);
+		});
 		//удалить сессию
 		$('#sessionstable').delegate('#deletesession', 'click', function(){
 			parameters = {};
@@ -65,6 +87,9 @@
 					} else if (parameters['method'] == 'deletesession'){
 						$('#result').html(data['string']);
 						console.log(data);
+					} else if (parameters['method'] == 'inusechange'){
+						console.log(data);
+						$('#sessionstable').html(data['string']);
 					}
 				}
 			});

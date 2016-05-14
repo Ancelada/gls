@@ -5,6 +5,9 @@
 		</div>
 	</div>
 {% endif %}
+{% if success %}
+	<span class="label success">{{success}}</span>
+{% endif %}
 <h2>Список сессий (СП)</h2>
 <table class="large-12 small-12 columns">
 	<thead>
@@ -20,7 +23,22 @@
 			<tr>
 				<td>{{i.id}}</td>
 				<td>{{i.idLayer}}</td>
-				<td>{{i.inUse}}</td>
+				<td>
+					<select id="inuse" data-id="{{i.id}}" data-idLayer="{{i.idLayer}}" data-name="{{i.name}}">
+						<option value="True" {% if i.inUse = True %}selected="selected"{% endif%}>True</option>
+						<option value="False" {% if i.inUse = False %}selected="selected"{% endif %}>False</option>
+					</select>
+					<div class="reveal" id="confirmation" data-reveal>
+							<h1>Вы уверены</h1>
+							<p>
+								<button class="button success" id="confirmok" data-inuse>да</button>
+								<button class="button alert">нет</button>
+							</p>
+							<button class="close-button" data-close aria-label="Close modal" type="button">
+								<span aria-hidden="true">&times;</span>
+							</button>
+					</div>
+				</td>
 				<td>{{i.name}}</td>
 				<td>
 					<button class="button secondary" id="getsessiondetail" data-id="{{i.id}}">Отобразить список объектов</button>

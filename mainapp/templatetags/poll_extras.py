@@ -14,7 +14,6 @@ def roundten(value):
 	ten = ten * 10
 	return ten
 
-
 @register.filter
 def less_now(value):
 	now = datetime.datetime.now().date()
@@ -28,3 +27,8 @@ def decToPoint(value):
 	a = str(value)
 	a = a.replace(',', '.')
 	return a
+
+@register.filter
+def longHexToSmall(value):
+	value = int(value, 16)
+	return value

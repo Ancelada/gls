@@ -135,6 +135,7 @@ class LoadLandscape(models.Model):
 	get_wall_height_symbol = models.BooleanField()
 	light_target_symbol = models.BooleanField()
 	server_id = models.IntegerField(blank=True, null=True)
+	session_id = models.IntegerField(blank=True, null=True)
 	def __str__(self):
 		return self.landscape_id.encode('utf-8')
 class Building(models.Model):
@@ -148,7 +149,7 @@ class Building(models.Model):
 	maxx = models.FloatField(null=True)
 	maxy = models.FloatField(null=True)
 	maxz = models.FloatField(null=True)
-	LoadLandscape = models.ForeignKey(LoadLandscape)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 class VerticesBuilding(models.Model):
 	class Meta():
@@ -156,7 +157,7 @@ class VerticesBuilding(models.Model):
 	x = models.FloatField(null=True)
 	y = models.FloatField(null=True)
 	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
-	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE, null=True)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 class Floor(models.Model):
 	class Meta():
@@ -178,7 +179,7 @@ class VerticesFloor(models.Model):
 	x = models.FloatField(null=True)
 	y = models.FloatField(null=True)
 	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
-	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE, null=True)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 class Kabinet_n_Outer(models.Model):
 	class Meta():
@@ -200,7 +201,7 @@ class VerticesKabinet_n_Outer(models.Model):
 	x = models.FloatField(null=True)
 	y = models.FloatField(null=True)
 	Kabinet_n_Outer = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
-	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE, null=True)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 class Wall(models.Model):
 	class Meta():
@@ -247,6 +248,22 @@ class Tag(models.Model):
 	TagType = models.ForeignKey(TagType, on_delete=models.CASCADE)
 	def __str__(self):
 		return self.TagId.encode('utf-8')
+
+class Node(models.Model):
+	class Meta():
+		db_table = 'Node'
+	Name = models.CharField(max_length=200)
+	Description = models.TextField()
+	server_id = models.BigIntegerField(null=True, blank=True)
+	id_hex = models.CharField(max_length=200, null=True, blank=True)
+	def __str__(self):
+		return self.Name.encode('utf-8')
+
+class TagNode(models.Model):
+	class Meta():
+		db_table = 'TagNode'
+	Tag = models.ForeignKey(Tag)
+	Node = models.ForeignKey(Node)
 
 class TagGroup_Tag(models.Model):
 	class Meta():

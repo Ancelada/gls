@@ -1,6 +1,7 @@
 {% extends 'main.html' %}
 
 {% block content %}
+	<a href="/reportselect/" class="button">Вернуться к списку отчетов</a>
 	<h1>Отчет: "{{report.Name}}"</h1>
 	{% for rp in reportparameters %}
 		<div id="{{rp.Parameter__domName}}" class="reportparameter" data-id="{{rp.Parameter_id}}">{{rp.html}}</div>

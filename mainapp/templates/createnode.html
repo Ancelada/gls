@@ -1,0 +1,39 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% if username %}
+		<h1>Создание node</h1>
+		<a href="/nodes">Назад к списку Nodes</a>
+		<br>
+		{% if success %}
+			<span class="label success">{{success}}</span>
+		{% endif %}
+		{% if error %}
+			<span class="label alert">{{error}}</span>
+		{% endif %}
+		<form action="/createnode" method="post">
+			<label for="nodename">Наименование
+				<input type="text" id="nodename" name="nodename" placeholder="Наименование" {% if name %}value="{{name}}"{% endif %}>	
+			</label>
+			<label for="nodedescription">Описание
+				<textarea name="nodedescription" cols="30" rows="5" id="nodedescription" placeholder="Описание">{% if description %}{{description}}{% endif %}</textarea>	
+			</label>
+			<label for="serveridhex">id_hex
+				<input name="serveridhex" type="text" id="serveridhex" placeholder="Идентификатор tag в формате hex" {% if server_id_hex %}value="{{server_id_hex}}"{% endif %}>
+			</label>
+			<label for="tagid">Привязанная метка
+				<select name="tagid" id="tagid">
+					{% for t in tags %}
+						<option value="{{t.TagId}}" {% if tagid == t.TagId %}selected="selected"{% endif %}>{{t.TagId}}</option>
+					{% endfor %}
+				</select>
+			</label>
+			<button class="button" id="save" type="submit">Сохранить</button>	
+		</form>
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif %}
+{% endblock %}

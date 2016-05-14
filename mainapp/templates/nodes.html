@@ -1,0 +1,106 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% if username %}
+		<h1>Получить информацию о Node WS</h1>
+		<h3>Список node WS</h3>
+		<div id="nodetable">
+			<table>
+				<thead>
+					<tr>
+						<th>Наименование</th>
+						<th>Описание</th>
+						<th>server_id</th>
+						<th>id_hex</th>
+						<th>Привязанный tag</th>
+						<th>действие</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for i in tagnodes %}
+						<tr>
+							<td>{{i.Node__Name}}</td>
+							<td>{{i.Node__Description}}</td>
+							<td {% if i.Node__server_id == None %}style="background:#fb9f9f;"{% endif%}>{% if i.Node__server_id == None %}Отсутствует на SP<br><button class="button secondary" id="sendtosp" data-name="{{i.Node__Name}}" data-description="{{i.Node__Description}}" data-hex="{{i.Node__id_hex}}" data-wsid="{{i.Node_id}}">Отправить на SP</button>
+							{% else %}{{i.Node__server_id}}{% endif %}</td>
+							<td>{{i.Node__id_hex}}</td>
+							<td>
+									{% for t in tags %}
+										{% if i.Tag_id == t.TagId %}
+											{{t.TagId}}
+										{% endif %}
+									{% endfor %}
+							</td>
+							<td>
+								<a href="/getnode/{{i.Node_id}}" class="button secondary" id="correction" data-id="{{i.Node_id}}">Корректировать</a>
+								<button class="button alert" id="deletews" data-id="{{i.Node_id}}">Удалить</button>
+							</td>
+						</tr>
+					{% endfor %}					
+				</tbody>
+			</table>
+			<a href="/createnode">Создать node на WS</a>
+		</div>
+		<button class="button" id="nodedifference">Получить расхождения между WS и SP</button>
+		<div id="nodedifferencetable">
+			{{nodedifferencetable}}
+		</div>
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif%}
+	<script>
+		//удалить из ws
+		$('body').delegate('#deletews', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'deletews';
+			parameters['id'] = parseInt($(this).attr('data-id'));
+			sendAjax(parameters);
+		});
+		//удалить Node из SP
+		$('#nodedifferencetable').delegate('#delete', 'click', function(){
+			parameters = {}
+			parameters['method'] = 'delete';
+			parameters['id'] = parseInt($(this).attr('data-id'));
+			sendAjax(parameters);
+		});
+		//отправить node ws на sp
+		$('#sendtosp').on('click', function(){
+			parameters = {}
+			parameters['method'] = 'sendtosp';
+			parameters['name'] = $(this).attr('data-name');
+			parameters['description'] = $(this).attr('data-description');
+			parameters['hex'] = $(this).attr('data-hex');
+			parameters['ws_id'] = parseInt($(this).attr('data-wsid'));
+			sendAjax(parameters);
+		});
+		//таблица расхождений
+		$('#nodedifference').on('click', function(){
+			parameters = {};
+			parameters['method'] = 'nodedifference';
+			sendAjax(parameters);
+		});
+		function sendAjax(parameters){
+			$.ajax({
+				type: "POST",
+				url: "/nodes",
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					if (parameters['method'] == 'nodedifference'){
+						console.log(data);
+						$('#nodedifferencetable').html(data['string']);
+					} else if (parameters['method'] == 'delete'){
+						$('#nodedifferencetable').html(data['string']);
+					} else if (parameters['method'] == 'deletews'){
+						window.location = '/nodes';
+					}
+				}
+			});
+		}
+	</script>
+{% endblock %}

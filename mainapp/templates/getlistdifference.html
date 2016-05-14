@@ -28,30 +28,30 @@
 						<tr>
 							<td>WS</td>
 							<td>{{w.server_id}}</td>
-							<td>{{w.Name}}</td>
-							<td>{{w.Description}}</td>
-							<td>{{w.xCoord|truncatechars:7}}</td>
-							<td>{{w.yCoord|truncatechars:7}}</td>
-							<td>{{w.zCoord|truncatechars:7}}</td>
-							<td>{{w.server_inUse}}</td>
-							<td>{{w.LoadLandscape__server_id}}</td>
-							<td>{{w.server_type}}</td>
-							<td>{{w.server_radius}}</td>
-							<td>{{w.server_minNumPoints}}</td>				
+							<td {% if w.Name != s.name %}style="background:#fb9f9f;"{% endif %}>{{w.Name}}{% if w.Name != s.name %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректировать</button>{% endif %}</td>
+							<td {% if w.Description != s.description %}style="background:#fb9f9f;"{% endif %}>{{w.Description}}{% if w.Description != s.description %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>
+							<td {% if w.yCoord|floatformat:2 != s.x|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{w.yCoord}}{% if w.yCoord|floatformat:2 != s.x|floatformat:2 %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>
+							<td {% if w.zCoord|floatformat:2 != s.y|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{w.zCoord}}{% if w.zCoord|floatformat:2 != s.y|floatformat:2 %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif%}</td>
+							<td {% if w.xCoord|floatformat:2 != s.z|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{w.xCoord}}{% if w.xCoord|floatformat:2 != s.z|floatformat:2 %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>
+							<td {% if w.server_inUse != s.inUse %}style="background:#fb9f9f;"{% endif %}>{{w.server_inUse}}{% if w.server_inUse != s.inUse %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>
+							<td {% if w.LoadLandscape__server_id != s.idLayer %}style="background:#fb9f9f;"{% endif %}>{{w.LoadLandscape__server_id}}{% if w.LoadLandscape__server_id != s.idLayer %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>
+							<td {% if w.server_type != s.type %}style="background:#fb9f9f;"{% endif %}>{{w.server_type}}{% if w.server_type != s.type %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>
+							<td {% if w.server_radius != s.radius %}style="background:#fb9f9f;"{% endif %}>{{w.server_radius}}{% if w.server_radius != s.radius %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>
+							<td {% if w.server_minNumPoints != s.minNumPoints %}style="background:#fb9f9f;"{% endif %}>{{w.server_minNumPoints}}{% if w.server_minNumPoints != s.minNumPoints %}<button class="button secondary" id="correctobject" data-id="{{w.server_id}}">Откорректирровать</button>{% endif %}</td>				
 						</tr>
 						<tr>
 							<td>SP</td>
 							<td>{{s.id}}</td>
-							<td>{{s.name}}</td>
-							<td>{{s.description}}</td>
-							<td>{{s.x|truncatechars:7}}</td>
-							<td>{{s.y|truncatechars:7}}</td>
-							<td>{{s.z|truncatechars:7}}</td>
-							<td>{{s.inUse}}</td>
-							<td>{{s.idLayer}}</td>
-							<td>{{s.type}}</td>
-							<td>{{s.radius}}</td>
-							<td>{{s.minNumPoints}}</td>				
+							<td {% if w.Name != s.name %}style="background:#fb9f9f;"{% endif %}>{{s.name}}</td>
+							<td {% if w.Description != s.description %}style="background:#fb9f9f;"{% endif %}>{{s.description}}</td>
+							<td {% if w.yCoord|floatformat:2 != s.x|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{s.x}}</td>
+							<td {% if w.zCoord|floatformat:2 != s.y|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{s.y}}</td>
+							<td {% if w.xCoord|floatformat:2 != s.z|floatformat:2 %}style="background:#fb9f9f;"{% endif %}>{{s.z}}</td>
+							<td {% if w.server_inUse != s.inUse %}style="background:#fb9f9f;"{% endif %}>{{s.inUse}}</td>
+							<td {% if w.LoadLandscape__server_id != s.idLayer %}style="background:#fb9f9f;"{% endif %}>{{s.idLayer}}</td>
+							<td {% if w.server_type != s.type %}style="background:#fb9f9f;"{% endif %}>{{s.type}}</td>
+							<td {% if w.server_radius != s.radius %}style="background:#fb9f9f;"{% endif %}>{{s.radius}}</td>
+							<td {% if w.server_minNumPoints != s.minNumPoints %}style="background:#fb9f9f;"{% endif %}>{{s.minNumPoints}}</td>
 						</tr>
 					</tbody>
 				</thead>
@@ -59,6 +59,8 @@
 		{% endif %}
 	{% endfor %}
 {% endfor %}
+
+{% if haveinweb|length > 0 %}
 <h2>Есть в WS, нет в SP</h2>
 <table class="large-12 small-12 columns">
 	<thead>
@@ -83,9 +85,9 @@
 				<td>{{h.server_id}}</td>
 				<td>{{h.Name}}</td>
 				<td>{{h.Description}}</td>
-				<td>{{h.xCoord|truncatechars:7}}</td>
-				<td>{{h.yCoord|truncatechars:7}}</td>
-				<td>{{h.zCoord|truncatechars:7}}</td>
+				<td>{{h.xCoord}}</td>
+				<td>{{h.yCoord}}</td>
+				<td>{{h.zCoord}}</td>
 				<td>{{h.server_inUse}}</td>
 				<td>{{h.LoadLandscape__server_id}}</td>
 				<td>{{h.server_type}}</td>
@@ -96,43 +98,48 @@
 		</tbody>
 	</thead>
 </table>
+{% endif %}
+
+{% if haveinsp|length > 0 %}
 <h2>Есть в SP, нет в WS</h2>
 <table class="large-12 small-12 columns">
-				<thead>
-					<tr>
-						<th>Тип</th>
-						<th>Идентификатор</th>
-						<th>Наименование</th>
-						<th>Описание</th>
-						<th>x</th>
-						<th>y</th>
-						<th>z</th>
-						<th>Флаг использования устройств</th>
-						<th>Сцена</th>
-						<th>Тип роутера</th>
-						<th>Радиус окресности</th>
-						<th>Минимальное количество точек попадания</th>
-					</tr>
-					<tbody>
-						{% for s in haveinsp %}
-						<tr>
-							<td>SP</td>
-							<td>{{s.id}}</td>
-							<td>{{s.name}}</td>
-							<td>{{s.description}}</td>
-							<td>{{s.x|truncatechars:7}}</td>
-							<td>{{s.y|truncatechars:7}}</td>
-							<td>{{s.z|truncatechars:7}}</td>
-							<td>{{s.inUse}}</td>
-							<td>{{s.idLayer}}</td>
-							<td>{{s.type}}</td>
-							<td>{{s.radius}}</td>
-							<td>{{s.minNumPoints}}</td>				
-						</tr>
-						{% endfor %}
-					</tbody>
-				</thead>
-			</table>
+	<thead>
+		<tr>
+			<th>Тип</th>
+			<th>Идентификатор</th>
+			<th>Наименование</th>
+			<th>Описание</th>
+			<th>x</th>
+			<th>y</th>
+			<th>z</th>
+			<th>Флаг использования устройств</th>
+			<th>Сцена</th>
+			<th>Тип роутера</th>
+			<th>Радиус окресности</th>
+			<th>Минимальное количество точек попадания</th>
+		</tr>
+		<tbody>
+			{% for s in haveinsp %}
+			<tr>
+				<td>SP</td>
+				<td>{{s.id}}</td>
+				<td>{{s.name}}</td>
+				<td>{{s.description}}</td>
+				<td>{{s.x}}</td>
+				<td>{{s.y}}</td>
+				<td>{{s.z}}</td>
+				<td>{{s.inUse}}</td>
+				<td>{{s.idLayer}}</td>
+				<td>{{s.type}}</td>
+				<td>{{s.radius}}</td>
+				<td>{{s.minNumPoints}}</td>				
+			</tr>
+			{% endfor %}
+		</tbody>
+	</thead>
+</table>
+{% endif %}
+
 <button class="button success" id="loadtoserver">Загрузить на web сервер</button>
 <script>
 	$('#getlisttable').foundation();
