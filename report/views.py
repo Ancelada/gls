@@ -243,9 +243,14 @@ def groupUzoneByLength(chronology):
 
 def ifKeyUzoneInArrayFind(i, newArr):
 	if 'uzonename' in i:
-		newArr.append({'eventtype': i['eventtype'], 'landscapename': i['landscapename'], \
-			 'uzonename': i['uzonename'], 'gruzonename': i['gruzonename'], 'length': i['length'], \
-			  'color': i['color']})
+		try:
+			newArr.append({'eventtype': i['eventtype'], 'landscapename': i['landscapename'], \
+				 'uzonename': i['uzonename'], 'gruzonename': i['gruzonename'], 'length': i['length'], \
+				  'color': i['color']})
+		except:
+			newArr.append({'eventtype': i['eventtype'], 'landscapename': i['landscapename'], \
+				 'uzonename': i['uzonename'], 'gruzonename': '', 'length': i['length'], \
+				  'color': i['color']})
 	else:
 		if 'length' in i:
 			newArr.append({'eventtype': i['eventtype'], 'length': i['length'], 'color': i['color']})
@@ -267,6 +272,7 @@ def groupStructureByLength(chronology):
 	return newArr
 
 def ifKeyStructureInArrayFind(i, newArr):
+	print newArr
 	if 'landscapename' in i and 'buildingname' in i and 'floorname' in i and 'kabinetname' in i:
 		newArr.append({'eventtype': i['eventtype'], 'length': i['length'], 'color': i['color'], \
 			 'landscapename': i['landscapename'], 'buildingname': i['buildingname'], \
@@ -327,18 +333,26 @@ def getAllUz(strFrom, strTo, tag_id, user):
 		for i in groupuserzoneuserzone:
 			if i.UserZone_id == tuuo['UserZone_id']:
 				gruzone_id = i.GroupUserZone_id
-		if gruzone_id:
-			parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
-			 'groupuzone': gruzone_id, 'userzone': tuuo['UserZone_id']}
-			uzonename = uzoneName(tuuo['UserZone_id'], 'uzone')
-			gruzonename = uzoneName(gruzone_id, 'gruzone')
-		  	chronology.append({'time': tuuo['WriteTime'], 'gruzonename': gruzonename['groupuserzonename'], \
-		  	 'uzonename': uzonename['userzonename'], \
-		  	 'table': 'taguzoneuserorder', 'parameters': parameters, \
-		  	  'landscapename': tuuo['UserZone__LoadLandscape_id']})
-		else:
-			parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
-			 'userzone': tuuo['UserZone_id']}
+		try:
+			if gruzone_id:
+				parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
+				 'groupuzone': gruzone_id, 'userzone': tuuo['UserZone_id']}
+				uzonename = uzoneName(tuuo['UserZone_id'], 'uzone')
+				gruzonename = uzoneName(gruzone_id, 'gruzone')
+			  	chronology.append({'time': tuuo['WriteTime'], 'gruzonename': gruzonename['groupuserzonename'], \
+			  	 'uzonename': uzonename['userzonename'], \
+			  	 'table': 'taguzoneuserorder', 'parameters': parameters, \
+			  	  'landscapename': tuuo['UserZone__LoadLandscape_id']})
+			else:
+				parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
+				 'userzone': tuuo['UserZone_id']}
+				uzonename = uzoneName(tuuo['UserZone_id'], 'uzone')
+			  	chronology.append({'time': tuuo['WriteTime'], 'table': 'taguzoneuserorder', \
+			  		 'uzonename': uzonename['userzonename'], 'parameters': parameters, \
+			  		  'landscapename': tuuo['UserZone__LoadLandscape_id']})
+	  	except:
+	  		parameters = {'landscape_id': tuuo['UserZone__LoadLandscape_id'], \
+				 'userzone': tuuo['UserZone_id']}
 			uzonename = uzoneName(tuuo['UserZone_id'], 'uzone')
 		  	chronology.append({'time': tuuo['WriteTime'], 'table': 'taguzoneuserorder', \
 		  		 'uzonename': uzonename['userzonename'], 'parameters': parameters, \

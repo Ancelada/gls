@@ -19,9 +19,6 @@
 			<label for="nodedescription">Описание
 				<textarea name="nodedescription" cols="30" rows="5" id="nodedescription" placeholder="Описание">{% if description %}{{description}}{% endif %}</textarea>	
 			</label>
-			<label for="serveridhex">id_hex
-				<input name="serveridhex" type="text" id="serveridhex" placeholder="Идентификатор tag в формате hex" {% if server_id_hex %}value="{{server_id_hex}}"{% endif %}>
-			</label>
 			<label for="tagid">Привязанная метка
 				<select name="tagid" id="tagid">
 					{% for t in tags %}

@@ -1,0 +1,86 @@
+<h2>Список созданных Tag WS</h3>
+<table>
+	<thead>
+		<tr>
+			<th>Идентификатор</th>
+			<th>registered</th>
+			<th>locationMethods</th>
+			<th>sensors</th>
+			<th>timeUpdateLocation</th>
+			<th>correctionFilter</th>
+			<th>действие</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for t in tags %}
+		<tr>
+			<td>{{t.TagId}}</td>
+			<td {% if t.Registered == None %}style="background:#fb9f9f;"{% endif %}>{% if t.Registered == None %}Tag не зарегистрирован<br>
+				<select id="registeredchanged" data-id="{{t.TagId}}">
+					<option value="true" {% if t.Registered == True %}selected="selected"{% endif %}>True</option>
+					<option value="false" {% if t.Registered == False %}selected="selected"{% endif %}>False</option>
+				</select>
+			{% else %}
+				<select id="registeredchanged" data-id="{{t.TagId}}">
+					<option value="true" {% if t.Registered == True %}selected="selected"{% endif %}>True</option>
+					<option value="false" {% if t.Registered == False %}selected="selected"{% endif %}>False</option>
+				</select>
+			{% endif %}
+			</td>
+			<td>
+				<button class="button secondary" type="button" data-toggle="locationmethods{{t.TagId}}">Выбрать</button>
+				<div class="dropdown-pane" id="locationmethods{{t.TagId}}" data-dropdown data-auto-focus="true">
+					{% for l in locationmethods %}
+						<input id="locationmethods{{l.id}}{{t.TagId}}" type="checkbox" {% for tl in taglocationmethods %}{% if tl.LocationMethods_id == l.id and tl.Tag_id == t.TagId %}checked="checked"{% endif %}{% endfor %} data-locationmethod="{{l.id}}"><label for="locationmethods{{l.id}}{{t.TagId}}">{{l.ParameterName}}</label>
+						<br>
+					{% endfor %}
+					<button class="button success" id="locationmethodsave" data-tagid="{{t.TagId}}">Сохранить</button>
+				</div>
+			</td>
+			<td>
+				<button class="button secondary" type="button" data-toggle="sensors{{t.TagId}}">Выбрать</button>
+				<div class="dropdown-pane" id="sensors{{t.TagId}}" data-dropdown data-auto-focus="true">
+					{% for s in sensors %}
+						<input id="sensors{{s.id}}{{t.TagId}}" type="checkbox" {% for ts in tagsensors %}{% if ts.Sensors_id == s.id and ts.Tag_id == t.TagId %}checked="checked"{% endif %}{% endfor %} data-sensors="{{s.id}}"><label for="sensors{{s.id}}{{t.TagId}}">{{s.ParameterName}}</label>
+						<br>
+					{% endfor %}
+					<button class="button success" id="sensorssave" data-tagid="{{t.TagId}}">Сохранить</button>
+				</div>
+			</td>
+			<td>
+				<button class="button secondary" type="button" data-toggle="timeupdatelocation{{t.TagId}}">Выбрать</button>
+				<div class="dropdown-pane" id="timeupdatelocation{{t.TagId}}" data-dropdown data-auto-focus="true">
+					{% for tul in timeupdatelocation %}
+						<input id="timeupdatelocation{{tul.id}}{{t.TagId}}" type="checkbox" {% for ttul in tagtimeupdatelocation %}{% if ttul.TimeUpdateLocation_id == tul.id and ttul.Tag_id == t.TagId %}checked="checked"{% endif %}{% endfor %} data-timeupdatelocation="{{tul.id}}"><label for="timeupdatelocation{{tul.id}}{{t.TagId}}">{{tul.ParameterName}}</label>
+						<br>
+						<input type="number" id="tulvalue" placeholder="Значение число" {% for ttul in tagtimeupdatelocation %}{% if ttul.TimeUpdateLocation_id == tul.id and ttul.Tag_id == t.TagId %}{% if ttul.Value != None %}value="{{ttul.Value}}"{% endif%}{% endif %}{% endfor %}>
+					{% endfor %}
+					<button class="button success" id="timeupdatelocationsave" data-tagid="{{t.TagId}}">Сохранить</button>
+				</div>
+			</td>
+			<td>
+				<button class="button secondary" type="button" data-toggle="correctionfilter{{t.TagId}}">Выбрать</button>
+				<div class="dropdown-pane" id="correctionfilter{{t.TagId}}" data-dropdown data-auto-focus="true">
+					{% for cf in correctionfilter %}
+						<input id="correctionfilter{{cf.id}}{{t.TagId}}" type="checkbox" {% for tcf in tagcorrectionfilter%}{% if tcf.CorrectionFilter_id == cf.id and tcf.Tag_id == t.TagId %}checked="checked"{% endif%}{% endfor %} data-correctionfilter="{{cf.id}}" data-parametervaluetype="{{cf.ParameterValueType}}"><label for="correctionfilter{{cf.id}}{{t.TagId}}">{{cf.ParameterName}}</label>
+						<br>
+						<input type="{{cf.ParameterValueType}}" placeholder="значение" {% for tcf in tagcorrectionfilter %}{% if tcf.CorrectionFilter_id == cf.id and tcf.Tag_id == t.TagId %}{% if tcf.Value != None %}value="{{tcf.Value}}"{% else %}{% endif %}{% endif %}{% endfor %} step="0.1">
+					{% endfor %}
+					<button class="button success" id="correctionfiltersave" data-tagid="{{t.TagId}}">Сохранить</button>
+				</div>
+			</td>
+			<td>
+				<button class="button secondary" type="button" data-toggle="action{{t.TagId}}">Выбрать</button>
+				<div class="dropdown-pane" id="action{{t.TagId}}" data-dropdown data-auto-focus="true">
+					<a id="delete" data-id="{{t.TagId}}">Удалить</a>
+					<br>
+					<a id="submittoall" data-id="{{t.TagId}}">Применить параметры ко всем</a>
+				</div>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<script>
+	$('#tagtablews').foundation();
+</script>

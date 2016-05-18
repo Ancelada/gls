@@ -84,3 +84,41 @@ class TagNodeAdmin(admin.ModelAdmin):
 		('Node', {'fields': ['Node']})
 	]
 admin.site.register(TagNode, TagNodeAdmin)
+
+#Tag
+class TagAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Идентификатор', {'fields': ['TagId']}),
+		('Наименование', {'fields': ['Name']}),
+		('Тип тега', {'fields': ['TagType']}),
+	]
+admin.site.register(Tag, TagAdmin)
+
+#LocationMethods
+class LocationMethodsAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование параметра', {'fields': ['ParameterName']}),
+	]
+admin.site.register(LocationMethods, LocationMethodsAdmin)
+
+#Sensors
+class SensorsAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование параметра', {'fields': ['ParameterName']}),
+	]
+admin.site.register(Sensors, SensorsAdmin)
+
+#TimeUpdateLocation
+class TimeUpdateLocationAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование параметра', {'fields': ['ParameterName']}),
+	]
+admin.site.register(TimeUpdateLocation, TimeUpdateLocationAdmin)
+
+#CorrectionFilter
+class CorrectionFilterAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование параметра', {'fields': ['ParameterName']}),
+		('Тип значения параметра', {'fields': ['ParameterValueType']}),
+	]
+admin.site.register(CorrectionFilter, CorrectionFilterAdmin)

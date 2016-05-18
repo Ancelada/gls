@@ -99,8 +99,12 @@ urlpatterns = patterns('',
 	# информация от WS
 	url(r'getmysession', 'mainapp.views.getmysession'),
 
-	# работа с метками
+	# работа с node ws sp
 	url(r'nodes', 'mainapp.views.nodes'),
 	url(r'getnode/(?P<parameters>[0-9]+)', 'mainapp.views.getnode'),
 	url(r'createnode', 'mainapp.views.createnode'),
+
+	# работа с tag ws sp
+	url(r'tags', 'mainapp.views.tags'),
+	url(r'createtag', 'mainapp.views.createtag'),
 )

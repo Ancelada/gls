@@ -1,0 +1,210 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% load staticfiles %}
+	{% if username %}
+		<div id="tagtablews">
+			{{tagtablews}}
+		</div>
+		<a href="/createtag" id="create">Создать новый Tag</a>
+		<br>
+		<button class="button success" id="getdifference">Сравнить информацию WS с SP</button>
+		<div id="tagdifference">
+			{{tagdifference}}
+		</div>
+	<script>
+		//sendtows
+		$('#tagdifference').delegate('#addtows', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendtows';
+			parameters['tag_id'] = $(this).attr('data-id');
+			parameters['onlysp'] = onlysp;
+			sendAjax(parameters);
+		});
+
+		//sendtosp all tags
+		$('#tagdifference').delegate('#addalltosp', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendalltosp';
+			parameters['tags'] = onlyws;
+			sendAjax(parameters);
+		});
+
+		//sendtosp
+		$('#tagdifference').delegate('#addtosp', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendtosp';
+			parameters['tag_id'] = $(this).attr('data-id');
+			sendAjax(parameters);
+		});
+
+		//difference
+		$('body').delegate('#getdifference', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'getdifference';
+			sendAjax(parameters);
+		});
+
+		//применить ко всем
+		$('body').delegate('#submittoall', 'click', function(){
+			parameters = {};
+			parameters['tag_id'] = $(this).attr('data-id');
+			parameters['method'] = 'submittoall';
+			parameters['locationmethods'] = fillLocationMethods($('#locationmethods'+parameters['tag_id']).children('input'));
+			parameters['sensors'] = fillSensors($('#sensors'+parameters['tag_id']).children('input'));
+			parameters['timeupdatelocation'] = fillTimeUpdateLocation($('#timeupdatelocation'+parameters['tag_id']));
+			parameters['correctionfilter'] = fillCorrectionFilter($('#correctionfilter'+parameters['tag_id']).children('input[type="checkbox"]'))
+			parameters['value'] = $('#registeredchanged[data-id="'+parameters['tag_id']+'"]')[0].value;
+			sendAjax(parameters);
+		});
+		//удалить
+		$('body').delegate('#delete', 'click', function(){
+			parameters = {};
+			parameters['tag_id'] = $(this).attr('data-id');
+			parameters['method'] = 'delete';
+			sendAjax(parameters);
+		});
+		//сохранить отмеченные correctionFilter и values
+		$('body').delegate('#correctionfiltersave', 'click', function(){
+			parameters = {};
+			parameters['tag_id'] = $(this).attr('data-tagid');
+			parameters['correctionfilter'] = fillCorrectionFilter($(this).parent().children('input[type="checkbox"]'));
+			parameters['method'] = 'correctionfilterchange';
+			sendAjax(parameters);
+		});
+
+		function fillCorrectionFilter(obj){
+			arr = [];
+			$.each(obj, function(index){
+				a = obj[index];
+				b = a['nextElementSibling']['nextElementSibling']['nextElementSibling'];
+				if (a['dataset']['parametervaluetype'] == 'text'){
+					correctionfilter = parseInt(a['dataset']['correctionfilter']);
+					value = b.value;
+				} else if (a['dataset']['parametervaluetype'] == 'number'){
+					correctionfilter = parseInt(a['dataset']['correctionfilter']);
+					value = parseFloat(b.value);
+				}
+				if (a['checked'] == true) {
+					arr.push({'id': correctionfilter, 'value': value})
+				}
+			});
+			return arr;
+		}
+
+		//сохранить отмеченные timeupdatelocation и values
+		$('body').delegate('#timeupdatelocationsave', 'click', function(){
+			parameters = {};
+			parameters['tag_id'] = $(this).attr('data-tagid');
+			parameters['timeupdatelocation'] = fillTimeUpdateLocation($(this).parent());
+			parameters['method'] = 'timeupdatelocationchange';
+			sendAjax(parameters);
+		});
+
+		function fillTimeUpdateLocation(obj){
+			arr = [];
+			$.each(obj.children('input[type="checkbox"]'), function(index){
+				a = obj.children('input[type="checkbox"]')[index];
+				b = obj.children('input[type="number"]')[index];
+				timeupdatelocation = parseInt(a['dataset']['timeupdatelocation']);
+				value = parseInt(b.value);
+				if (a['checked'] == true) {
+					arr.push({'id': timeupdatelocation, 'value': value});
+				}
+			});
+			return arr;
+		}
+
+		//сохранить отмеченные sensors
+		$('body').delegate('#sensorssave', 'click', function(){
+			parameters = {};
+			parameters['tag_id'] = $(this).attr('data-tagid');
+			parameters['sensors'] = fillSensors($(this).parent().children('input'));
+			parameters['method'] = 'sensorschange';
+			sendAjax(parameters);
+		});
+
+		function fillSensors(obj){
+			arr = [];
+			$.each(obj, function(index){
+				a = obj[index];
+				sensors = a['dataset']['sensors'];
+				if (a['checked'] == true){
+					arr.push(parseInt(sensors));
+				}
+			});
+			return arr;
+		}
+
+		//сохранить отмеченные locationmethod
+		$('#tagtablews').delegate('#locationmethodsave', 'click', function(){
+			parameters = {};
+			parameters['tag_id'] = $(this).attr('data-tagid');
+			parameters['locationmethods'] = fillLocationMethods($(this).parent().children('input'));
+			parameters['method'] = 'locationmethodschange';
+			sendAjax(parameters);
+		});
+
+		function fillLocationMethods(obj){
+			arr = [];
+			$.each(obj, function(index){
+				a = obj[index];
+				locationmethod = a['dataset']['locationmethod'];
+				if (a['checked'] == true ){
+					arr.push(parseInt(locationmethod));
+				}
+			});
+			return arr;
+		}
+
+		//изменение registered
+		$('body').delegate('#registeredchanged', 'change', function(){
+			parameters = {};
+			parameters['tag_id'] = $(this).attr('data-id');
+			parameters['value'] = $(this)[0].value;
+			parameters['method'] = 'registeredchanged';
+			sendAjax(parameters);
+		});
+		function sendAjax(parameters){
+			$.ajax({
+				type: "POST",
+				url: "/tags",
+				data: JSON.stringify(parameters),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				async: true,
+				success: function(data, textStatus, jqXHR){
+					if (parameters['method'] == 'registeredchanged'){
+						$('#tagtablews').html(data['string']);
+					} else if(parameters['method'] == 'locationmethodschange'){
+						$('#tagtablews').html(data['string']);
+					} else if(parameters['method'] == 'sensorschange'){
+						$('#tagtablews').html(data['string']);
+					} else if(parameters['method'] == 'timeupdatelocationchange'){
+						$('#tagtablews').html(data['string']);
+					} else if(parameters['method'] == 'correctionfilterchange'){
+						$('#tagtablews').html(data['string']);
+					} else if(parameters['method'] == 'delete'){
+						$('#tagtablews').html(data['string']);
+					} else if(parameters['method'] == 'submittoall'){
+						$('#tagtablews').html(data['string']);
+					} else if(parameters['method'] == 'getdifference'){
+						$('#tagdifference').html(data['string']);
+					} else if(parameters['method'] == 'sendtosp'){
+						$('#tagdifference').html(data['string']);
+					} else if(parameters['method'] == 'sendalltosp'){
+						$('#tagdifference').html(data['string']);
+					} else if(parameters['method'] == 'sendtows'){
+						console.log(data);
+					}
+				}
+			});
+		}
+	</script>
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif%}
+{% endblock %}

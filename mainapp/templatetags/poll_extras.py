@@ -30,5 +30,5 @@ def decToPoint(value):
 
 @register.filter
 def longHexToSmall(value):
-	value = int(value, 16)
+	value = hex(int(value, 16))
 	return value

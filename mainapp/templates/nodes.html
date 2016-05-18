@@ -12,7 +12,6 @@
 						<th>Наименование</th>
 						<th>Описание</th>
 						<th>server_id</th>
-						<th>id_hex</th>
 						<th>Привязанный tag</th>
 						<th>действие</th>
 					</tr>
@@ -24,7 +23,6 @@
 							<td>{{i.Node__Description}}</td>
 							<td {% if i.Node__server_id == None %}style="background:#fb9f9f;"{% endif%}>{% if i.Node__server_id == None %}Отсутствует на SP<br><button class="button secondary" id="sendtosp" data-name="{{i.Node__Name}}" data-description="{{i.Node__Description}}" data-hex="{{i.Node__id_hex}}" data-wsid="{{i.Node_id}}">Отправить на SP</button>
 							{% else %}{{i.Node__server_id}}{% endif %}</td>
-							<td>{{i.Node__id_hex}}</td>
 							<td>
 									{% for t in tags %}
 										{% if i.Tag_id == t.TagId %}
@@ -52,6 +50,17 @@
   	</div>
 	{% endif%}
 	<script>
+		//внести корректировки полей в SP
+		$('#nodedifferencetable').delegate('#makecorrection', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'makecorrection';
+			parameters['id'] = parseInt($(this).attr('data-id'));
+			parameters['name'] = $(this).attr('data-name');
+			parameters['description'] = $(this).attr('data-description');
+			parameters['tagid'] = $(this).attr('data-tagid');
+			sendAjax(parameters);
+		});
+
 		//удалить из ws
 		$('body').delegate('#deletews', 'click', function(){
 			parameters = {};
@@ -72,7 +81,6 @@
 			parameters['method'] = 'sendtosp';
 			parameters['name'] = $(this).attr('data-name');
 			parameters['description'] = $(this).attr('data-description');
-			parameters['hex'] = $(this).attr('data-hex');
 			parameters['ws_id'] = parseInt($(this).attr('data-wsid'));
 			sendAjax(parameters);
 		});
@@ -98,6 +106,12 @@
 						$('#nodedifferencetable').html(data['string']);
 					} else if (parameters['method'] == 'deletews'){
 						window.location = '/nodes';
+					} else if (parameters['method'] == 'sendtosp'){
+						console.log(data);
+						window.location = '/nodes';
+					} else if (parameters['method'] == 'makecorrection'){
+						console.log(data);
+						$('#nodedifferencetable').html(data['string']);
 					}
 				}
 			});

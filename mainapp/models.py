@@ -218,7 +218,7 @@ class Wall(models.Model):
 	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
 
 ######################
-### Метки
+### Tags
 ######################
 
 
@@ -246,16 +246,81 @@ class Tag(models.Model):
 	TagId = models.CharField(primary_key=True, max_length=20)
 	Name = models.CharField(max_length=200, null=True)
 	TagType = models.ForeignKey(TagType, on_delete=models.CASCADE)
+	Registered = models.NullBooleanField(blank=True, null=True)
 	def __str__(self):
 		return self.TagId.encode('utf-8')
 
+class TagGroup_Tag(models.Model):
+	class Meta():
+		db_table = 'TagGroup_Tag'
+	TagGroup = models.ForeignKey(TagGroup)
+	Tag = models.ForeignKey(Tag)
+	User = models.ForeignKey(User, on_delete=models.CASCADE)
+
+class LocationMethods(models.Model):
+	class Meta():
+		db_table = 'LocationMethods'
+	ParameterName = models.CharField(max_length=200, blank=True, null=True)
+	def __str__(self):
+		return self.ParameterName.encode('utf-8')
+
+class TagLocationMethods(models.Model):
+	class Meta():
+		db_table = 'TagLocationMethods'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	LocationMethods = models.ForeignKey(LocationMethods)
+
+class Sensors(models.Model):
+	class Meta():
+		db_table = 'Sensors'
+	ParameterName = models.CharField(max_length=200, blank=True, null=True)
+	def __str__(self):
+		return self.ParameterName.encode('utf-8')
+
+class TagSensors(models.Model):
+	class Meta():
+		db_table = 'TagSensors'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	Sensors = models.ForeignKey(Sensors, on_delete=models.CASCADE)
+
+class TimeUpdateLocation(models.Model):
+	class Meta():
+		db_table = 'TimeUpdateLocation'
+	ParameterName = models.CharField(max_length=200, blank=True, null=True)
+	def __str__(self):
+		return self.ParameterName.encode('utf-8')
+
+class TagTimeUpdateLocation(models.Model):
+	class Meta():
+		db_table = 'TagTimeUpdateLocation'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	TimeUpdateLocation = models.ForeignKey(TimeUpdateLocation, on_delete=models.CASCADE)
+	Value = models.CharField(max_length=200, blank=True, null=True)
+
+class CorrectionFilter(models.Model):
+	class Meta():
+		db_table = 'CorrectionFilter'
+	ParameterName = models.CharField(max_length=200, blank=True, null=True)
+	ParameterValueType = models.CharField(max_length=200, blank=True, null=True)
+	def __str__(self):
+		return self.ParameterName.encode('utf-8')
+
+class TagCorrectionFilter(models.Model):
+	class Meta():
+		db_table = 'TagCorrectionFilter'
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+	CorrectionFilter = models.ForeignKey(CorrectionFilter, on_delete=models.CASCADE)
+	Value = models.CharField(max_length=200, blank=True, null=True)
+
+#############################
+#### Nodes
+##########################
 class Node(models.Model):
 	class Meta():
 		db_table = 'Node'
 	Name = models.CharField(max_length=200)
 	Description = models.TextField()
 	server_id = models.BigIntegerField(null=True, blank=True)
-	id_hex = models.CharField(max_length=200, null=True, blank=True)
 	def __str__(self):
 		return self.Name.encode('utf-8')
 
@@ -265,12 +330,6 @@ class TagNode(models.Model):
 	Tag = models.ForeignKey(Tag)
 	Node = models.ForeignKey(Node)
 
-class TagGroup_Tag(models.Model):
-	class Meta():
-		db_table = 'TagGroup_Tag'
-	TagGroup = models.ForeignKey(TagGroup)
-	Tag = models.ForeignKey(Tag)
-	User = models.ForeignKey(User, on_delete=models.CASCADE)
 ######################
 ### События
 ######################

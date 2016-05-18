@@ -1,0 +1,35 @@
+{% extends 'main.html' %}
+
+{% block content %}
+	{% load jsonify %}
+	{% if username %}
+	<h1>Создание Tag</h1>
+	<a href="/tags">Назад к списку Tags</a>
+	<br>
+	{% if success %}
+		<span class="label success">{{success}}</span>
+	{% endif %}
+	{% if error %}
+		<span class="label alert">{{error}}</span>
+	{% endif %}
+	<form action="/createtag" method="post">
+		<label for="tagidright">Идентификатор
+			<div class="input-group">
+				<input class="input-group-field" type="text" id="tagid" name="tagid" value="{{tagid}}">
+			</div>
+		</label>
+		<label for="tagtype">Тип Tag
+			<select id="tagtype" name="tagtype">
+				{% for tt in tagtype %}
+					<option value="{{tt.id}}" {% if tt.id == tagtypeid %}selected="selected"{% endif %}>{{tt.Name}}</option>
+				{% endfor %}
+			</select>
+		</label>
+		<button class="button" type="submit" id="save">Создать</button>
+	</form>
+	{% else %}
+	  <div class="row">
+    	<h1>Информация скрыта. Необходима <a href="/login/"> авторизация.</a></h1>
+  	</div>
+	{% endif %}
+{% endblock %}

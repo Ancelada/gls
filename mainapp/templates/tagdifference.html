@@ -1,0 +1,119 @@
+{% load jsonify %}
+<h2>Есть в WS и SP</h2>
+{% for i in ws %}
+	{% for j in sp %}
+		{% if i.tagId == j.tagId|longHexToSmall %}
+			<table>
+				<thead>
+					<tr>
+						<th>Тип</th>
+						<th>Идентификатор</th>
+						<th>registered</th>
+						<th>locationMethods</th>
+						<th>sensors</th>
+						<th>timeUpdateLocation</th>
+						<th>correctionFilter</th>
+					</tr>
+				</thead>
+				<tbody>
+						<tr>
+							<td>WS</td>
+							<td>{{i.tagId}}</td>
+							<td>{{i.properties.registered}}</td>
+							<td>{{i.properties.locationMethods}}</td>
+							<td>{{i.properties.sensors}}</td>
+							<td>{{i.properties.timeUpdateLocation}}</td>
+							<td>{{i.properties.correctionFilter}}</td>
+						</tr>
+						<tr>
+							<td>SP</td>
+							<td>{{j.tagId|longHexToSmall}}</td>
+							<td>{{j.properties.registered}}</td>
+							<td>{{j.properties.locationMethods}}</td>
+							<td>{{j.properties.sensors}}</td>
+							<td>{{j.properties.timeUpdateLocation}}</td>
+							<td>{{j.properties.correctionFilter}}</td>
+						</tr>
+				</tbody>
+			</table>
+		{% endif %}
+	{% endfor %}
+{% endfor %}
+
+{% if onlyws|length > 0 %}
+<h2>Есть в WS</h2>
+<table>
+	<thead>
+		<tr>
+			<th>Идентификатор</th>
+			<th>registered</th>
+			<th>locationMethods</th>
+			<th>sensors</th>
+			<th>timeUpdateLocation</th>
+			<th>correctionFilter</th>
+			<th>действие</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for i in onlyws %}
+			<tr>
+				<td>{{i.tagId}}</td>
+				<td>{{i.properties.registered}}</td>
+				<td>{{i.properties.locationMethods}}</td>
+				<td>{{i.properties.sensors}}</td>
+				<td>{{i.properties.timeUpdateLocation}}</td>
+				<td>{{i.properties.correctionFilter}}</td>
+				<td><button class="button secondary" id="addtosp" data-id="{{i.tagId}}">Отправить на SP</button></td>
+			</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<button class="button success" id="addalltosp">Отправить на SP всех</button>
+<script>
+	var onlyws = [];
+	{% if onlyws|length > 0 %}
+		{% for i in onlyws %}
+			onlyws.push('{{i.tagId}}');
+		{% endfor %}
+	{% endif %}
+	console.log(onlyws);
+</script>
+{% endif %}
+
+{% if onlysp|length > 0 %}
+	<h2>Есть в SP</h2>
+	<table>
+		<thead>
+			<tr>
+				<th>Идентификатор</th>
+				<th>registered</th>
+				<th>locationMethods</th>
+				<th>sensors</th>
+				<th>timeUpdateLocation</th>
+				<th>correctionFilter</th>
+				<th>действие</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for i in onlysp %}
+				<tr>
+					<td>{{i.tagId|longHexToSmall}}</td>
+					<td>{{i.properties.registered}}</td>
+					<td>{{i.properties.locationMethods}}</td>
+					<td>{{i.properties.sensors}}</td>
+					<td>{{i.properties.timeUpdateLocation}}</td>
+					<td>{{i.properties.correctionFilter}}</td>
+					<td><button class="button secondary" id="addtows" data-id="{{i.tagId}}">Отправить на WS</button></td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+<script>
+	var onlysp = [];
+	{% for i in onlysp %}
+		locationMethods = '{{i.properties.locationMethods}}'.split(',');
+		sensors = '{{i.properties.sensors}}'.split(',');
+		onlysp.push({'tagId': '{{i.tagId|longHexToSmall}}', 'registered': '{{i.properties.registered}}', 'locationMethods': locationMethods, 'sensors': sensors, 'timeUpdateLocation': {{i.properties.timeUpdateLocation|jsonify}}, 'correctionFilter': {{i.properties.correctionFilter|jsonify}} });
+	{% endfor %}
+</script>
+{% endif %}

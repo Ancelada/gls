@@ -1055,6 +1055,7 @@ def receive_slmp(request):
 			for i in line:
 				if len(static)> 0:
 					for s in static:
+						line[3] = hex(int(line[3], 16))
 						if s['session'] == int(line[10], 16):
 							dictionary = {'tag_id':line[3], 'x': float(line[4]), 'y': float(line[5]), \
 							 'z': float(line[6]), 'zone':line[8], 'zone_id': s['landscape_id']}
@@ -1068,7 +1069,7 @@ def receive_slmp(request):
 			for i in line:
 				line = i.split(',')
 				if len(line) > 0 and len(line) > 4:
-					print hex(int(line[3], 16))
+					line[3] = hex(int(line[3], 16))
 					if len(static)>0:
 						for s in static:
 							if s['session_id'] == int(line[10], 16):
@@ -3698,12 +3699,25 @@ def nodes(request):
 	args = {}
 	args['username'] = auth.get_user(request).id
 	args['tagnodes'] = TagNode.objects.all().values('Node__Name', 'Node__Description', \
-	 'Node__server_id', 'Node__id_hex', 'Tag_id', 'Node_id')
+	 'Node__server_id', 'Tag_id', 'Node_id')
 	args['tags'] = Tag.objects.all()
 	if request.method == 'POST':
 		url = 'http://192.168.1.111:8000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 		string = simplejson.loads(request.body)
+		# внести корректировки Node на SP
+		if string['method'] == 'makecorrection':
+			server_id = string['id']
+			name = string['name']
+			description = string['description']
+			tagid = string['tagid']
+			data = {}
+			data['command'] = 'updateNodes'
+			data['nodes'] = [{'id': server_id, 'name': name, 'description': description, \
+			 'tagId': tagid}]
+			r = requests.post(url, data=json(data), headers=headers)
+			args['nodedifferencetable'] = nodedifference(url, headers, args)
+			return JsonResponse({'string': args['nodedifferencetable']})
 		# удалить node на WS
 		if string['method'] == 'deletews':
 			node_id = string['id']
@@ -3728,8 +3742,8 @@ def nodes(request):
 		if string['method'] == 'sendtosp':
 			name = string['name']
 			description = string['description']
-			tagId = string['hex']
 			ws_id = string['ws_id']
+			tag_id = TagNode.objects.get(Node_id=ws_id).Tag_id
 			# получаем список подходящих записей sp
 			data = {}
 			data['command'] = 'listNodes'
@@ -3745,7 +3759,7 @@ def nodes(request):
 				data['command'] = 'addNodes'
 				data['nodes'] = []
 				data['nodes'].append({'id': -1, 'name': name, 'description': description, \
-					 'tagId': tagId})
+					 'tagId': tag_id})
 				r = requests.post(url, data=json(data), headers=headers)
 				json_resp = simplejson.loads(r.text)
 				server_id = json_resp['nodes'][0]['id']
@@ -3770,8 +3784,7 @@ def nodedifference(url, headers, args):
 	args['ws'] = []
 	for i in args['tagnodes']:
 		args['ws'].append({'id': i['Node__server_id'], 'name': i['Node__Name'], \
-		 'tagId': i['Node__id_hex'], \
-			'description': i['Node__Description']})
+		 'description': i['Node__Description'], 'tagId': i['Tag_id']})
 	#списки sp
 	args['sp'] = []
 	for i in json_data['nodes']:
@@ -3800,8 +3813,10 @@ def getnode(request, parameters=1):
 	args['nodeid'] = parameters
 	args['username'] = auth.get_user(request).id
 	args['node'] = TagNode.objects.filter(Node_id=parameters).values('Node__Name', 'Node__Description', \
-		'Node__server_id', 'Node__id_hex', 'Tag_id', 'Node_id')
-	args['tags'] = Tag.objects.all()
+		'Node__server_id', 'Tag_id', 'Node_id')
+	haveintagnode = tagnodeObjectsIds()
+	haveintagnode.remove(args['node'][0]['Tag_id'])
+	args['tags'] = Tag.objects.exclude(TagId__in=haveintagnode)
 	args['node_name'] = Node.objects.get(id=parameters).Name
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
@@ -3809,59 +3824,39 @@ def getnode(request, parameters=1):
 			notification = {}
 			name = string['name']
 			description = string['description']
-			id_hex = string['id_hex']
 			tag_id = string['tagid']
-			# проверка на hex
-			try:
-				int(id_hex, 16)
+			if args['node'][0]['Tag_id'] != tag_id:
 				a = TagNode.objects.get(Node_id=parameters)
 				a.Tag_id = tag_id
 				a.save()
-
-				b = Node.objects.get(id=parameters)
-				b.Name = name
-				b.Description = description
-				b.id_hex = id_hex
-				b.save()
-				notification['success'] = "Данные успешно откорректированы"
-			except:
-				notification['error'] = "Введенное значение не соответствует hex."
+			a = Node.objects.get(id=parameters)
+			a.Name = name
+			a.Description = description
+			a.save()
+			notification['success'] = 'Информация обновлена'			
 			return JsonResponse({'string': notification})
-		if string['method'] == 'checkhex':
-			string = string['string']
-			try:
-				int(string, 16)
-				error = 0
-				text = 0
-			except:
-				error = 1
-				text = "Введенное значение не соответствует hex."
-			return JsonResponse({'string': text})
 	return render(request, 'getnode.html', args)
 
-def createnode(request):
-	args = {}
-	args['username'] = auth.get_user(request).id
+def tagnodeObjectsIds():
 	tagnodes = TagNode.objects.all()
 	haveintagnode = []
 	for t in tagnodes:
 		haveintagnode.append(t.Tag_id)
+	return haveintagnode
+
+def createnode(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	haveintagnode = tagnodeObjectsIds()
 	args['tags'] = Tag.objects.exclude(TagId__in=haveintagnode)
 	if request.POST:
 		name = request.POST['nodename']
 		if len(name) == 0:
 			args['error'] = 'пустое поле Наименование'
 		description = request.POST['nodedescription']
-		server_id_hex = request.POST['serveridhex']
-		if len(server_id_hex) == 0:
-			args['error'] = 'пустое поле Идентификатор tag в формате hex'
 		tag_id = request.POST.get('tagid')
-		try:
-			int(server_id_hex)
-		except:
-			args['error'] = 'Введенное значение не соответствует hex'
 		if not 'error' in args:
-			a = Node.objects.create(Name=name, Description=description, id_hex=server_id_hex)
+			a = Node.objects.create(Name=name, Description=description)
 			TagNode.objects.create(Tag_id=tag_id, Node_id=a.id)
 			args['success'] = 'Node успешно создана'
 			return render(request, 'createnode.html', args)
@@ -3869,6 +3864,284 @@ def createnode(request):
 			args['name'] = name
 			args['description'] = description
 			args['tagid'] = tag_id
-			args['server_id_hex'] = server_id_hex
 			return render(request, 'createnode.html', args)
 	return render(request, 'createnode.html', args)
+
+# работа с tag ws sp
+def tags(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	args['tags'] = Tag.objects.all()
+	args['locationmethods'] = LocationMethods.objects.all()
+	args['taglocationmethods'] = TagLocationMethods.objects.all()
+	args['sensors'] = Sensors.objects.all()
+	args['tagsensors'] = TagSensors.objects.all()
+	args['timeupdatelocation'] = TimeUpdateLocation.objects.all()
+	args['tagtimeupdatelocation'] = TagTimeUpdateLocation.objects.all()
+	args['correctionfilter'] = CorrectionFilter.objects.all()
+	args['tagcorrectionfilter'] = TagCorrectionFilter.objects.all()
+	args['tagtablews'] = render_to_string('tagtablews.html', args)
+	if request.method == 'POST':
+		url = 'http://192.168.1.111:8000'
+		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		string = simplejson.loads(request.body)
+		# send tag to ws
+		if string['method'] == 'sendtows':
+			tag_id = string['tag_id']
+			onlysp = string['onlysp']
+			return JsonResponse({'string': onlysp})
+		# send all tags to sp
+		if string['method'] == 'sendalltosp':
+			tags = string['tags']
+			data = {}
+			data['command'] = 'saveTags'
+			data['tags'] = getTagsWs(Tag.objects.filter(TagId__in=tags))
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			getDifference(args, url, headers)
+			return JsonResponse({'string': args['tagdifference']})
+		# send tag to sp
+		if string['method'] == 'sendtosp':
+			tag_id = string['tag_id']
+			data = {}
+			data['command'] = 'saveTags'
+			data['tags'] = getTagsWs(Tag.objects.filter(TagId=tag_id))
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			getDifference(args, url, headers)
+			return JsonResponse({'string': args['tagdifference']})
+		# getdifference
+		if string['method'] == 'getdifference':
+			getDifference(args, url, headers)
+			return JsonResponse({'string': args['tagdifference']})
+		# удалить
+		if string['method'] == 'delete':
+			tag_id = string['tag_id']
+			Tag.objects.filter(TagId=tag_id).delete()
+			args['tags'] = Tag.objects.all()
+			args['tagtablews'] = render_to_string('tagtablews.html', args)
+			return JsonResponse({'string': args['tagtablews']})
+		# применение параметров ко всем tag
+		if string['method'] == 'submittoall':
+			for i in args['tags']:
+				string['tag_id'] = i.TagId
+				locationmethodschange(string)
+				sensorschange(string)
+				timeupdatelocationchange(string)
+				correctionfilterchanged(string)
+				registeredchanged(string)
+			args['taglocationmethods'] = TagLocationMethods.objects.all()
+			args['tagsensors'] = TagSensors.objects.all()
+			args['tagtimeupdatelocation'] = TagTimeUpdateLocation.objects.all()
+			args['tagcorrectionfilter'] = TagCorrectionFilter.objects.all()
+			args['tags'] = Tag.objects.all()
+			args['tagtablews'] = render_to_string('tagtablews.html', args)
+			return JsonResponse({'string': args['tagtablews']})
+		# изменение свойства registered
+		if string['method'] == 'registeredchanged':
+			registeredchanged(string)
+			args['tags'] = Tag.objects.all()
+			args['tagtablews'] = render_to_string('tagtablews.html', args)
+			return JsonResponse({'string': args['tagtablews']})
+		# изменение свойства correctionFilter
+		if string['method'] == 'correctionfilterchange':
+			correctionfilterchanged(string)
+			args['tagcorrectionfilter'] = TagCorrectionFilter.objects.all()
+			args['tagtablews'] = render_to_string('tagtablews.html', args)
+			return JsonResponse({'string': args['tagtablews']})
+		# изменение свойства timeupdatelocation
+		if string['method'] == 'timeupdatelocationchange':
+			timeupdatelocationchange(string)
+			tag_id = string['tag_id']
+			args['tagtimeupdatelocation'] = TagTimeUpdateLocation.objects.all()
+			args['tagtablews'] = render_to_string('tagtablews.html', args)
+			return JsonResponse({'string': args['tagtablews']})
+		# изменение locationmethods
+		if string['method'] == 'locationmethodschange':
+			locationmethodschange(string)
+			args['taglocationmethods'] = TagLocationMethods.objects.all()
+			args['tagtablews'] = render_to_string('tagtablews.html', args)
+			return JsonResponse({'string': args['tagtablews']})
+		# изменение sensors
+		if string['method'] == 'sensorschange':
+			sensorschange(string)
+			args['tagsensors'] = TagSensors.objects.all()
+			args['tagtablews'] = render_to_string('tagtablews.html', args)
+			return JsonResponse({'string': args['tagtablews']})
+	return render(request, 'tags.html', args)
+
+def getDifference(args, url, headers):
+	data =  {'command': 'listTags'}
+	r = requests.post(url, data=json(data), headers=headers)
+	json_data = simplejson.loads(r.text)
+	# список sp
+	args['sp'] = json_data['tags']
+	# список ws
+	args['ws'] = getTagsWs(args['tags'])
+	# onlyws
+	args['onlyws'] = []
+	for i in args['ws']:
+		doubled = 0
+		for j in args['sp']:
+			if i['tagId'] == hex(int(j['tagId'], 16)):
+				doubled = 1
+		if doubled == 0:
+			args['onlyws'].append(i)
+	# onlysp
+	args['onlysp'] = []
+	for j in args['sp']:
+		doubled = 0
+		for i in args['ws']:
+			if hex(int(j['tagId'], 16)) == i['tagId']:
+				doubled = 1
+		if doubled == 0:
+			args['onlysp'].append(j)
+	args['tagdifference'] = render_to_string('tagdifference.html', args)
+
+def getTagsWs(tagsObjectsArray):
+	ws = []
+	for t in tagsObjectsArray:
+		line = {'tagId': t.TagId, 'properties': {}}
+		#registered
+		line['properties']['registered'] = bool(t.Registered)
+		#locationMethods
+		locationmethods = TagLocationMethods.objects.filter(Tag_id=t.TagId).values( \
+			'LocationMethods__ParameterName')
+		string = []
+		for lm in locationmethods:
+			string.append(lm['LocationMethods__ParameterName'])
+		string = ','.join(string)
+		line['properties']['locationMethods'] = string
+		#sensors
+		sensors = TagSensors.objects.filter(Tag_id=t.TagId).values( \
+			'Sensors__ParameterName')
+		string = []
+		for s in sensors:
+			string.append(s['Sensors__ParameterName'])
+		string = ','.join(string)
+		line['properties']['sensors'] = string
+		#timeUpdatelocation
+		timeupdatelocation = TagTimeUpdateLocation.objects.filter(Tag_id=t.TagId).values( \
+			'TimeUpdateLocation__ParameterName', 'Value')
+		line['properties']['timeUpdateLocation'] = {}
+		for tul in timeupdatelocation:
+			line['properties']['timeUpdateLocation'][tul['TimeUpdateLocation__ParameterName']] \
+			 = int(tul['Value'])
+		#correctionFilter
+		correctionfilter = TagCorrectionFilter.objects.filter(Tag_id=t.TagId).values( \
+			'CorrectionFilter__ParameterName', 'Value', 'CorrectionFilter__ParameterValueType')
+		line['properties']['correctionFilter'] = {}
+		for cf in correctionfilter:
+			if cf['CorrectionFilter__ParameterValueType'] == 'number':
+				line['properties']['correctionFilter'][cf['CorrectionFilter__ParameterName']] \
+				 = float(cf['Value'])
+			elif cf['CorrectionFilter__ParameterValueType'] == 'text':
+				line['properties']['correctionFilter'][cf['CorrectionFilter__ParameterName']] \
+				 = cf['Value']
+		ws.append(line)
+	return ws
+		
+def locationmethodschange(string):
+	tag_id = string['tag_id']
+	locationmethods = string['locationmethods']
+	haveinlocationmethods = []
+	if len(locationmethods) > 0:
+		for lm in locationmethods:
+			b = TagLocationMethods.objects.filter(Tag_id=tag_id, LocationMethods_id=lm)
+			if len(b) > 0:
+				haveinlocationmethods.append(b[0].id)
+			else:
+				c = TagLocationMethods.objects.create(Tag_id=tag_id, LocationMethods_id=lm)
+				haveinlocationmethods.append(c.id)
+		TagLocationMethods.objects.filter(Tag_id=tag_id).exclude(id__in= \
+			haveinlocationmethods).delete()
+	else:
+		TagLocationMethods.objects.filter(Tag_id=tag_id).delete()
+
+def sensorschange(string):
+	tag_id = string['tag_id']
+	sensors = string['sensors']
+	haveinsensors = []
+	if len(sensors) > 0:
+		for s in sensors:
+			b = TagSensors.objects.filter(Tag_id=tag_id, Sensors_id=s)
+			if len(b) > 0:
+				haveinsensors.append(b[0].id)
+			else:
+				c = TagSensors.objects.create(Tag_id=tag_id, Sensors_id=s)
+				haveinsensors.append(c.id)
+		TagSensors.objects.filter(Tag_id=tag_id).exclude(id__in=haveinsensors).delete()
+	else:
+		TagSensors.objects.filter(Tag_id=tag_id).delete()
+
+def timeupdatelocationchange(string):
+	tag_id = string['tag_id']
+	timeupdatelocation = string['timeupdatelocation']
+	haveintimeupdatelocation = []
+	if len(timeupdatelocation) > 0:
+		for i in timeupdatelocation:
+			b = TagTimeUpdateLocation.objects.filter(Tag_id=tag_id, \
+			 TimeUpdateLocation_id=i['id'], \
+			 Value=i['value'])
+			if len(b) > 0:
+				haveintimeupdatelocation.append(b[0].id)
+			else:
+				c = TagTimeUpdateLocation.objects.create(Tag_id=tag_id, \
+				 TimeUpdateLocation_id=i['id'], \
+					Value=i['value'])
+				haveintimeupdatelocation.append(c.id)
+		TagTimeUpdateLocation.objects.filter(Tag_id=tag_id).exclude(id__in= \
+			haveintimeupdatelocation).delete()
+	else:
+		TagTimeUpdateLocation.objects.filter(Tag_id=tag_id).delete()
+
+def registeredchanged(string):
+	tag_id = string['tag_id']
+	value = string['value']
+	if value == 'true':
+		value = True
+	else:
+		value = False
+	a = Tag.objects.get(TagId=tag_id)
+	a.Registered = value
+	a.save()
+
+def correctionfilterchanged(string):
+	tag_id = string['tag_id']
+	correctionfilter = string['correctionfilter']
+	haveincorrectionfilter = []
+	if len(correctionfilter) > 0:
+		for i in correctionfilter:
+			b = TagCorrectionFilter.objects.filter(Tag_id=tag_id, \
+				CorrectionFilter_id=i['id'], \
+				Value=i['value'])
+			if len(b) > 0:
+				haveincorrectionfilter.append(b[0].id)
+			else:
+				c = TagCorrectionFilter.objects.create(Tag_id=tag_id, \
+					CorrectionFilter_id=i['id'], \
+					Value=i['value'])
+				haveincorrectionfilter.append(c.id)
+		TagCorrectionFilter.objects.filter(Tag_id=tag_id).exclude(id__in= \
+			haveincorrectionfilter).delete()
+	else:
+		TagCorrectionFilter.objects.filter(Tag_id=tag_id).delete()
+
+def createtag(request):
+	args = {}
+	args['username'] = auth.get_user(request).id
+	args['tagtype'] = TagType.objects.all()
+	if request.POST:
+		args['tagid'] = request.POST['tagid']
+		args['tagtypeid'] = int(request.POST.get('tagtype'))
+		try:
+			args['tagid'] = hex(int(args['tagid'], 16))
+			a = Tag.objects.filter(TagId=args['tagid'])
+			if len(a) > 0:
+				args['error'] = "Введенный идентификатор уже существует"
+			else:
+				Tag.objects.create(TagId=args['tagid'], TagType_id=args['tagtypeid'])
+				args['success'] = "Tag успешно создан"
+		except:
+			args['error'] = 'Введенное значение не соответствует hex'
+	return render(request, 'createtag.html', args)
