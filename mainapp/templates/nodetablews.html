@@ -1,0 +1,35 @@
+<table>
+	<thead>
+		<tr>
+			<th>Наименование</th>
+			<th>Описание</th>
+			<th>server_id</th>
+			<th>Привязанный tag</th>
+			<th>действие</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for i in nodes %}
+			<tr>
+				<td>{{i.Name}}</td>
+				<td>{{i.Description}}</td>
+				<td {% if i.server_id == None %}style="background:#fb9f9f;"{% endif%}>{% if i.server_id == None %}Отсутствует на SP<br><button class="button secondary" id="sendtosp" data-name="{{i.Name}}" data-description="{{i.Description}}" data-wsid="{{i.id}}">Отправить на SP</button>
+				{% else %}{{i.server_id}}{% endif %}</td>
+				<td>
+						{% for t in tagnodes %}
+							{% if i.id == t.Node_id %}
+								{{t.Tag_id}}
+								<br>
+								<a id="unlink" data-tagid="{{t.Tag_id}}" data-nodeid="{{i.id}}">Отвязать</a>
+							{% endif %}
+						{% endfor %}
+				</td>
+				<td>
+					<a href="/getnode/{{i.id}}" class="button secondary" id="correction" data-id="{{i.id}}">Корректировать</a>
+					<button class="button alert" id="deletews" data-id="{{i.id}}">Удалить</button>
+				</td>
+			</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<a href="/createnode">Создать node на WS</a>

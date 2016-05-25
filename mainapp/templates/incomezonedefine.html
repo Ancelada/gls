@@ -12,12 +12,16 @@
         <script type="text/javascript" src="{% static 'js/vendor/foundation.core.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/attrchange.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/three.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/Projector.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/dat.gui.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/OrbitControls.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/stats.min.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/helvetiker_regular.typeface.js' %}"></script>
 		<script type="text/javascript" src="{% static 'js/ColladaLoader.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/sockjs.min.js' %}"></script>
+        <script src="{% static 'js/highcharts/highcharts.js' %}"></script>
+        <!-- <script src="{% static 'js/highcharts/themes/dark-blue.js' %}"></script> -->
+        <script src="{% static 'js/highcharts/modules/exporting.js' %}"></script>
 
   		<link rel="stylesheet" href="{% static 'css/foundation.css' %}">
     	<link rel="stylesheet" href="{% static 'css/app.css' %}">
@@ -34,12 +38,15 @@
 		{% csrf_token %}
         {% if username %}
         <div id="objectwindow"></div>
+        <div id="cpointwindow">
+            {{pointinfo}}
+        </div>
 		<!-- ***блок 3д изображения*** -->
 		<!--************************-->
 		<div id ="webGL-container"></div>
         <!-- ***блок панель управления*** -->
         <!--************************-->
-        <div class="small-4 columns" id="mobile-control-panel">
+        <div class="small-4 columns" id="mobile-control-panel" style="display:none;">
             <div class="small-12 columns" style="padding:0">
                 <div class="small-12 columns" style="padding:0">
                     <button id="up" class="button large float-center">Вверх</button>
@@ -58,11 +65,69 @@
         <button class="button success large exclude_zone_button">Зоны исключения</button>
         <button class="button large user_zone_button">Зоны пользователя</button>
         <button class="button large warning add_object_button">Добавить объект</button>
+        <button class="button large calibration">Калибровка</button>
         <div class="large-3 small-3 columns popup" style="padding-left:0px;padding-right:0px;">
             <ul class="tabs vertical" id="example-vert-tabs" data-tabs>
 
 
             </ul>
+        </div>
+        <!-- Блок калибровки -->
+        <div class="calibration_block large-3 small-4 columns" style="right:-100%;">
+            <button class="close-button calibration_close" aria-label="Close menu" type="button">
+                 <span aria-hidden="true">x</span>
+            </button>
+            <br>
+            <br>
+            <fieldset class="large-12 small-12 columns" style="float:none;">
+                <ul class="accordion" data-accordion>
+                    <li class="accordion-item is-active" data-accordion-item>
+                        <a href="#" class="accordion-title">Калибровка</a>
+                        <div class="accordion-content" data-tab-content>
+                            <h4 class="subheader">Список точек калибровки</h4>
+                            <div class="large-12 small-12 columns" id="pointstable">
+                                {{pointstable}}
+                            </div>
+                            <label for="pointsize">Размер фигур, отображающих точки калибровки
+                                <input type="number" id="pointsize" step="0.1" min="0" value="0.5">                    
+                            </label>
+                            <label for="pointcolor">Цвет фигур, отображающих точки калибровки
+                                <div class="large-12 small-12 columns" style="padding:0;">
+                                    <input class="jscolor" value="" id="pointcolor">    
+                                </div>
+                            </label>
+                            <button class="button" id="newpoint">Новая</button>
+                        </div>
+                    </li>
+                    <li class="accordion-item" data-accordion-item>
+                        <a href="#" class="accordion-title">Запросы на сервер позиционирования</a>
+                        <div class="accordion-content" data-tab-content>
+                            <div id="queryparameters">
+                                <label for="queries">Запросы
+                                    <select id="queries" data-id="command">
+                                        {% for q in queries %}
+                                            <option value="{{q.id}}">{{q.Name}}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                                <div id="qparameters">
+                                    {{qparameters}}
+                                    <span id="queryerror" class="label alert" style="display:none;"></span>
+                                </div>
+                                <button class="button" id="sendquery">Выполнить</button>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </fieldset>
+        </div>
+        <div class="reveal large" id="diagram" data-reveal>
+            <div class="large-12 small-12 columns">
+                <div id="container"></div>
+            </div>
+            <button class="close-button" data-close aria-label="Close reveal" type="button">
+                <span aria-hidden="true">&times;</span>
+            </button>
         </div>
         <!-- Блок объектов -->
         <div class="add_object_block large-3 small-4 columns" style="right:-100%;">
@@ -631,6 +696,68 @@
 <!--***********буфер**************-->
 		<!--************************-->
 	<script>
+    var node = [];
+    //включенные node с параметрами
+    var turnedonnodes = [];
+    //выбранная node
+    var selected_node;
+    {% for i in nodes %}
+        node.push({'id': {{i.id}}, 'name': '{{i.Name}}', 'description': '{{i.Description}}', 'node_id': {{i.id}}, 'server_id': {{i.server_id}}, 'tag_id': '{{i.tagnode__Tag_id}}' });
+        {% for j in unique %}
+            {% if j.tag_id == i.tagnode__Tag_id %}
+                turnedonnodes.push({'tag_id': '{{j.tag_id}}', 'name': '{{i.Name}}', 'description': '{{i.Description}}', 'node_id': {{i.id}}, 'server_id': {{i.server_id}} });
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    // *****************************
+    //прием информации о unique
+    //формирование списков node для калибровки
+    // *****************************
+    $(document).ready(function(){
+        $(window).on('beforeunload', function(){
+            socket.close();
+        });
+
+        socket_connect();
+
+        function socket_connect(){
+            socket = new SockJS('http://{{hostname}}:8989/orders');
+            socket.onmessage = function(msg){
+                var channel = msg.data.type;
+                //удалить или добавить tag в массив включенных
+                if (channel == 'unique'){
+                    var data = msg.data.data['data'];
+                    if (data['type'] == 'delete'){
+                        tag_id = data['tag']['tag_id'];
+                        $.each(turnedonnodes, function(index){
+                            if (turnedonnodes[index]['tag_id'] == tag_id){
+                                turnedonnodes.splice(index, 1);
+                                return false;
+                            }
+                        });
+                    } else if (data['type'] == 'add') {
+                        if (data['tag']['zone_id'] == '{{landscape_id}}'){
+                            tag_id = data['tag']['tag_id'];
+                            $.each(node, function(index){
+                                if(node[index]['tag_id'] == tag_id){
+                                    name = node[index]['name'];
+                                    description = node[index]['description'];
+                                    node_id = node[index]['id']
+                                    server_id = node[index]['server_id']
+                                    turnedonnodes.push({'tag_id': tag_id, 'name': name, 'description': description, 'node_id': node_id, 'server_id': server_id});
+                                    return false;
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+            socket.onclose = function(e){
+                setTimeout(socket_connect, 5000);
+            }
+        }
+    });
+
     //user_id
     var user_id = {{username}};
     //панель инструментов
@@ -646,6 +773,8 @@
 	//************************
 
     //глобальные переменные
+    var objectForWindow;
+    var pointForWindow;
 	var dae;
 	var camera;
 	var spotLight;
@@ -1018,6 +1147,9 @@
             if ($('#newobject').text()=='Остановить'){
                 addVertice(vertices, event);
             }
+            if ($('#newpoint').text()=='Остановить'){
+                addVertice(vertices, event);
+            }
         }
 
         function addVertice(arr, event){
@@ -1046,6 +1178,7 @@
         document.getElementById('webGL-container').addEventListener('dblclick', onDocumentMouseDown, false);
         document.getElementById('webGL-container').addEventListener('touchstart', onDocumentTouchStart, false);
 
+
         function onDocumentTouchStart(event){
             event.preventDefault();
             event.clientX = event.touches[0].clientX;
@@ -1055,6 +1188,7 @@
 
         var selectedFloor;
         var intersectsObjects;
+        var intersectsCpoints;
         function onDocumentMouseDown(event){
             var floor = {};
             var building = {};
@@ -1066,10 +1200,67 @@
             mouse.y = -(event.clientY/ renderer.domElement.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
+            var a = [];
+            //ищем Cpoint
+            $.each(PointShowed, function(index){
+                a  = raycaster.intersectObject(PointShowed[index]['mesh']);
+                pointForWindow = PointShowed[index]['mesh'];
+                if (intersectsCpoints){
+                    //скрываем pointwindow
+                    $('#cpointwindow').css({display: 'none'});
+                }
+                if (a.length > 0){
+                    if (intersectsCpoints){
+                      //уменьшаем размер точки ранее выбранной, убираем cpointwindow
+                        scale = intersectsCpoints[0].object.scale.x;
+                        intersectsCpoints[0].object.scale.set(scale/2, scale/2, scale/2);
+                        $('#cpointwindow').css({display: 'none' });
+                    }
+                    cpoint = PointShowed[index]['mesh'];
+                    intersectsCpoints = a;
+                    scale = intersectsCpoints[0].object.scale.x;
+                    intersectsCpoints[0].object.scale.set(scale*2, scale*2, scale*2);
+                    //показываем cpointWindow
+                    $('#cpointwindow').css({display: 'block' });
+                    $('#cpointwindow').css({top: event.clientY, left: event.clientX});
+                    $('#cpointwindow').attr('data-id', cpoint.dbId);
+                    parameters = {};
+                    parameters['point_id'] = PointShowed[index]['id'];
+                    parameters['nodes'] = turnedonnodes;
+                    parameters['x'] = PointShowed[index]['x'];
+                    parameters['y'] = PointShowed[index]['y'];
+                    parameters['z'] = PointShowed[index]['z'];
+                    parameters['landscape_id'] = landscape_id;
+                    if (selected_node != undefined){
+                        parameters['selected_node'] = selected_node;                        
+                    }
+                    parameters['method'] = 'getpointinfo';
+                    getPointInfo(parameters);
+                    return false;
+                }
+            });
+
+            //функция показывать информацию о cpoint
+            function getPointInfo(parameters){
+                $('#cpointwindow').html('');
+                $.ajax({
+                    type: "POST",
+                    url: "/incomezonedefine/"+landscape_id,
+                    data: JSON.stringify(parameters),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    async: true,
+                    success: function(data, textStatus, jqXHR){
+                        $('#cpointwindow').html(data['string']);
+                    }
+                });
+            }            
+
             //ищем Objects
             $.each(Objects, function(index){
                 $.each(Objects[index]['objects'], function(ind){
                     a = raycaster.intersectObject(Objects[index]['objects'][ind]['mesh']);
+                    objectForWindow = Objects[index]['objects'][ind]['mesh'];
                     if (intersectsObjects){
                         //скрываем objectwindow
                         $('#objectwindow').css({display: 'none'});
@@ -1122,52 +1313,53 @@
                 });
             }
 
-            //панель Objects
-            console.log(landscape_id);
+            //если не объект object и не точка калибровки cpoint перехватываем статику
+            if (a.length == 0){
+                //ищем building по floor
+                ElemLookUp(colladaObjects['landscape'][0], 'building', building, 0);
 
-            //ищем building по floor
-            ElemLookUp(colladaObjects['landscape'][0], 'building', building, 0);
-            
-            nofloor = 0;
-            $.each(building, function(index){
-                ElemLookUp(building[index], 'floor', floor, nofloor);
-                $.each(floor, function(){
-                    nofloor += 1;
-                });
-            });
-
-            //передаем floor перехватчику
-            var intersects = {};
-            no = 0;
-            $.each(floor, function(index){
-                intersects[no] = raycaster.intersectObject(floor[index]);
-                no += 1;
-            });
-
-            //наполняем popup floor            
-            $('.popup').empty();
-
-            $.each(intersects, function(index){
-                if (intersects[index].length > 0) {
-                    dae_elem = intersects[index][0].object.parent.parent.name;
-                    lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
-                    lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
-                    lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
-                    /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
-                    flr = intersects[index][0].object.parent.parent
-                    $('.popup').empty();
-                    $.each(flr.children, function(index){
-                        if (flr.children[index].name.indexOf('floor') != -1){
-                            if (flr.children[index].dbName != 'None'){
-                                $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' +flr.children[index].name +'"><a href="#panel2v">'+ flr.children[index].dbName +'</a></li>');
-                            } else {
-                                $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' +flr.children[index].name +'"><a href="#panel2v">'+ flr.children[index].name +'</a></li>');
-                            }
-                        }
+                nofloor = 0;
+                $.each(building, function(index){
+                    ElemLookUp(building[index], 'floor', floor, nofloor);
+                    $.each(floor, function(){
+                        nofloor += 1;
                     });
-                    return false;
-                }
-            });
+                });
+
+                //передаем floor перехватчику
+                var intersects = {};
+                no = 0;
+                $.each(floor, function(index){
+                    intersects[no] = raycaster.intersectObject(floor[index]);
+                    no += 1;
+                });
+
+                //наполняем popup floor            
+                $('.popup').empty();
+
+                $.each(intersects, function(index){
+                    if (intersects[index].length > 0) {
+                        dae_elem = intersects[index][0].object.parent.parent.name;
+                        lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+                        lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+                        lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
+                        /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
+                        flr = intersects[index][0].object.parent.parent
+                        $('.popup').empty();
+                        $.each(flr.children, function(index){
+                            if (flr.children[index].name.indexOf('floor') != -1){
+                                if (flr.children[index].dbName != 'None'){
+                                    $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' +flr.children[index].name +'"><a href="#panel2v">'+ flr.children[index].dbName +'</a></li>');
+                                } else {
+                                    $('.popup').append('<li class="tabs-title" style="width:100%;" data-id="' +flr.children[index].name +'"><a href="#panel2v">'+ flr.children[index].name +'</a></li>');
+                                }
+                            }
+                        });
+                        return false;
+                    }
+                });
+            }
+            
 
             //событие нажатие переключение к floor
             $('.popup a').on('click', function(){
@@ -1581,11 +1773,19 @@
     stats.domElement.style.left = '0px';
     stats.domElement.style.top = '0px';     
     $("#webGL-container").append( stats.domElement );       
-	  }
-
-
+      }
     function render(){
-        //плавное перемещение camera target
+        // оbjectwindow следует за объектом
+        if (objectForWindow) {
+            a = toScreenPosition(objectForWindow, camera);
+            $('#objectwindow').css({top: a.y, left: a.x});    
+        }
+        // cpointwindow следует за объектом
+        if (pointForWindow) {
+            a = toScreenPosition(pointForWindow, camera);
+            $('#cpointwindow').css({top: a.y, left: a.x});
+        }
+        //плавное перемещение camera lookAt
         if (camera.LookAtNew){
             oldCam = camera.LookAt;
             newCam = camera.LookAtNew;
@@ -1680,6 +1880,25 @@
         }
     }
 
+    function toScreenPosition(obj, camera){
+        var vector = new THREE.Vector3();
+
+        var widthHalf = 0.5*renderer.context.canvas.width;
+        var heightHalf = 0.5*renderer.context.canvas.height;
+
+        obj.updateMatrixWorld();
+        vector.setFromMatrixPosition(obj.matrixWorld);
+        vector.project(camera);
+
+        vector.x = ( vector.x * widthHalf ) + widthHalf;
+        vector.y = - ( vector.y * heightHalf ) + heightHalf;
+
+        return { 
+            x: vector.x,
+            y: vector.y
+        };
+
+    };
 
     function update(){
     }

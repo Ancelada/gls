@@ -13,7 +13,7 @@
 				<thead>
 					<tr>
 						<th>type</th>
-						<!-- <th>id</th> -->
+						<th>id</th>
 						<th>name</th>
 						<th>description</th>
 						<th>tagId</th>
@@ -22,14 +22,14 @@
 				<tbody>
 					<tr>
 						<td>WS</td>
-						<!-- <td>{{i.id}}</td> -->
+						<td>{{i.id}}</td>
 						<td {% if i.name != j.name %}style="background:#fb9f9f;"{% endif %}>{{i.name}}{% if i.name != j.name %}<br><button class="button secondary" id="makecorrection" data-id="{{i.id}}" data-name="{{i.name}}" data-description="{{i.description}}" data-tagid="{{i.tagId}}">Откорректировать</button>{% endif %}</td>
 						<td {% if i.description != j.description %}style="background:#fb9f9f;"{% endif %}>{{i.description}}{% if i.description != j.description %}<br><button id="makecorrection" class="button secondary" data-id="{{i.id}}" data-name="{{i.name}}" data-description="{{i.description}}" data-tagid="{{i.tagId}}">Откорректировать</button>{% endif %}</td>
 						<td {% if i.tagId != j.tagId|longHexToSmall %}style="background:#fb9f9f;"{% endif %}>{{i.tagId}}{% if i.tagId != j.tagId|longHexToSmall %}<br><button id="makecorrection" class="button secondary" data-id="{{i.id}}" data-name="{{i.name}}" data-description="{{i.description}}" data-tagid="{{i.tagId}}">Откорректировать</button>{% endif%}</td>
 					</tr>
 					<tr>
 						<td>SP</td>
-						<!-- <td>{{j.id}}</td> -->
+						<td>{{j.id}}</td>
 						<td {% if i.name != j.name %}style="background:#fb9f9f;"{% endif %}>{{j.name}}</td>
 						<td {% if i.description != j.description %}style="background:#fb9f9f;"{% endif %}>{{j.description}}</td>
 						<td {% if i.tagId != j.tagId|longHexToSmall %}style="background:#fb9f9f;"{% endif %}>{{j.tagId|longHexToSmall}}</td>
@@ -56,14 +56,23 @@
 					<td>{{i.id}}</td>
 					<td>{{i.name}}</td>
 					<td>{{i.description}}</td>
-					<td>{{i.tagId}}</td>
+					<td>{{i.tagId|longHexToSmall}}</td>
 					<td>
 						<button class="button alert" id="delete" data-id="{{i.id}}">Удалить</button>
+						<br>
+						<button class="button secondary" id="sendtows" data-id="{{i.id}}">Отправить на WS</button>
 					</td>
 				</tr>
 			{% endfor %}
 		</tbody>
 	</table>
+	<a id="sendalltows">Отправить всё на WS</a>
+	<script>
+		var onlysp = [];
+		{% for i in haveinsp %}
+			onlysp.push({'server_id': parseInt('{{i.id}}'), 'name': '{{i.name}}', 'description': '{{i.description}}', 'tagId': '{{i.tagId|longHexToSmall}}'});
+		{% endfor %}
+	</script>
 {% endif %}
 {% if haveinws|length > 0 %}
 	<h3>Отсутствуют в SP</h3>

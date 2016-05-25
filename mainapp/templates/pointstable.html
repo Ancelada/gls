@@ -1,0 +1,128 @@
+{% load staticfiles %}
+{% if error %}
+    <span class="alert label">{{error}}</span>
+{% endif %}
+{% if success %}
+    <span class="success label">{{success}}</span>
+{% endif %}
+<table>
+	<thead>
+		<tr>
+			<th>Наименование</th>
+			<th>Действие</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for p in points %}
+			<tr>
+				<td>
+					Имя:{{p.Name}}
+					{% for pb in pointbuilding %}
+						{% if p.id == pb.Cpoint_id %}
+							{% for b in buildings %}
+								{% if b.id == pb.Building_id %}
+									Привязан: {% if b.BuildingName != None %}{{b.BuildingName}}{%else%}{{b.dae_BuildingName}}{% endif%}
+									<a href="#" id="unlinkpoint" data-type="building" data-id="{{p.id}}">Отвязать</a>
+								{% endif %}
+							{% endfor%}
+						{% endif %}
+					{% endfor %}
+					{% for pf in pointfloor %}
+					{% if p.id == pf.Cpoint_id %}
+						{% for f in floors %}
+							{% if f.id == pf.Floor_id %}
+								Привязан: {% if f.FloorName != None %}{{f.FloorName}}{% else %}{{f.dae_FloorName}}{% endif %}
+								<a href="#" id="unlinkpoint" data-type="floor" data-id="{{p.id}}">Отвязать</a>
+							{% endif %}
+						{% endfor %}
+					{% endif %}
+				{% endfor %}
+				{% for pk in pointkabinet %}
+					{% if p.id == pk.Cpoint_id %}
+						{% for k in kabinet_n_outer %}
+							{% if k.id == pk.Kabinet_id %}
+								Привязан: {% if k.Kabinet_n_OuterName != None %}{{k.Kabinet_n_OuterName}}{% else %}{{k.dae_Kabinet_n_OuterName}}{% endif %}
+								<a href="#" id="unlinkpoint" data-type="kabinet" data-id="{{p.id}}">Отвязать</a>
+							{% endif %}
+						{% endfor %}
+					{% endif %}
+				{% endfor %}
+				</td>
+				<td>
+					<button class="button" data-toggle="dropdownobject{{p.id}}">Действие</button>
+					<div class="dropdown-pane left" id="dropdownobject{{p.id}}" data-dropdown style="width:200px;">
+						<ul class="vertical dropdown menu" data-dropdown-menu>
+							<li>
+								<a href="#" id="showpoint" data-id="{{p.id}}">Показать</a>
+							</li>
+							<li>
+								<a href="#" id="hidepoint" data-id="{{p.id}}">Скрыть</a>
+							</li>
+							<li>
+								<a href="#" id="changenameofpoint" data-id="{{p.id}}">Изменить имя</a>
+								<ul class="menu">
+									<li>
+										<input type="text" placeholder="имя" data-id="{{p.id}}" {% if p.Name %}value="{{p.Name}}"{% endif %}>
+									</li>
+								</ul>
+							</li>
+							<li>
+								<a href="#" id="changecoordsofpoint" data-id="{{p.id}}">Изменить координаты</a>
+								<ul class="menu">
+									<li>{{p.Name}}</li>
+									<li>
+										<label for="xCoord">Координата X
+											<input type="number" id="xCoord" data-id="{{p.id}}" step="0.01" value="{{p.xCoord|decToPoint}}">	
+										</label>
+									</li>
+									<li>
+										<label for="yCoord">Координата Y
+											<input type="number" id="yCoord" data-id="{{p.id}}" step="0.01" value="{{p.yCoord|decToPoint}}">
+										</label>
+									</li>
+									<li>
+										<label for="zCoord">Координата Z
+											<input type="number" id="zCoord" data-id="{{p.id}}" step="0.01" value="{{p.zCoord|decToPoint}}">
+										</label>
+									</li>
+									<li>
+										<button class="button success" data-id="{{p.id}}" id="savecoordsofpoint">Сохранить</button>
+									</li>
+								</ul>
+							</li>
+							<li>
+								<a href="#" id="pointdelete" data-id="{{p.id}}">Удалить</a>
+							</li>
+							<li>
+								<a href="#">Привязать к стру. подразделению</a>
+								<ul class="menu">
+                  {% for b in buildings %}
+                      <li><a href="#"  id="linkpointtostatic"  data-type="building" data-id="{{b.id}}"  data-pointid="{{p.id}}">{% if not b.BuildingName or b.BuildingName == '' %}{{b.dae_BuildingName}}{% else %}{{b.BuildingName}}{%endif%}</a>
+                          <ul class="menu">
+                              {% for f in floors %}
+                              {% if f.Building_id == b.id %}
+                              <li><a href="#" data-type="floor" data-id="{{f.id}}" id="linkpointtostatic" data-pointid="{{p.id}}">{% if not f.FloorName or f.FloorName == '' %}{{f.dae_FloorName}}{% else %}{{f.FloorName}}{% endif %}</a>
+                                  <ul class="menu" style="max-height:200px;overflow-y:scroll;">
+                                  {% for k in kabinet_n_outer %}
+                                  {% if k.Floor_id = f.id %}
+                                  <li><a href="#" data-type="kabinet" data-id="{{k.id}}" id="linkpointtostatic" data-pointid="{{p.id}}">{% if not k.Kabinet_n_OuterName or k.Kabinet_n_OuterName == '' %}{{k.dae_Kabinet_n_OuterName}}{% else %}{{k.Kabinet_n_OuterName}}{% endif%}</a></li>
+                                  {% endif %}
+                                  {% endfor %}
+                                  </ul>
+                              </li>
+                              {% endif %}
+                              {% endfor %}
+                          </ul>
+                      </li>
+                  {% endfor %}        
+              	</ul>
+							</li>
+					</div>
+				</td>
+			</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<script>
+	$('#pointstable').foundation();
+</script>

@@ -122,3 +122,27 @@ class CorrectionFilterAdmin(admin.ModelAdmin):
 		('Тип значения параметра', {'fields': ['ParameterValueType']}),
 	]
 admin.site.register(CorrectionFilter, CorrectionFilterAdmin)
+
+#Query
+class QueryAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование запроса', {'fields': ['Name']}),
+		('Параметры', {'fields': ['Parameters']})
+	]
+admin.site.register(Query, QueryAdmin)
+
+#Qparameter
+class QparameterAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('Наименование параметра', {'fields': ['Name']}),
+		('Ключ параметра', {'fields': ['KeyName']})
+	]
+admin.site.register(Qparameter, QparameterAdmin)
+
+#QueryParameter
+class QueryQparameterAdmin(admin.ModelAdmin):
+	fieldsets = [
+		('связь Query', {'fields': ['Query']}),
+		('связь Parameter', {'fields': ['Qparameter']})
+	]
+admin.site.register(QueryQparameter, QueryQparameterAdmin)

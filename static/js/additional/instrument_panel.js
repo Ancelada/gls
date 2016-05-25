@@ -1,3 +1,377 @@
+//calibration
+// отобразить параметры запроса при изменении query,  parameters change
+$('#queries').on('change', function(){
+	parameters = {};
+	parameters['query_id'] = parseInt($('#queries option:selected')[0].value);
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'querychange';
+	makeAjax(parameters);
+});
+//выполнить запрос execute Query
+$('#sendquery').on('click', function(){
+	parameters = {};
+	parameters['keyvalues'] = []
+	list = $('#queryparameters').find('select');
+	$.each(list, function(index){
+		parameters['keyvalues'].push({'key': list[index]['dataset']['id'], 'value': list[index].value});
+	});
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'sendquery';
+	makeAjax(parameters);
+});
+
+//кнопка калибровать makecalibration
+$('#cpointwindow').delegate('#makecalibration', 'click', function(){
+	if ($(this).text() == 'Начать калибровку'){
+		$(this).removeClass('success');
+		$(this).addClass('secondary');
+		$(this).text('Остановить');
+		parameters = {};
+		parameters['node_server_id'] = parseInt($(this).parent().find('#nodeforcalibration option:selected')[0].value);
+		parameters['x'] = $(this).attr('data-x');
+		parameters['y'] = $(this).attr('data-y');
+		parameters['z'] = $(this).attr('data-z');
+		parameters['enableCalibration'] = 'true';
+		parameters['landscape_id'] = landscape_id;
+		parameters['method'] = 'setnodeforcalibration';
+		makeAjax(parameters);
+	} else if ($(this).text() == 'Остановить'){
+		$(this).removeClass('secondary');
+		$(this).addClass('success');
+		$(this).text('Начать калибровку');
+		parameters = {};
+		parameters['node_server_id'] = parseInt($(this).parent().find('#nodeforcalibration option:selected')[0].value);
+		parameters['x'] = $(this).attr('data-x');
+		parameters['y'] = $(this).attr('data-y');
+		parameters['z'] = $(this).attr('data-z');
+		parameters['enableCalibration'] = 'false';
+		parameters['method'] = 'setnodeforcalibration';
+		parameters['landscape_id'] = landscape_id;
+		makeAjax(parameters);
+	}
+});
+
+function makeAjax(parameters){
+	$.ajax({
+    	type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		if (parameters['method'] == 'querychange'){
+    			$('#qparameters').html(data['string']);
+    		} else if(parameters['method'] == 'sendquery') {
+    			if (data['routers'] != undefined){
+					buildPointDiagram(data['routers'][0]['points'], data['routers'][0]['id']);
+    				$('#diagram').foundation('open');
+    				$('#queryerror').hide();
+    			} else if (data['error']){
+    				$('#queryerror').html(data['error']);
+    				$('#queryerror').show();
+    			}
+    		}
+    	}
+    });
+}
+
+//функция нарисовать диаграмму роутеров
+function buildPointDiagram(arr, name){
+	$('#container').highcharts({
+		chart: {
+			type: 'scatter',
+			zoomType: 'xy'
+		},
+		title: {
+			text: 'Диаграмма калибровки роутера'
+		},
+		subtitle: {
+			text: 'точки распределение уровня сигнала и растояния'
+		},
+		xAxis: {
+			title: {
+				enabled: true,
+				text: 'Расстояние (м)'
+			},
+			startOnTick: true,
+			endOnTick: true,
+			showLastLabel: true,
+		},
+		yAxis: {
+			title: {
+				text: 'Уровень сигнала'
+			}
+		},
+		legend: {
+			layout: 'vertical',
+			align: 'left',
+			verticalAlign: 'top',
+			x: 100,
+			y: 79,
+			floating: true,
+			backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF',
+			borderWidth: 1
+		},
+		plotOptions:{
+			scatter: {
+				marker: {
+					radius: 5,
+					states: {
+						hover: {
+							enabled: true,
+							lineColor: 'rgb(100, 100, 100)'
+						}
+					}
+				},
+				states: {
+					hover: {
+						marker: {
+							enabled: false
+						}
+					}
+				},
+				tooltip: {
+					headerFormat: '<b>{series.name}</b><br>',
+					pointFormat: '{point.x} m, {point.y}'
+				}
+			}
+		},
+		series: [{
+			name: name,
+			color: 'rgba(223, 83, 83, .5)',
+			data: arr
+		}]
+	});
+	$('#container').foundation();
+}
+
+
+//при изменении node для калибровки запомнить
+$('#cpointwindow').delegate('#nodeforcalibration', 'change', function(){
+	selected_node = parseInt($('#nodeforcalibration option:selected')[0].value);
+});
+
+//при изменении координат смещать отдельно взятый point
+$('#pointstable').delegate('#xCoord', 'change', function(index){
+	point_id = parseInt($(this).attr('data-id'));
+	point_value = parseFloat($(this).val());
+	$.each(PointShowed, function(index){
+		if (PointShowed[index]['id'] == point_id){
+			PointShowed[index]['mesh'].position.x = point_value;
+			return false;
+		}
+	});
+});
+$('#pointstable').delegate('#yCoord', 'change', function(index){
+	point_id = parseInt($(this).attr('data-id'));
+	point_value = parseFloat($(this).val());
+	$.each(PointShowed, function(index){
+		if (PointShowed[index]['id'] == point_id){
+			PointShowed[index]['mesh'].position.y = point_value;
+			return false;
+		}
+	});
+});
+$('#pointstable').delegate('#zCoord', 'change', function(index){
+	point_id = parseInt($(this).attr('data-id'));
+	point_value = parseFloat($(this).val());
+	$.each(PointShowed, function(index){
+		if (PointShowed[index]['id'] == point_id){
+			PointShowed[index]['mesh'].position.z = point_value;
+			return false;
+		}
+	});
+});
+
+//изменить координаты points
+$('body').delegate('#changecoordsofpoint', 'click', function(){
+	parameters = {};
+	parameters['method'] = 'changecoordsofpoint';
+	parameters['point_id'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['xCoord'] = parseFloat($(this).next().find('input#xCoord').val());
+	parameters['yCoord'] = parseFloat($(this).next().find('input#yCoord').val());
+	parameters['zCoord'] = parseFloat($(this).next().find('input#zCoord').val());
+	pointTable(parameters);
+	updatePointPosition(parameters['point_id'], PointShowed, parameters['xCoord'], parameters['yCoord'], parameters['zCoord']);
+});
+
+$('body').delegate('#savecoordsofpoint', 'click', function(){
+	parameters = {};
+	parameters['method'] = 'changecoordsofpoint';
+	parameters['point_id'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['xCoord'] = parseFloat($(this).parent().parent().find('input#xCoord').val());
+	parameters['yCoord'] = parseFloat($(this).parent().parent().find('input#yCoord').val());
+	parameters['zCoord'] = parseFloat($(this).parent().parent().find('input#zCoord').val());
+	pointTable(parameters);
+	updateMeshPosition(parameters['point_id'], PointShowed, parameters['xCoord'], parameters['yCoord'], parameters['zCoord']);
+});
+
+function updatePointPosition(id, PointShowed, xCoord, yCoord, zCoord){
+	$.each(PointShowed, function(index){
+		if(PointShowed[index]['id'] == id){
+			PointShowed[index]['mesh'].position.set(xCoord, yCoord, zCoord);
+			return false;
+		}
+	});
+}
+
+//скрыть один конкретный point
+$('body').delegate('#hidepoint', 'click', function(){
+	point_id = parseInt($(this).attr('data-id'));
+	hidePoint(point_id);
+	$(this).hide();
+	$('#showpoint[data-id="'+point_id+'"]').show();
+});
+
+function hidePoint(point_id){
+	var no;
+	var got = 0;
+	$.each(PointShowed, function(index){
+		if(PointShowed[index]['id'] == point_id){
+			scene.remove(PointShowed[index]['mesh']);
+			got = 1;
+			no = index;
+		}
+	});
+	if (got == 1){
+		PointShowed.splice([no], 1);
+	}
+}
+
+//показать один конкретный выбранный point
+$('body').delegate('#showpoint', 'click', function(){
+	point_id = parseInt($(this).attr('data-id'));
+	pointShowedUpdate(point_id);
+	$(this).hide();
+	$('#hidepoint[data-id="'+point_id+'"]').show();
+});
+
+var PointShowed = [];
+function pointShowedUpdate(point_id){
+	parameters = {};
+	parameters['method'] = 'showpoint';
+	parameters['point_id'] = point_id;
+	parameters['landscape_id'] = landscape_id;
+	pointsize = $('#pointsize').val();
+	pointcolor = $('#pointcolor').val();
+	$.ajax({
+    	type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		a = {}
+    		a['id'] = data['string']['id'];
+    		a['x'] = data['string']['x'];
+    		a['y'] = data['string']['y'];
+    		a['z'] = data['string']['z'];
+    		// наполняем массив показать конкретный объект
+    		doubled = 0;
+    		$.each(PointShowed, function(index){
+				if (PointShowed[index]['id'] == a['id']){
+    				doubled = 1;
+    			}
+    		});
+    		if (doubled == 0){
+				PointShowed.push(a);
+			}
+			//показываем новый объект
+			$.each(PointShowed, function(index){
+				if (PointShowed[index]['id'] == point_id && doubled == 0){
+					showPointMesh(PointShowed[index], pointsize, pointcolor);
+				}
+			});
+    	}
+    });	
+}
+
+function showPointMesh(Point, pointsize, pointcolor){
+	x = Point['x'];
+	y = Point['y'];
+	z = Point['z'];
+	Point['geometry'] = new THREE.CircleGeometry(parseFloat(pointsize), 32);
+	Point['material'] = new THREE.MeshBasicMaterial( {color: parseInt('0x'+pointcolor)} );
+	Point['mesh'] = new THREE.Mesh(Point['geometry'], Point['material']);
+	Point['mesh'].position.set(x, y, z-1.2);
+	Point['mesh'].dbId = Point['id'];
+	scene.add(Point['mesh']);
+}
+
+//удалить объект
+$('#pointstable').delegate('#pointdelete', 'click', function(){
+	parameters = {};
+	parameters['point_id'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'deletepoint';
+	pointTable(parameters);
+	hidePoint(parameters['point_id']);
+});
+
+//переименовать объект
+$('#pointstable').delegate('#changenameofpoint', 'click', function(){
+	parameters = {};
+	parameters['point_id'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'renamepoint';
+	parameters['name'] = $(this).next().children('li').children('input').val();
+	pointTable(parameters);
+});
+
+//отвязать конкретный point от статики
+$('#pointstable').delegate('#unlinkpoint', 'click', function(){
+	parameters = {};
+	parameters['static_type'] = $(this).attr('data-type');
+	parameters['point_id'] = parseInt($(this).attr('data-id'));
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'unlinkpoint';
+	pointTable(parameters);
+});
+//привязать Point к объекту
+$('body').delegate('#linkpointtostatic', 'click', function(){
+	parameters = {}
+	parameters['pointid'] = $(this).attr('data-pointid');
+	parameters['id'] = $(this).attr('data-id');
+	parameters['type'] = $(this).attr('data-type');
+	parameters['landscape_id'] = landscape_id;
+	parameters['method'] = 'linkpointtostatic';
+	pointTable(parameters);
+});
+//записать  Point
+$('body').delegate('#newpoint', 'click', function(){
+    if($(this).text() == 'Новая'){
+        $(this).text('Остановить');
+        $(this).addClass('secondary')
+    } else{
+    	$(this).removeClass('secondary');
+        $(this).text('Новая');
+        parameters = {};
+        parameters['method'] = 'addpoint';
+        parameters['point'] = vertices[vertices.length-1];
+        parameters['landscape_id'] = landscape_id;
+        pointTable(parameters);
+        vertices = [];
+    }
+});
+
+function pointTable(parameters){
+	$.ajax({
+    	type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		$('#pointstable').html(data['string']);
+    	}
+    });
+}
+
 //проверка на hex
 $('#objecttable').delegate('#server_id', 'keyup', function(){
 	parameters = {};
@@ -535,6 +909,15 @@ function objectTable(parameters){
     	}
     });
 }
+//**********************************************
+//** калибровка calibration
+$('body').delegate('.calibration', 'click', function(){
+	$('.calibration_block').css('right', 0);
+});
+
+$('body').delegate('.calibration_close', 'click', function(){
+	$('.calibration_block').css('right', '-100%');
+});
 
 //**********************************************
 //** добавить объект

@@ -1,0 +1,7 @@
+<label for="chooselayer">Выбор сцены(choose layer)
+	<select id="chooselayer" data-id="{{keyname}}">
+		{% for i in layers %}
+			<option value="{{i.server_id}}" {% if i.landscape_id == landscape_id %}selected="selected"{% endif %}>{{i.landscape_name}}</option>
+		{% endfor %}
+	</select>	
+</label>

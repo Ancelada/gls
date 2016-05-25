@@ -107,4 +107,7 @@ urlpatterns = patterns('',
 	# работа с tag ws sp
 	url(r'tags', 'mainapp.views.tags'),
 	url(r'createtag', 'mainapp.views.createtag'),
+
+	#запросы для быстрой обработки
+	url(r'speedrequests', 'mainapp.views.speedrequests'),
 )

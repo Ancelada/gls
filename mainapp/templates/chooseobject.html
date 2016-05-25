@@ -1,0 +1,7 @@
+<label for="chooseobject">Выбор роутера / координатора
+	<select id="chooseobject" data-id="{{keyname}}">
+		{% for i in objects %}
+			<option value="{{i.server_id}}">{{i.Name}}</option>
+		{% endfor %}
+	</select>
+</label>

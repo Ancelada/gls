@@ -10,13 +10,13 @@
 			</div>
 		{% for i in node %}
 			<label for="nodename">Наименование
-				<input type="text" value="{{i.Node__Name}}" id="nodename">	
+				<input type="text" value="{{i.Name}}" id="nodename">	
 			</label>
 			<label for="nodedescription">Описание
-				<textarea name="" cols="30" rows="5" id="nodedescription">{{i.Node__Description}}</textarea>
+				<textarea name="" cols="30" rows="5" id="nodedescription">{{i.Description}}</textarea>
 			</label>
 			<label for="serverid">server_id
-				<input type="text" id="serverid" value="{{i.Node__server_id}}" disabled="disabled">
+				<input type="text" id="serverid" value="{{i.server_id}}" disabled="disabled">
 			</label>
 			<div id="error"></div>
 			<label for="tagid">

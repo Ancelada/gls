@@ -5,40 +5,8 @@
 	{% if username %}
 		<h1>Получить информацию о Node WS</h1>
 		<h3>Список node WS</h3>
-		<div id="nodetable">
-			<table>
-				<thead>
-					<tr>
-						<th>Наименование</th>
-						<th>Описание</th>
-						<th>server_id</th>
-						<th>Привязанный tag</th>
-						<th>действие</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for i in tagnodes %}
-						<tr>
-							<td>{{i.Node__Name}}</td>
-							<td>{{i.Node__Description}}</td>
-							<td {% if i.Node__server_id == None %}style="background:#fb9f9f;"{% endif%}>{% if i.Node__server_id == None %}Отсутствует на SP<br><button class="button secondary" id="sendtosp" data-name="{{i.Node__Name}}" data-description="{{i.Node__Description}}" data-hex="{{i.Node__id_hex}}" data-wsid="{{i.Node_id}}">Отправить на SP</button>
-							{% else %}{{i.Node__server_id}}{% endif %}</td>
-							<td>
-									{% for t in tags %}
-										{% if i.Tag_id == t.TagId %}
-											{{t.TagId}}
-										{% endif %}
-									{% endfor %}
-							</td>
-							<td>
-								<a href="/getnode/{{i.Node_id}}" class="button secondary" id="correction" data-id="{{i.Node_id}}">Корректировать</a>
-								<button class="button alert" id="deletews" data-id="{{i.Node_id}}">Удалить</button>
-							</td>
-						</tr>
-					{% endfor %}					
-				</tbody>
-			</table>
-			<a href="/createnode">Создать node на WS</a>
+		<div id="nodetablews">
+			{{nodetablews}}
 		</div>
 		<button class="button" id="nodedifference">Получить расхождения между WS и SP</button>
 		<div id="nodedifferencetable">
@@ -50,6 +18,30 @@
   	</div>
 	{% endif%}
 	<script>
+		// отвязать node от tag
+		$('#nodetablews').delegate('#unlink', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'unlink';
+			parameters['tag_id'] = $(this).attr('data-tagid');
+			parameters['node_id'] = $(this).attr('data-nodeid');
+			sendAjax(parameters);
+		});
+
+		// отправить всё на ws
+		$('#nodedifferencetable').delegate('#sendalltows', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendalltows';
+			parameters['onlysp'] = onlysp;
+			sendAjax(parameters);
+		});
+		// отправить на ws
+		$('#nodedifferencetable').delegate('#sendtows', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendtows';
+			parameters['node_id'] = parseInt($(this).attr('data-id'));
+			parameters['onlysp'] = onlysp;
+			sendAjax(parameters);
+		});
 		//внести корректировки полей в SP
 		$('#nodedifferencetable').delegate('#makecorrection', 'click', function(){
 			parameters = {};
@@ -112,6 +104,15 @@
 					} else if (parameters['method'] == 'makecorrection'){
 						console.log(data);
 						$('#nodedifferencetable').html(data['string']);
+					} else if (parameters['method'] == 'sendtows'){
+						$('#nodedifferencetable').html(data['nodedifferencetable']);
+						$('#nodetablews').html(data['nodetablews']);
+					} else if (parameters['method'] == 'sendalltows'){
+						$('#nodedifferencetable').html(data['nodedifferencetable']);
+						$('#nodetablews').html(data['nodetablews']);
+					} else if (parameters['method'] == 'sendalltows'){
+						$('#nodetablews').html(data['nodetablews']);
+						console.log(data);
 					}
 				}
 			});

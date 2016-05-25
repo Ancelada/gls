@@ -252,7 +252,7 @@ li.tabs-title a{
 #objectwindow{
 	position:fixed;
 	display:block;
-	min-height: 100px;
+	min-height: 0;
 	width: 300px;
 	display:none;
 	background-color:#fff;
@@ -263,4 +263,37 @@ li.tabs-title a{
 	height: 600px;
 	max-width: 800px;
 	margin:0 auto;
+}
+
+.calibration{
+	position:fixed;
+	right: 0;
+	top: 281px;
+}
+
+.calibration_block{
+	position:fixed;
+	top:0;
+	right:0;
+	height: 100%;
+	overflow-y:visible;
+	background-color:#fff;
+	-webkit-transition: right 1s;
+	transition: right 1s;
+}
+
+#pointstable{
+	max-height: 250px;
+	overflow-y:scroll;
+	padding-left:0;
+	padding-right: 0;
+}
+
+#cpointwindow{
+	position:fixed;
+	display:block;
+	min-height: 0;
+	width: 300px;
+	display:none;
+	background-color:#fff;
 }

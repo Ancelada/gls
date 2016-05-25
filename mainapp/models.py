@@ -327,8 +327,8 @@ class Node(models.Model):
 class TagNode(models.Model):
 	class Meta():
 		db_table = 'TagNode'
-	Tag = models.ForeignKey(Tag)
-	Node = models.ForeignKey(Node)
+	Tag = models.ForeignKey(Tag, on_delete=models.CASCADE, null=True)
+	Node = models.ForeignKey(Node, on_delete=models.CASCADE, null=True)
 
 ######################
 ### События
@@ -714,3 +714,62 @@ class Command(models.Model):
 	Name = models.CharField(max_length=200, blank=True, null=True)
 	def __str__(self):
 		return self.Name.encode('utf-8')
+
+#####################
+## CalibrationPoints
+######################
+class Cpoint(models.Model):
+	class Meta():
+		db_table = 'Cpoint'
+	Name = models.CharField(max_length=200, blank=True, null=True)
+	xCoord = models.FloatField(blank=True, null=True)
+	yCoord = models.FloatField(blank=True, null=True)
+	zCoord = models.FloatField(blank=True, null=True)
+	LoadLandscape = models.ForeignKey(LoadLandscape, on_delete=models.CASCADE)
+	def __str__(self):
+		return self.Name.encode('utf-8')
+
+class PointBuilding(models.Model):
+	class Meta():
+		db_table = 'PointBuilding'
+	Cpoint = models.ForeignKey(Cpoint, on_delete=models.CASCADE)
+	Building = models.ForeignKey(Building, on_delete=models.CASCADE)
+
+class PointFloor(models.Model):
+	class Meta():
+		db_table = 'PointFloor'
+	Cpoint = models.ForeignKey(Cpoint, on_delete=models.CASCADE)
+	Floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+
+class PointKabinet(models.Model):
+	class Meta():
+		db_table = 'PointKabinet'
+	Cpoint = models.ForeignKey(Cpoint, on_delete=models.CASCADE)
+	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
+
+# запросы
+class Query(models.Model):
+	class Meta():
+		db_table = 'Query'
+	Name = models.CharField(max_length=200, blank=True, null=True)
+	Parameters = jsonfield.JSONField(null=True, blank=True)
+	def __str__(self):
+		return self.Name.encode('utf-8')
+
+# параметры для запросов
+class Qparameter(models.Model):
+	class Meta():
+		db_table = 'Qparameter'
+	Name = models.CharField(max_length=200, blank=True, null=True)
+	KeyName = models.CharField(max_length=50, blank=True, null=True)
+	def __str__(self):
+		return self.Name.encode('utf-8')
+
+#связь параметры - запросы
+class QueryQparameter(models.Model):
+	class Meta():
+		db_table = 'QueryQparameter'
+	Query = models.ForeignKey(Query, on_delete=models.CASCADE)
+	Qparameter = models.ForeignKey(Qparameter, on_delete=models.CASCADE)
+	def __str__(self):
+		return self.Query.Name.encode('utf-8')

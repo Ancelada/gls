@@ -19,26 +19,37 @@
 						<tr>
 							<td>WS</td>
 							<td>{{i.tagId}}</td>
-							<td>{{i.properties.registered}}</td>
-							<td>{{i.properties.locationMethods}}</td>
-							<td>{{i.properties.sensors}}</td>
-							<td>{{i.properties.timeUpdateLocation}}</td>
-							<td>{{i.properties.correctionFilter}}</td>
+							<td {% if i.properties.registered != j.properties.registered %}style="background:#fb9f9f;"{% endif %}>{{i.properties.registered}}{% if i.properties.registered != j.properties.registered %}<br><button class="button secondary" data-id="{{i.tagId}}" id="removedifferences">Откорректировать</button>{% endif %}</td>
+							<td {% if i.properties.locationMethods != j.properties.locationMethods %}style="background:#fb9f9f;"{% endif %}>{{i.properties.locationMethods}}{% if i.properties.locationMethods != j.properties.locationMethods %}<br><button class="button secondary" data-id="{{i.tagId}}" id="removedifferences">Откорректировать</button>{% endif %}</td>
+							<td {% if i.properties.sensors != j.properties.sensors %}style="background:#fb9f9f;"{% endif %}>{{i.properties.sensors}}{% if i.properties.sensors != j.properties.sensors %}<br><button class="button secondary" data-id="{{i.tagId}}" id="removedifferences">Откорректировать</button>{% endif %}</td>
+							<td {% if i.properties.timeUpdateLocation != j.properties.timeUpdateLocation %}style="background:#fb9f9f;"{% endif %}>{{i.properties.timeUpdateLocation}}{% if i.properties.timeUpdateLocation != j.properties.timeUpdateLocation %}<br><button class="button secondary" data-id="{{i.tagId}}" id="removedifferences">Откорректировать</button>{% endif %}</td>
+							<td {% if i.properties.correctionFilter != j.properties.correctionFilter %}style="background:#fb9f9f;"{% endif %}>{{i.properties.correctionFilter}}{% if i.properties.correctionFilter != j.properties.correctionFilter %}<br><button class="button secondary" data-id="{{i.tagId}}" id="removedifferences">Откорректировать</button>{% endif %}</td>
 						</tr>
 						<tr>
 							<td>SP</td>
 							<td>{{j.tagId|longHexToSmall}}</td>
-							<td>{{j.properties.registered}}</td>
-							<td>{{j.properties.locationMethods}}</td>
-							<td>{{j.properties.sensors}}</td>
-							<td>{{j.properties.timeUpdateLocation}}</td>
-							<td>{{j.properties.correctionFilter}}</td>
+							<td {% if i.properties.registered != j.properties.registered %}style="background:#fb9f9f;"{% endif %}>{{j.properties.registered}}</td>
+							<td {% if i.properties.locationMethods != j.properties.locationMethods %}style="background:#fb9f9f;"{% endif %}>{{j.properties.locationMethods}}</td>
+							<td {% if i.properties.sensors != j.properties.sensors %}style="background:#fb9f9f;"{% endif %}>{{j.properties.sensors}}</td>
+							<td {% if i.properties.timeUpdateLocation != j.properties.timeUpdateLocation %}style="background:#fb9f9f;"{% endif %}>{{j.properties.timeUpdateLocation}}</td>
+							<td {% if i.properties.correctionFilter != j.properties.correctionFilter %}style="background:#fb9f9f;"{% endif %}>{{j.properties.correctionFilter}}</td>
 						</tr>
 				</tbody>
 			</table>
 		{% endif %}
 	{% endfor %}
 {% endfor %}
+<script>
+var wssp = [];
+{% for i in ws %}
+	{% for j in sp %}
+		{% if i.tagId == j.tagId|longHexToSmall %}
+			wssp.push('{{i.tagId}}');
+		{% endif %}
+	{% endfor %}
+{% endfor %}
+</script>
+<a id="removealldifferences">Откорректировать все</a>
 
 {% if onlyws|length > 0 %}
 <h2>Есть в WS</h2>
@@ -103,11 +114,15 @@
 					<td>{{i.properties.sensors}}</td>
 					<td>{{i.properties.timeUpdateLocation}}</td>
 					<td>{{i.properties.correctionFilter}}</td>
-					<td><button class="button secondary" id="addtows" data-id="{{i.tagId}}">Отправить на WS</button></td>
+					<td>
+						<button class="button secondary" id="addtows" data-id="{{i.tagId}}">Отправить на WS</button>
+						<button class="button alert" id="deletefromsp" data-id="{{i.tagId}}">Удалить из SP</button>
+					</td>
 				</tr>
 			{% endfor %}
 		</tbody>
 	</table>
+	<a id="addalltows">Отправить всё на WS</a>
 <script>
 	var onlysp = [];
 	{% for i in onlysp %}

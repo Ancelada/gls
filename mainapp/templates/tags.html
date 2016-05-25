@@ -14,12 +14,43 @@
 			{{tagdifference}}
 		</div>
 	<script>
+		// удалить из delete from SP
+		$('#tagdifference').delegate('#deletefromsp', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'deletefromsp'
+			parameters['tag_id'] = $(this).attr('data-id');
+			sendAjax(parameters);
+		})
+		//sendalltows
+		$('#tagdifference').delegate('#addalltows', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'sendalltows';
+			parameters['onlysp'] = onlysp;
+			sendAjax(parameters);
+		});
+
 		//sendtows
 		$('#tagdifference').delegate('#addtows', 'click', function(){
 			parameters = {};
 			parameters['method'] = 'sendtows';
 			parameters['tag_id'] = $(this).attr('data-id');
 			parameters['onlysp'] = onlysp;
+			sendAjax(parameters);
+		});
+
+		//remove all differences
+		$('#tagdifference').delegate('#removealldifferences', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'removealldifferences';
+			parameters['wssp'] = wssp;
+			sendAjax(parameters);
+		});
+
+		//remove differences
+		$('#tagdifference').delegate('#removedifferences', 'click', function(){
+			parameters = {};
+			parameters['method'] = 'removedifferences';
+			parameters['tag_id'] = $(this).attr('data-id');
 			sendAjax(parameters);
 		});
 
@@ -196,7 +227,17 @@
 					} else if(parameters['method'] == 'sendalltosp'){
 						$('#tagdifference').html(data['string']);
 					} else if(parameters['method'] == 'sendtows'){
-						console.log(data);
+						$('#tagtablews').html(data['tagtablews']);
+						$('#tagdifference').html(data['tagdifference']);
+					} else if(parameters['method'] == 'removedifferences'){
+						$('#tagdifference').html(data['string']);
+					} else if(parameters['method'] == 'removealldifferences'){
+						$('#tagdifference').html(data['string']);
+					} else if(parameters['method'] == 'sendalltows'){
+						$('#tagtablews').html(data['tagtablews']);
+						$('#tagdifference').html(data['tagdifference']);
+					} else if(parameters['method'] == 'deletefromsp'){
+						$('#tagdifference').html(data['string']);
 					}
 				}
 			});

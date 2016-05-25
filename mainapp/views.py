@@ -1969,10 +1969,90 @@ def getUzonesWithoutGroups(uzones, uzonegroupuzones, user_id):
 			arr.append(u)
 	return arr
 
+def speedrequests(request):
+	args = {}
+	url = 'http://192.168.1.111:7000'
+	headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		landscape_id = string['landscape_id']
+		
+		
 # incomezone
 def incomezonedefine(request, landscape_id='0000'):
 	args = {}
 	landscape_id = landscape_id
+	# быстрые запросы
+	if request.method == 'POST':
+		string = simplejson.loads(request.body)
+		url = 'http://192.168.1.111:7000'
+		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		# при изменении запроса отобразить его параметры
+		if string['method'] == 'querychange':
+			args['parameters'] = []
+			query_id = string['query_id']
+			args['landscape_id'] = string['landscape_id']
+			args['queryqparameters'] = QueryQparameter.objects.filter(Query_id= \
+				query_id).values('Qparameter__Name', 'Qparameter__KeyName')
+			args['layers'] = LoadLandscape.objects.filter(server_id__isnull=False)
+			args['objects'] = Object.objects.filter(LoadLandscape_id=string['landscape_id'])
+			for i in args['queryqparameters']:
+				args['keyname'] = i['Qparameter__KeyName']
+				args['parameters'].append({'key': '%s' % i['Qparameter__Name'], 'value' : \
+					render_to_string('%s.html' % i['Qparameter__Name'], \
+				 args) })
+			args['qparameters'] = render_to_string('qparameters.html', args)
+			return JsonResponse({'string': args['qparameters']})
+		#начать калибровку
+		if string['method'] == 'setnodeforcalibration':
+			args['node_server_id'] = string['node_server_id']
+			args['x'] = float(string['x'].replace(',', '.'))
+			args['y'] = float(string['y'].replace(',', '.'))
+			args['z'] = float(string['z'].replace(',', '.'))
+			if string['enableCalibration'] == 'true':
+				args['enableCalibration'] = True
+			else:
+				args['enableCalibration'] = False
+			data = {}
+			data['command'] = 'setNodeForCalibration'
+			data['node'] = {'id': args['node_server_id'], 'enableCalibration': args['enableCalibration'], \
+			'x': args['x'], 'y': args['y'], 'z': args['z']}
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			return JsonResponse({'string': json_data})
+		#показать информацию cpoint
+		if string['method'] == 'getpointinfo':
+			args['nodes'] = string['nodes']
+			args['point_id'] = string['point_id']
+			args['x'] = string['x']
+			args['y'] = string['y']
+			args['z'] = string['z']
+			args['point_name'] = Cpoint.objects.get(id=args['point_id']).Name
+			try:
+				args['selected_node'] = string['selected_node']
+			except:
+				pass
+			args['pointinfo'] = render_to_string('pointinfo.html', args)
+			return JsonResponse({'string': args['pointinfo']})
+		#отправить запрос на SP
+		if string['method'] == 'sendquery':
+			keyvalues = string['keyvalues']
+			landscape_id = string['landscape_id']
+			data = {}
+			for i in keyvalues:
+				if i['key'] == 'command':
+					data[i['key']] = Query.objects.get(id=int(i['value'])).Name
+				if i['key'] == 'layerId':
+					data[i['key']] = LoadLandscape.objects.get(server_id=int(i['value'])).server_id
+				if i['key'] == 'id':
+					data[i['key']] = i['value']
+			try:
+				r = requests.post(url, data=json(data), headers=headers)
+				json_data = simplejson.loads(r.text)
+				return JsonResponse(json_data)
+			except:
+				return JsonResponse({'error': 'Нет связи с сервером'})
+	args['unique'] = unique
 	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
 	args['lcolor'] = LandscapeColor.objects.filter(LoadLandscape_id=landscape_id)
@@ -2021,9 +2101,107 @@ def incomezonedefine(request, landscape_id='0000'):
 	args['objectkabinet'] = ObjectKabinet.objects.all().values('Kabinet_id', 'Object_id', \
 		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
 	args['objecttable'] = render_to_string('objecttable.html', args)
+	args['points'] = Cpoint.objects.filter(LoadLandscape_id=landscape_id)
+	args['pointbuilding'] = PointBuilding.objects.all()
+	args['pointfloor'] = PointFloor.objects.all()
+	args['pointkabinet'] = PointKabinet.objects.all()
+	args['pointstable'] = render_to_string('pointstable.html', args)
+	args['nodes'] = Node.objects.all().values('Name', 'id', 'Description', 'server_id', 'tagnode__Tag_id')
+	#запросы на SP по-умолчанию
+	args['queries'] = Query.objects.all()
+	query_id = args['queries'][0].id
+	args['queryqparameters'] = QueryQparameter.objects.filter(Query_id= \
+				query_id).values('Qparameter__Name', 'Qparameter__KeyName')
+	args['layers'] = LoadLandscape.objects.filter(server_id__isnull=False)
+	args['objects'] = Object.objects.filter(LoadLandscape_id=landscape_id)
+	args['parameters'] = []
+	for i in args['queryqparameters']:
+		args['keyname'] = i['Qparameter__KeyName']
+		args['parameters'].append({'key': '%s' % i['Qparameter__Name'], 'value' : \
+			render_to_string('%s.html' % i['Qparameter__Name'], \
+		 args) })
+	args['qparameters'] = render_to_string('qparameters.html', args)
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
 		landscape_id = string['landscape_id']
+		#изменить координаты point
+		if string['method'] == 'changecoordsofpoint':
+			Cpoint.objects.filter(id=string['point_id']).update(xCoord=string['xCoord'], \
+			 yCoord=string['yCoord'], zCoord=string['zCoord'])
+			args['points'] = Cpoint.objects.all()
+			args['pointstable'] = render_to_string('pointstable.html', args)
+			return JsonResponse({'string': args['pointstable']})
+		# показать point
+		if string['method'] == 'showpoint':
+			point_id = string['point_id']
+			a = Cpoint.objects.get(id=point_id)
+			return JsonResponse({'string': {'id': a.id, 'x': a.xCoord, 'y': a.yCoord, 'z': a.zCoord}})
+		# удалить point
+		if string['method'] == 'deletepoint':
+			point_id = string['point_id']
+			Cpoint.objects.filter(id=point_id).delete()
+			args['points'] = Cpoint.objects.filter(LoadLandscape_id=landscape_id)
+			args['pointstable'] = render_to_string('pointstable.html', args)
+			return JsonResponse({'string': args['pointstable']})
+		# переименовать point
+		if string['method'] == 'renamepoint':
+			point_id = string['point_id']
+			name = string['name']
+			a = Cpoint.objects.get(id=point_id)
+			a.Name = name
+			a.save()
+			args['points'] = Cpoint.objects.filter(LoadLandscape_id=landscape_id)
+			args['pointstable'] = render_to_string('pointstable.html', args)
+			return JsonResponse({'string': args['pointstable']})			
+		# отвязать point от объекта
+		if string['method'] == 'unlinkpoint':
+			static_type = string['static_type']
+			point_id = string['point_id']
+			if static_type == 'building':
+				PointBuilding.objects.filter(Cpoint_id=point_id).delete()
+			elif static_type == 'floor':
+				ObjectFloor.objects.filter(Cpoint_id=point_id).delete()
+			elif static_type == 'kabinet':
+				ObjectKabinet.objects.filter(Cpoint_id=point_id).delete()
+			args['pointbuilding'] = PointBuilding.objects.all()
+			args['pointfloor'] = PointFloor.objects.all()
+			args['pointkabinet'] = PointKabinet.objects.all()
+			args['pointstable'] = render_to_string('pointstable.html', args)
+			return JsonResponse({'string': args['pointstable']})
+		# привязать point к объекту
+		if string['method'] == 'linkpointtostatic':
+			point_id = string['pointid']
+			static_id = string['id']
+			static_type = string['type']
+			PointBuilding.objects.filter(Cpoint_id=point_id).delete()
+			PointFloor.objects.filter(Cpoint_id=point_id).delete()
+			PointKabinet.objects.filter(Cpoint_id=point_id).delete()
+			if static_type == 'building':
+				PointBuilding.objects.create(Building_id=static_id, Cpoint_id=point_id)
+				minz = Building.objects.get(id=static_id).minz
+				Cpoint.objects.filter(id=point_id).update(zCoord=minz + 1.3)
+			elif static_type == 'floor':
+				PointFloor.objects.create(Floor_id=static_id, Cpoint_id=point_id)
+				minz = Floor.objects.get(id=static_id).minz
+				Cpoint.objects.filter(id=point_id).update(zCoord=minz + 1.3)
+			elif static_type == 'kabinet':
+				PointKabinet.objects.create(Kabinet_id=static_id, Cpoint_id=point_id)
+				minz = Kabinet_n_Outer.objects.get(id=static_id).minz
+				Cpoint.objects.filter(id=point_id).update(zCoord=minz + 1.3)
+			args['points'] = Cpoint.objects.filter(LoadLandscape_id=landscape_id)
+			args['pointbuilding'] = PointBuilding.objects.all()
+			args['pointfloor'] = PointFloor.objects.all()
+			args['pointkabinet'] = PointKabinet.objects.all()
+			args['pointstable'] = render_to_string('pointstable.html', args)
+			return JsonResponse({'string': args['pointstable']})
+		# добавить calibration point
+		if string['method'] == 'addpoint':
+			point = string['point']
+			a = Cpoint.objects.create(xCoord=point['x'], yCoord=point['y'], zCoord=0, \
+			 LoadLandscape_id=args['landscape_id'])
+			args['points'] = Cpoint.objects.filter(LoadLandscape_id=args['landscape_id'])
+			args['pointstable'] = render_to_string('pointstable.html', args)
+			return JsonResponse({'string': args['pointstable']})
 		# проверка на hex
 		if string['method'] == 'checkhex':
 			string = string['string']
@@ -3698,13 +3876,42 @@ def getmysession(request):
 def nodes(request):
 	args = {}
 	args['username'] = auth.get_user(request).id
-	args['tagnodes'] = TagNode.objects.all().values('Node__Name', 'Node__Description', \
-	 'Node__server_id', 'Tag_id', 'Node_id')
-	args['tags'] = Tag.objects.all()
+	args['nodetablews'] = getNodeTableWs(args)
 	if request.method == 'POST':
-		url = 'http://192.168.1.111:8000'
+		url = 'http://192.168.1.148:7000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 		string = simplejson.loads(request.body)
+		# отцепить unlink tag от node
+		if string['method'] == 'unlink':
+			tag_id = string['tag_id']
+			node_id = string['node_id']
+			a = TagNode.objects.filter(Node_id=node_id).delete()
+			args['nodetablews'] = getNodeTableWs(args)
+			return JsonResponse({'nodetablews': args['nodetablews']})
+		# отправить всё на WS
+		if string['method'] == 'sendalltows':
+			onlysp = string['onlysp']
+			for i in onlysp:
+				a = Node.objects.create(Name=i['name'], Description=i['description'], \
+					server_id=i['server_id'])
+				TagNode.objects.create(Node_id=a.id, Tag_id=i['tagId'])
+			args['nodetablews'] = getNodeTableWs(args)
+			args['nodedifferencetable'] = nodedifference(url, headers, args)
+			return JsonResponse({'nodetablews': args['nodetablews'], \
+			 'nodedifferencetable': args['nodedifferencetable']})
+		# отправить информацию на WS
+		if string['method'] == 'sendtows':
+			server_id = string['node_id']
+			onlysp = string['onlysp']
+			for i in onlysp:
+				if i['server_id'] == server_id:
+					a = Node.objects.create(Name=i['name'], \
+					 Description=i['description'], server_id=server_id)
+					TagNode.objects.create(Node_id=a.id, Tag_id=i['tagId'])
+			args['nodetablews'] = getNodeTableWs(args)
+			args['nodedifferencetable'] = nodedifference(url, headers, args)
+			return JsonResponse({'nodetablews': args['nodetablews'], \
+			 'nodedifferencetable': args['nodedifferencetable']})
 		# внести корректировки Node на SP
 		if string['method'] == 'makecorrection':
 			server_id = string['id']
@@ -3775,6 +3982,13 @@ def nodes(request):
 			return JsonResponse({'string': args['nodedifferencetable']})
 	return render(request, 'nodes.html', args)
 
+def getNodeTableWs(args):
+	args['nodes'] = Node.objects.all()
+	args['tagnodes'] = TagNode.objects.all().values('Node__Name', 'Node__Description', \
+	 'Node__server_id', 'Tag_id', 'Node_id')
+	args['tags'] = Tag.objects.all()
+	return render_to_string('nodetablews.html', args)
+
 def nodedifference(url, headers, args):
 	data = {}
 	data['command'] = 'listNodes'
@@ -3782,9 +3996,16 @@ def nodedifference(url, headers, args):
 	json_data = simplejson.loads(r.text)
 	#списки ws
 	args['ws'] = []
-	for i in args['tagnodes']:
-		args['ws'].append({'id': i['Node__server_id'], 'name': i['Node__Name'], \
-		 'description': i['Node__Description'], 'tagId': i['Tag_id']})
+	for i in args['nodes']:
+		haveintagnode = 0
+		for j in args['tagnodes']:
+			if i.id == j['Node_id']:
+				haveintagnode = 1
+				args['ws'].append({'id': i.server_id, 'name': i.Name, \
+				 'description': i.Description, 'tagId': j['Tag_id']})
+		if haveintagnode == 0:
+			args['ws'].append({'id': i.server_id, 'name': i.Name, \
+				 'description': i.Description, 'tagId': 0})
 	#списки sp
 	args['sp'] = []
 	for i in json_data['nodes']:
@@ -3812,10 +4033,13 @@ def getnode(request, parameters=1):
 	args = {}
 	args['nodeid'] = parameters
 	args['username'] = auth.get_user(request).id
-	args['node'] = TagNode.objects.filter(Node_id=parameters).values('Node__Name', 'Node__Description', \
-		'Node__server_id', 'Tag_id', 'Node_id')
+	args['node'] = Node.objects.filter(id=parameters).values('Name', 'Description', \
+		'server_id', 'id')
 	haveintagnode = tagnodeObjectsIds()
-	haveintagnode.remove(args['node'][0]['Tag_id'])
+	try:
+		haveintagnode.remove(args['node'][0]['Tag_id'])
+	except:
+		pass
 	args['tags'] = Tag.objects.exclude(TagId__in=haveintagnode)
 	args['node_name'] = Node.objects.get(id=parameters).Name
 	if request.method == 'POST':
@@ -3825,10 +4049,12 @@ def getnode(request, parameters=1):
 			name = string['name']
 			description = string['description']
 			tag_id = string['tagid']
-			if args['node'][0]['Tag_id'] != tag_id:
+			try:
 				a = TagNode.objects.get(Node_id=parameters)
 				a.Tag_id = tag_id
 				a.save()
+			except:
+				TagNode.objects.create(Node_id=parameters, Tag_id=tag_id)
 			a = Node.objects.get(id=parameters)
 			a.Name = name
 			a.Description = description
@@ -3871,25 +4097,91 @@ def createnode(request):
 def tags(request):
 	args = {}
 	args['username'] = auth.get_user(request).id
-	args['tags'] = Tag.objects.all()
-	args['locationmethods'] = LocationMethods.objects.all()
-	args['taglocationmethods'] = TagLocationMethods.objects.all()
-	args['sensors'] = Sensors.objects.all()
-	args['tagsensors'] = TagSensors.objects.all()
-	args['timeupdatelocation'] = TimeUpdateLocation.objects.all()
-	args['tagtimeupdatelocation'] = TagTimeUpdateLocation.objects.all()
-	args['correctionfilter'] = CorrectionFilter.objects.all()
-	args['tagcorrectionfilter'] = TagCorrectionFilter.objects.all()
-	args['tagtablews'] = render_to_string('tagtablews.html', args)
+	args['tagtablews'] = getTableWs(args)
 	if request.method == 'POST':
-		url = 'http://192.168.1.111:8000'
+		url = 'http://192.168.1.148:7000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 		string = simplejson.loads(request.body)
+		# delete from sp
+		if string['method'] == 'deletefromsp':
+			tag_id = string['tag_id']
+			data = {}
+			data['command'] = 'deleteTags'
+			data['tags'] = []
+			data['tags'].append({'tagId': tag_id})
+			r = requests.post(url, data=json(data), headers=headers)
+			getDifference(args, url, headers)
+			return JsonResponse({'string': args['tagdifference']})
+		# remove all differences
+		if string['method'] == 'removealldifferences':
+			wssp = string['wssp']
+			data = {}
+			data['command'] = 'saveTags'
+			data['tags'] = getTagsWs(Tag.objects.filter(TagId__in=wssp))
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			getDifference(args, url, headers)
+			return JsonResponse({'string': args['tagdifference']})
+		# remove differences
+		if string['method'] == 'removedifferences':
+			tag_id = string['tag_id']
+			data = {}
+			data['command'] = 'saveTags'
+			data['tags'] = getTagsWs(Tag.objects.filter(TagId=tag_id))
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			getDifference(args, url, headers)
+			return JsonResponse({'string': args['tagdifference']})
+		# send all tags to ws
+		if string['method'] == 'sendalltows':
+			onlysp = string['onlysp']
+			for i in onlysp:
+				a = Tag.objects.create(TagId=i['tagId'], Registered=i['registered'], TagType_id=1)
+				for lm in i['locationMethods']:
+					TagLocationMethods.objects.create(LocationMethods_id \
+						=LocationMethods.objects.get(ParameterName=lm).id, Tag_id=a.TagId)
+				for s in i['sensors']:
+					TagSensors.objects.create(Sensors_id=Sensors.objects.get(ParameterName=s).id, \
+					 Tag_id=a.TagId)
+				for key, value in i['timeUpdateLocation'].items():
+					TagTimeUpdateLocation.objects.create(TimeUpdateLocation_id \
+						=TimeUpdateLocation.objects.get(ParameterName=key).id, Value= \
+						value, Tag_id=a.TagId)
+				for key, value in i['correctionFilter'].items():
+					TagCorrectionFilter.objects.create(CorrectionFilter_id \
+						=CorrectionFilter.objects.get(ParameterName=key).id, Value= \
+						value, Tag_id=a.TagId)
+			# обновляем table_ws
+			args['tagtablews'] = getTableWs(args)
+			getDifference(args, url, headers)
+			return JsonResponse({'tagtablews': args['tagtablews'], \
+			 'tagdifference': args['tagdifference']})
 		# send tag to ws
 		if string['method'] == 'sendtows':
-			tag_id = string['tag_id']
+			tag_id = hex(int(string['tag_id'], 16))
 			onlysp = string['onlysp']
-			return JsonResponse({'string': onlysp})
+			for i in onlysp:
+				if i['tagId'] == tag_id:
+					a = Tag.objects.create(TagId=i['tagId'], Registered=i['registered'], TagType_id=1)
+					for lm in i['locationMethods']:
+						TagLocationMethods.objects.create(LocationMethods_id \
+							=LocationMethods.objects.get(ParameterName=lm).id, Tag_id=a.TagId)
+					for s in i['sensors']:
+						TagSensors.objects.create(Sensors_id=Sensors.objects.get(ParameterName=s).id, \
+						 Tag_id=a.TagId)
+					for key, value in i['timeUpdateLocation'].items():
+						TagTimeUpdateLocation.objects.create(TimeUpdateLocation_id \
+							=TimeUpdateLocation.objects.get(ParameterName=key).id, Value= \
+							value, Tag_id=a.TagId)
+					for key, value in i['correctionFilter'].items():
+						TagCorrectionFilter.objects.create(CorrectionFilter_id \
+							=CorrectionFilter.objects.get(ParameterName=key).id, Value= \
+							value, Tag_id=a.TagId)
+			# обновляем table_ws
+			args['tagtablews'] = getTableWs(args)
+			getDifference(args, url, headers)
+			return JsonResponse({'tagtablews': args['tagtablews'], \
+			 'tagdifference': args['tagdifference']})
 		# send all tags to sp
 		if string['method'] == 'sendalltosp':
 			tags = string['tags']
@@ -3969,6 +4261,18 @@ def tags(request):
 			args['tagtablews'] = render_to_string('tagtablews.html', args)
 			return JsonResponse({'string': args['tagtablews']})
 	return render(request, 'tags.html', args)
+
+def getTableWs(args):
+	args['tags'] = Tag.objects.all()
+	args['locationmethods'] = LocationMethods.objects.all()
+	args['taglocationmethods'] = TagLocationMethods.objects.all()
+	args['sensors'] = Sensors.objects.all()
+	args['tagsensors'] = TagSensors.objects.all()
+	args['timeupdatelocation'] = TimeUpdateLocation.objects.all()
+	args['tagtimeupdatelocation'] = TagTimeUpdateLocation.objects.all()
+	args['correctionfilter'] = CorrectionFilter.objects.all()
+	args['tagcorrectionfilter'] = TagCorrectionFilter.objects.all()
+	return render_to_string('tagtablews.html', args)
 
 def getDifference(args, url, headers):
 	data =  {'command': 'listTags'}
