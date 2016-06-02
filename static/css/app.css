@@ -1,3 +1,7 @@
+hr{
+	margin:0;
+}
+
 body{
 	margin:0;
 	min-width: 100%;
@@ -296,4 +300,10 @@ li.tabs-title a{
 	width: 300px;
 	display:none;
 	background-color:#fff;
+}
+
+.helperwindow{
+	position: fixed;
+	display:block;
+	background-color:rgba(0, 0, 0, 0.3);
 }

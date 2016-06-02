@@ -747,7 +747,14 @@ class PointKabinet(models.Model):
 	Cpoint = models.ForeignKey(Cpoint, on_delete=models.CASCADE)
 	Kabinet = models.ForeignKey(Kabinet_n_Outer, on_delete=models.CASCADE)
 
+class PointBeenCalibrated(models.Model):
+	class Meta():
+		db_table = 'PointBeenCalibrated'
+	Cpoint = models.ForeignKey(Cpoint)
+	Date = models.DateTimeField()
+##############################
 # запросы
+##############################
 class Query(models.Model):
 	class Meta():
 		db_table = 'Query'

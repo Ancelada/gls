@@ -37,10 +37,11 @@
 	<body>
 		{% csrf_token %}
         {% if username %}
-        <div id="objectwindow"></div>
-        <div id="cpointwindow">
+        <div id="objectwindow" style="position:fixed;z-index:1;"></div>
+        <div id="cpointwindow" style="position:fixed;z-index:1;">
             {{pointinfo}}
         </div>
+        <div id="helpers"></div>
 		<!-- ***блок 3д изображения*** -->
 		<!--************************-->
 		<div id ="webGL-container"></div>
@@ -78,22 +79,23 @@
                  <span aria-hidden="true">x</span>
             </button>
             <br>
-            <br>
             <fieldset class="large-12 small-12 columns" style="float:none;">
                 <ul class="accordion" data-accordion>
                     <li class="accordion-item is-active" data-accordion-item>
                         <a href="#" class="accordion-title">Калибровка</a>
                         <div class="accordion-content" data-tab-content>
-                            <h4 class="subheader">Список точек калибровки</h4>
+                            <h5 class="subheader">Список точек калибровки</h5>
                             <div class="large-12 small-12 columns" id="pointstable">
                                 {{pointstable}}
                             </div>
+                            <input type="checkbox" id="showpointstumbler"><label for="showpointstumbler">Показывать точки</label>
+                            <button class="button" id="showallpoints">Показать все точки калибровки</button>
                             <label for="pointsize">Размер фигур, отображающих точки калибровки
                                 <input type="number" id="pointsize" step="0.1" min="0" value="0.5">                    
                             </label>
                             <label for="pointcolor">Цвет фигур, отображающих точки калибровки
                                 <div class="large-12 small-12 columns" style="padding:0;">
-                                    <input class="jscolor" value="" id="pointcolor">    
+                                    <input class="jscolor" value="ff5493" id="pointcolor">    
                                 </div>
                             </label>
                             <button class="button" id="newpoint">Новая</button>
@@ -129,36 +131,71 @@
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
+        <!-- подтвердить изменение координат object -->
+        <div class="reveal" id="confirm" data-reveal>
+            <p>Записать изменения координат</p>
+            <button class="button success" id="confirmyes">Да</button>
+            <button class="button alert" id="confirmno">Нет</button>
+            <button class="close-button" data-close aria-label="Close reveal" type="button">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <!-- подтвердить изменение координат point -->
+        <div class="reveal" id="confirmpoint" data-reveal>
+            <p>Записать изменения координат</p>
+            <button class="button success" id="confirmpointyes">Да</button>
+            <button class="button alert" id="confirmpointno">Нет</button>
+            <button class="close-button" data-close aria-label="Close reveal" type="button">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <!-- Блок загрузка -->
+        <div class="reveal" id="loading" data-reveal>
+            <p>Загрузка...</p>
+            <button class="close-button" data-close aria-label="Close reveal" type="button">
+                <span aria-hidden="true">&times;</span>                
+            </button>
+        </div>
         <!-- Блок объектов -->
         <div class="add_object_block large-3 small-4 columns" style="right:-100%;">
-            <fieldset class="large-12 small-12 columns" style="float:none;">
-                <h3 class="subheader">Список объектов</h3>
-                <div class="large-12 small-12 columns" id="objecttable">
-                    {{objecttable}}
-                </div>
-                <button class="button" id="newobject">Новый</button>
-            </fieldset>
-            <fieldset class="large-12 small-12 columns">
-                <button class="close-button add_object_close" aria-label="Close menu" type="button">
-                     <span aria-hidden="true">x</span>
-                </button>
-                <input type="checkbox" id="showobjects"><label for="showobjects">Показывать объекты</label>
-                <h3 class="subheader">Тип объекта</h3>
-                <select name="" id="objecttype">
-                    {% for type in objecttype %}
-                        <option value="{{type.id}}">{{type.Name}}</option>
-                    {% endfor %}
-                </select>
-                <button class="button success" data-landscape="{{landscape_id}}" data-type="" id="sendserver">Отправить все объекты указанного типа на сервер</button>
-                <label for="objectsize">Размер экземпляров объектов
-                    <input id="objectsize" type="number" value="1" step="0.01">    
-                </label>
-                <label for="objectcolor">Цвет экземпляров объектов
-                    <input class="jscolor" value="" id="objectcolor">
-                </label>
-                <button class="button" id="showallobjects">Отобразить на сцене все объекты указанного типа</button>
-                <button class="button alert" id="hideallobjects">Скрыть со сцены все объекты указанного типа</button>
-            </fieldset>
+            <ul class="accordion" data-accordion>
+                <li class="accordion-item is-active" data-accordion-item>
+                    <a href="#" class="accordion-title">Объекты</a>
+                    <div class="accordion-content" data-tab-content>
+                        <fieldset class="large-12 small-12 columns" style="float:none;">
+                            <h3 class="subheader">Список объектов</h3>
+                            <div class="large-12 small-12 columns" id="objecttable">
+                                {{objecttable}}
+                            </div>
+                            <button class="button" id="newobject">Новый</button>
+                            <button class="close-button add_object_close" aria-label="Close menu" type="button">
+                                 <span aria-hidden="true">x</span>
+                            </button>
+                            <input type="checkbox" id="showobjects" checked="checked"><label for="showobjects">Показывать объекты</label>
+                            <h3 class="subheader">Тип объекта</h3>
+                            <select name="" id="objecttype">
+                                {% for type in objecttype %}
+                                    <option value="{{type.id}}">{{type.Name}}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="objectsize">Размер экземпляров объектов
+                                <input id="objectsize" type="number" value="0.26" step="0.01">    
+                            </label>
+                            <label for="objectcolor">Цвет экземпляров объектов
+                                <input class="jscolor" value="671bff" id="objectcolor">
+                            </label>
+                        </fieldset>
+                    </div>
+                </li>
+                <li class="accordion-item" data-accordion-item>
+                    <a href="#" class="accordion-title">Действия</a>
+                    <div class="accordion-content" data-tab-content>
+                        <button class="button success" data-landscape="{{landscape_id}}" data-type="" id="sendserver">Отправить все объекты указанного типа на сервер</button>
+                        <button class="button" id="showallobjects">Отобразить на сцене все объекты указанного типа</button>
+                        <button class="button alert" id="hideallobjects">Скрыть со сцены все объекты указанного типа</button>
+                    </div>
+                </li>
+            </ul>
         </div>
         <!-- Блок интрументов -->
         <div class="instrument_block large-3 small-4 columns" style="right:-100%;">
@@ -353,6 +390,7 @@
                     </table>
                 </div>
                 <button class="button" id="new">Новая</button>
+                <br>
             </fieldset>
             <label class="lessvert label alert" style="display:none;">Мало вершин</label>
         </div>
@@ -773,6 +811,18 @@
 	//************************
 
     //глобальные переменные
+    var catchchangecabinet = 0;
+
+    var helpers = [];
+
+    var moveenable;
+    var objecttomove;
+
+    var movepointenable;
+    var pointtomove;
+
+    var meshtomove;
+
     var objectForWindow;
     var pointForWindow;
 	var dae;
@@ -1172,7 +1222,26 @@
             diry = dir.y
             arr.push({x: dirx+camx, y: diry+camy, id: landscape_id});
         }
+        //перетаскивание objects, points | начать перетаскивание
+        document.getElementById('webGL-container').addEventListener('mousemove', onMouseMove, false);
+        function onMouseMove(event){
+            event.preventDefault();
+            mouse.x = (event.clientX / renderer.domElement.width) * 2 - 1;
+            mouse.y = - (event.clientY / renderer.domElement.height) * 2 + 1;
+        }
 
+        //перетаскивание objects, points | отпустить перетаскивание
+        document.getElementById('webGL-container').addEventListener('click', onElementMouseDown, false);
+
+        function onElementMouseDown(event){
+            if (moveenable == 1) {
+                moveenable = 0;
+                $('#confirm').foundation('open');
+            } else if (movepointenable == 1){
+                movepointenable = 0;
+                $('#confirmpoint').foundation('open');
+            }
+        }
 
         //add event listener for mouse and calls function when activated
         document.getElementById('webGL-container').addEventListener('dblclick', onDocumentMouseDown, false);
@@ -1190,6 +1259,9 @@
         var intersectsObjects;
         var intersectsCpoints;
         function onDocumentMouseDown(event){
+            //удаляем многоугольник ранее выбранного kabinet 
+            scene.remove(planeKabinet);
+
             var floor = {};
             var building = {};
             var kabinet = {};
@@ -1201,25 +1273,28 @@
             raycaster.setFromCamera(mouse, camera);
 
             var a = [];
+            var b = [];
             //ищем Cpoint
             $.each(PointShowed, function(index){
-                a  = raycaster.intersectObject(PointShowed[index]['mesh']);
+                b  = raycaster.intersectObject(PointShowed[index]['mesh']);
                 pointForWindow = PointShowed[index]['mesh'];
                 if (intersectsCpoints){
                     //скрываем pointwindow
                     $('#cpointwindow').css({display: 'none'});
                 }
-                if (a.length > 0){
+                if (b.length > 0){
                     if (intersectsCpoints){
                       //уменьшаем размер точки ранее выбранной, убираем cpointwindow
                         scale = intersectsCpoints[0].object.scale.x;
-                        intersectsCpoints[0].object.scale.set(scale/2, scale/2, scale/2);
+                        /*intersectsCpoints[0].object.scale.set(scale/2, scale/2, scale/2);*/
                         $('#cpointwindow').css({display: 'none' });
                     }
                     cpoint = PointShowed[index]['mesh'];
-                    intersectsCpoints = a;
+                    intersectsCpoints = b;
+                    Id = PointShowed[index]['id'];
                     scale = intersectsCpoints[0].object.scale.x;
-                    intersectsCpoints[0].object.scale.set(scale*2, scale*2, scale*2);
+                    /*intersectsCpoints[0].object.scale.set(scale*2, scale*2, scale*2);*/
+                    intersectsCpoints[0].Id = Id;
                     //показываем cpointWindow
                     $('#cpointwindow').css({display: 'block' });
                     $('#cpointwindow').css({top: event.clientY, left: event.clientX});
@@ -1236,6 +1311,9 @@
                     }
                     parameters['method'] = 'getpointinfo';
                     getPointInfo(parameters);
+                    //предполагаемая точка калибровки для перемещения
+                    pointtomove = intersectsCpoints[0];
+                    meshtomove = intersectsCpoints[0]['object'];
                     return false;
                 }
             });
@@ -1292,6 +1370,9 @@
                         parameters['obj_type'] = Type_id;
                         parameters['method'] = 'getobjectinfo';
                         getInfo(parameters);
+                        //предполагаемый объект для перемещения
+                        objecttomove = intersectsObjects[0];
+                        meshtomove = intersectsObjects[0]['object'];
                         return false;
                     }
                 });
@@ -1314,7 +1395,7 @@
             }
 
             //если не объект object и не точка калибровки cpoint перехватываем статику
-            if (a.length == 0){
+            if (a.length == 0 && b.length == 0){
                 //ищем building по floor
                 ElemLookUp(colladaObjects['landscape'][0], 'building', building, 0);
 
@@ -1341,8 +1422,8 @@
                     if (intersects[index].length > 0) {
                         dae_elem = intersects[index][0].object.parent.parent.name;
                         lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
-                        lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
-                        lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
+/*                        lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+                        lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});*/
                         /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
                         flr = intersects[index][0].object.parent.parent
                         $('.popup').empty();
@@ -1365,10 +1446,10 @@
             $('.popup a').on('click', function(){
                 dae_elem = $(this).parent().attr('data-id');
                 selectedFloor = dae_elem;
-                lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+                /*lookUpBuilding(colladaObjects['landscape'][0], dae_elem);*/
                 lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
-                lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
-                /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/                
+                /*lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});*/
+                /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
             });
 
             nokabinet = 0;
@@ -1397,8 +1478,8 @@
                         dae_elem = intersectsKab[index][0].object.name;
                         //при выборе кабинета, отображать метки на этаже вне этого кабинета
                         f = intersectsKab[index][0].object.parent.parent.name;
-                        lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
-                        lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+                        /*lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
+                        lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});*/
                         lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
                         /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
                         $('.popup').empty();
@@ -1410,6 +1491,7 @@
                             }
                         });
                     }
+                    hideAllPoints();
                     return false;
                 }
             });
@@ -1419,8 +1501,8 @@
             dae_elem = $(this).parent().attr('data-id');
             //при выборе кабинета, отображать метки на этаже вне этого кабинета
             dae_floor = $(this).parent().attr('data-floor')
-            lookUpBuilding(colladaObjects['landscape'][0], dae_elem);
-            lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});
+            /*lookUpBuilding(colladaObjects['landscape'][0], dae_elem);*/
+            /*lookUpFloor(colladaObjects['landscape'][0], dae_elem, {});*/
             lookUpKabinet(colladaObjects['landscape'][0], dae_elem, {});
             /*cameraToggle(colladaObjects['landscape'][0], dae_elem);*/
         });
@@ -1563,14 +1645,24 @@
                             //показываем скрытые объекты
                             togleVisibleOn(colladaObjects['landscape'][0], building);
                             //отметка привязанных зон в таблице
-                            colored(building);
-                            coloredexclude(building);
+                            if ($('#showobjects')[0].checked==false && $('#showpointstumbler')[0].checked==false){
+                                colored(building);
+                                coloredexclude(building);
+                            }
                             //запрос вершин здания и вершин привязанных к нему объектов
-                            getVertices(building, node.children[i]);
+                            if ($('#showobjects')[0].checked==false && $('#showpointstumbler')[0].checked==false){
+                                getVertices(building, node.children[i]);    
+                            }
                             //показать привязанные к строению объекты
                             if ($('#showobjects')[0].checked==true){
+                                $('#loading').foundation('open');
                                 objecttype = parseInt($('#objecttype option:selected')[0].value);
                                 showObjectType('showlinkedobjectsbuilding', objecttype, building);
+                            }
+                            //показывать привязанные к строению точки калибровки
+                            if ($('#showpointstumbler')[0].checked==true){
+                                $('#loading').foundation('open');
+                                showPoint('showlinkedpointsbuilding', building);
                             }
                             return false;
                         }
@@ -1620,20 +1712,30 @@
                                     togleVisibleOff(colladaObjects['landscape'][0], cur['outrName']);
                                     //устанавливаем прозрачность текущего этажа
                                     opacityFinder(colladaObjects['landscape'][0], cur['curName'], 1);
+                                        if ($('#showobjects')[0].checked==false && $('#showpointstumbler')[0].checked==false){
                                         //отметка привязанных зон в таблице
                                         colored(cur['curName']);
                                         coloredexclude(cur['curName']);
+                                        }
+                                        if ($('#showobjects')[0].checked==false && $('#showpointstumbler')[0].checked==false){
                                         //запрос вершин здания и вершин привязанных к нему объектов
                                         getVertices(cur['curName'], node.children[i]);
                                         return false;
+                                        }
                                 }
-                            })
+                            });
                             max = Math.max.apply(Math, floors);
                             min = Math.min.apply(Math, floors);
                             //показать привязанные к этажу объекты
                             if ($('#showobjects')[0].checked==true){
+                                $('#loading').foundation('open');
                                 objecttype = parseInt($('#objecttype option:selected')[0].value);
                                 showObjectType('showlinkedobjectsfloor', objecttype, dae_elem);
+                            }
+                            //показывать привязанные к этажу точки калибровки
+                            if ($('#showpointstumbler')[0].checked==true){
+                                $('#loading').foundation('open');
+                                showPoint('showlinkedpointsfloor', dae_elem);
                             }
                             return false;
                         }
@@ -1662,21 +1764,35 @@
                             $.each(kabinets, function(value){
                                 if (kabinets[value] != curName){
                                     //уменьшаем прозрачность других кабинетов
-                                    togleVisibleOff(colladaObjects['landscape'][0], value);
+                                    /*togleVisibleOff(colladaObjects['landscape'][0], value);*/
                                 }
                                 //устанавливаем прозрачность текущего кабинета
                                 opacityFinder(colladaObjects['landscape'][0], curName, 0.8);
                                     //отметка привязанных зон в таблице
+                                    if ($('#showobjects')[0].checked==false && $('#showpointstumbler')[0].checked==false){
                                     colored(curName);
                                     coloredexclude(curName);
+                                    }
                                     //запрос вершин здания и вершин привязанных к нему объектов
+                                    if ($('#showobjects')[0].checked==false && $('#showpointstumbler')[0].checked==false){
                                     getVertices(curName, node.children[i]);
                                     return false;
+                                    }
+
                             });
+                            //отобразить плоскость кабинета
+                            getPlaneKabinet(curName, node.children[i]);
+
                             //показать привязанные к кабинету объекты
                             if ($('#showobjects')[0].checked==true){
+                                $('#loading').foundation('open');
                                 objecttype = parseInt($('#objecttype option:selected')[0].value);
                                 showObjectType('showlinkedobjectskabinet', objecttype, dae_elem);
+                            }
+                            //показывать привязанные к этажу точки калибровки
+                            if ($('#showpointstumbler')[0].checked==true){
+                                $('#loading').foundation('open');
+                                showPoint('showlinkedpointskabinet', dae_elem);
                             }
                             return false;
                         }
@@ -1774,7 +1890,29 @@
     stats.domElement.style.top = '0px';     
     $("#webGL-container").append( stats.domElement );       
       }
-    function render(){
+    function render(event){
+        //когда moveenable вычислять координаты мыши на координатной сетке по горизонтали
+        if (moveenable == 1 || movepointenable == 1) {
+            //определение позиции курсора мыши на координатной сетке
+            var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+            vector.unproject(camera);
+            var dir = vector.sub(camera.position).normalize();
+            var distance = - camera.position.z / dir.z;
+            var pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            //перемещение объекта за курсором мыши
+            meshtomove.position.x = pos.x;
+            meshtomove.position.y = pos.y;
+        }
+        //helpers следуют за точками калибровки
+        if (typeof PointShowed != 'undefined'){
+            $.each(PointShowed, function(index){
+                a = toScreenPosition(PointShowed[index]['mesh'], camera);
+                if (PointShowed[index]['CssObject'] != undefined) {
+                    PointShowed[index]['CssObject'].css({top: a.y, left: a.x});
+                }
+            });
+        }
+
         // оbjectwindow следует за объектом
         if (objectForWindow) {
             a = toScreenPosition(objectForWindow, camera);
@@ -1903,9 +2041,9 @@
     function update(){
     }
 
-    function animate(){
+    function animate(event){
         requestAnimationFrame(animate);
-        render();
+        render(event);
         update();
         stats.update();     
         renderer.render(scene, camera);

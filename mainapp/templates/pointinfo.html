@@ -1,28 +1,30 @@
-<div class="large-12 small-12 columns">
+<div class="large-12 small-12 columns" data-closable>
 	<h6>Имя:{{point_name}}</h6>
-	<label for="">Координаты
-		<div class="input-group">
-			<span class="input-group-label">x</span>
-			<input class="input-group-field" type="text" value="{{x}}" disabled="disabled">
-		</div>
-		<div class="input-group">
-			<span class="input-group-label">y</span>
-			<input class="input-group-field" type="text" value="{{y}}" disabled="disabled">
-		</div>
-		<div class="input-group">
-			<span class="input-group-label">z</span>
-			<input class="input-group-field" type="text" value="{{z}}" disabled="disabled">
-		</div>
-	</label>
+	<h6 class="subheader">
+		<span class="alert badge">x</span>
+		<small>{{x|floatformat:2}}</small>
+		<span class="success badge">y</span>
+		<small>{{y|floatformat:2}}</small>
+		<span class="badge">z</span>
+		<small>{{z|floatformat:2}}</small>
+	</h6>
 	<label for="">Node для калибровки
 		<select name="" id="nodeforcalibration">
 			{% for i in nodes %}
-				<option value="{{i.server_id}}" {% if selected_node == i.node_id %}selected="selected"{% endif %}>{{i.name}}</option>
+				<option value="{{i.server_id}}" {% if selected_node == i.node_id %}selected="selected"{% elif selected_node == i.server_id%}selected="selected"{% endif %}>{% if i.name %}{{i.name}}{% else %}{{i.Name}}{% endif%}</option>
 			{% endfor %}
 		</select>
 	</label>
 	{% if error %}
 		<span class="label alert">{{error.text}}</span>
 	{% endif %}
-	<button class="button success" id="makecalibration" data-x="{{x}}" data-y="{{y}}" data-z="{{z}}">Начать калибровку</button>
+	<button class="button success" id="makecalibration" data-x="{{x}}" data-y="{{y}}" data-z="{{z}}" data-point="{{point_id}}">Начать калибровку</button>
+	<br>
+	<a id="pointgorizontal">Откорректировать по горизонтали</a>
+	<button class="close-button" data-close aria-label="Close" type="button">
+		<span aria-hidden="true">&times;</span>
+	</button>
 </div>
+<script>
+	$('#cpointwindow').foundation();
+</script>

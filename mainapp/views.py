@@ -1987,6 +1987,86 @@ def incomezonedefine(request, landscape_id='0000'):
 		string = simplejson.loads(request.body)
 		url = 'http://192.168.1.111:7000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		# запрос вычислить калибровочную функцию для роутера fitanchorccalfunc
+		if string['method'] == 'fitanchorcalfunc':
+			power_of_polynom = string['power_of_polynom']
+			obj_server_id = string['obj_server_id']
+			data = {}
+			data['command'] = 'fitAnchorCalFunc'
+			data['powerOfPolynom'] = power_of_polynom
+			data['id'] = obj_server_id
+			try:
+				r = requests.post(url, data=json(data), headers=headers)
+				json_data = simplejson.loads(r.text)
+				return JsonResponse(json_data)
+			except:
+				return JsonResponse({'error': 'Отсутствует связь с сервером'})
+		# добавить helpers
+		if string['method'] == 'addhelpers':
+			helpers_ids = []
+			for i in string['helpers']:
+				helpers_ids.append(i['id'])
+			args['cpoints'] = Cpoint.objects.filter(id__in=helpers_ids)
+			args['helpers'] = []
+			for i in args['cpoints']:
+				for j in string['helpers']:
+					if i.id == j['id']:
+						args['id'] = i.id
+						args['name'] = i.Name
+						args['screenX'] = j['screenX']
+						args['screenY'] = j['screenY']
+						args['helpers'].append({'id': i.id, \
+							'html': render_to_string('helper.html', args)})
+			return JsonResponse({'string': args['helpers']})
+		# обновить координаты точки калибровки cpdatepointcoords
+		if string['method'] == 'updatepointcoords':
+			point_id = string['point_id']
+			x = string['x']
+			y = string['y']
+			z = string['z']
+			Cpoint.objects.filter(id=point_id).update(xCoord=x, yCoord=y, zCoord=z)
+			return JsonResponse({'string': 'ok'})		
+		# обновить координаты объекта updatecoords
+		if string['method'] == 'updatecoords':
+			obj_id = string['obj_id']
+			x = string['x']
+			y = string['y']
+			z = string['z']
+			Object.objects.filter(id=obj_id).update(xCoord=x, yCoord=y, zCoord=z)
+			return JsonResponse({'string': 'ok'})
+		# данные калибровки объекта
+		if string['method'] == 'getobjectcalibration':
+			obj_server_id = string['obj_server_id']
+			landscape_id = string['landscape_id']
+			# layerId = LoadLandscape.objects.get(landscape_id=landscape_id)
+			data = {}
+			data['command'] = 'listAnchorCalData'
+			# data['layerId'] = layerId.server_id
+			data['id'] = obj_server_id
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			return JsonResponse(json_data)
+		# удалить данные калибровки объекта
+		if string['method'] == 'deleteobjectcalibration':
+			obj_server_id = string['obj_server_id']
+			landscape_id = string['landscape_id']
+			# layerId = LoadLandscape.objects.get(landscape_id=landscape_id)
+			data = {}
+			data['command'] = 'deleteCalDataForAnchor'
+			# data['layerId'] = layerId.server_id
+			data['id'] = obj_server_id
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			return JsonResponse(json_data)
+		# параметры объекта
+		if string['method'] == 'getobjectparamters':
+			obj_id = string['obj_id']
+			args['landscape_id'] = landscape_id
+			args['o'] = Object.objects.get(id=obj_id)
+			args['objectobjecttypes'] = ObjectObjectType.objects.all().values('ObjectType_id', \
+		 'Object_id', 'ObjectType__Name')
+ 			args['objectparameters'] = render_to_string('objectparameters.html', args)
+ 			return JsonResponse({'string': args['objectparameters']})
 		# при изменении запроса отобразить его параметры
 		if string['method'] == 'querychange':
 			args['parameters'] = []
@@ -2011,18 +2091,23 @@ def incomezonedefine(request, landscape_id='0000'):
 			args['z'] = float(string['z'].replace(',', '.'))
 			if string['enableCalibration'] == 'true':
 				args['enableCalibration'] = True
+				PointBeenCalibrated.objects.filter(Cpoint_id=string['point_id']).delete()
+				PointBeenCalibrated.objects.create(Cpoint_id=string['point_id'], \
+				 Date=datetime.datetime.now())
 			else:
 				args['enableCalibration'] = False
 			data = {}
 			data['command'] = 'setNodeForCalibration'
 			data['node'] = {'id': args['node_server_id'], 'enableCalibration': args['enableCalibration'], \
-			'x': args['x'], 'y': args['y'], 'z': args['z']}
+			'x': args['y'], 'y': args['x'], 'z': args['z']}
 			r = requests.post(url, data=json(data), headers=headers)
 			json_data = simplejson.loads(r.text)
 			return JsonResponse({'string': json_data})
 		#показать информацию cpoint
 		if string['method'] == 'getpointinfo':
 			args['nodes'] = string['nodes']
+			if len(args['nodes']) == 0:
+				args['nodes'] = Node.objects.all().values('Name', 'id', 'Description', 'server_id', 'tagnode__Tag_id')
 			args['point_id'] = string['point_id']
 			args['x'] = string['x']
 			args['y'] = string['y']
@@ -2042,9 +2127,9 @@ def incomezonedefine(request, landscape_id='0000'):
 			for i in keyvalues:
 				if i['key'] == 'command':
 					data[i['key']] = Query.objects.get(id=int(i['value'])).Name
-				if i['key'] == 'layerId':
+				elif i['key'] == 'layerId':
 					data[i['key']] = LoadLandscape.objects.get(server_id=int(i['value'])).server_id
-				if i['key'] == 'id':
+				else:
 					data[i['key']] = i['value']
 			try:
 				r = requests.post(url, data=json(data), headers=headers)
@@ -2052,6 +2137,446 @@ def incomezonedefine(request, landscape_id='0000'):
 				return JsonResponse(json_data)
 			except:
 				return JsonResponse({'error': 'Нет связи с сервером'})
+		# показать все cpoint точки калибровки
+		if string['method'] == 'showallpoints':
+			landscape_id = string['landscape_id']
+			meshes = []
+			cpoints = Cpoint.objects.filter(LoadLandscape_id=landscape_id).values('id', 'Name', 'xCoord', \
+				'yCoord', 'zCoord', 'pointbeencalibrated__Date')
+			for i in cpoints:
+				meshes.append({'id': i['id'], 'Name': i['Name'], 'xCoord': i['xCoord'], \
+				 'yCoord': i['yCoord'], 'zCoord': i['zCoord'], \
+				  'pointbeencalibrated__Date': i['pointbeencalibrated__Date']})
+			return JsonResponse({'string': meshes})
+		# показать только привязанные точки building
+		if string['method'] == 'showlinkedpointsbuilding':
+			args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id).values( \
+				'id', 'dae_BuildingName')
+			args['pointbuilding'] = PointBuilding.objects.filter( \
+				Building__LoadLandscape_id=landscape_id).values('Building_id', \
+				 'Cpoint_id', 'Building__dae_BuildingName')
+			args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id).values( \
+				'id', 'Building_id')
+			args['pointfloor'] = PointFloor.objects.filter( \
+				Floor__LoadLandscape_id=landscape_id).values('Floor_id', 'Cpoint_id', \
+	 'Floor__dae_FloorName', 'Floor__Building_id')
+			args['pointkabinet'] = PointKabinet.objects.filter( \
+				Kabinet__LoadLandscape_id=landscape_id).values('Kabinet_id', 'Cpoint_id', \
+		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
+			landscape_id = string['landscape_id']
+			static_name = string['static_name']
+			meshes = []
+			for b in args['buildings']:
+				if b['dae_BuildingName'] == static_name:
+					bid = b['id']
+					break
+			points = Cpoint.objects.filter(\
+				LoadLandscape_id=landscape_id).values('id', 'Name', 'xCoord', 'yCoord', 'zCoord', \
+				 'pointbeencalibrated__Date')
+			for o in points:
+				for b in args['pointbuilding']:
+					if o['id'] == b['Cpoint_id'] and b['Building__dae_BuildingName'] == static_name:
+						meshes.append(o)
+						break
+				fid = []
+				for f in args['floors']:
+					if f['Building_id'] == bid:
+						fid.append(f['id'])
+				for f in args['pointfloor']:
+					if o['id'] == f['Cpoint_id'] and f['Floor__Building_id'] == bid:
+						fid.append(f['Floor_id'])
+						meshes.append(o)
+						break
+				for k in args['pointkabinet']:
+					if o['id'] == k['Cpoint_id']:
+						for f in fid:
+							if k['Kabinet__Floor_id'] == f:
+								meshes.append(o)
+								break
+			return JsonResponse({'string':meshes})
+		# показывать только привязанные точки floor
+		if string['method'] == 'showlinkedpointsfloor':
+			args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id).values( \
+				'id', 'dae_FloorName')
+			args['pointfloor'] = PointFloor.objects.filter( \
+				Floor__LoadLandscape_id=landscape_id).values('Floor_id', 'Cpoint_id', \
+	 'Floor__dae_FloorName', 'Floor__Building_id')
+			args['pointkabinet'] = PointKabinet.objects.filter( \
+				Kabinet__LoadLandscape_id=landscape_id).values('Kabinet_id', 'Cpoint_id', \
+		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
+			landscape_id = string['landscape_id']
+			static_name = string['static_name']
+			meshes = []
+			points = Cpoint.objects.filter(\
+				LoadLandscape_id=landscape_id).values('id', 'Name', 'xCoord', 'yCoord', 'zCoord', \
+				'pointbeencalibrated__Date')
+			for f in args['floors']:
+				if f['dae_FloorName'] == static_name:
+					fid = f['id']
+			for o in points:
+				for f in args['pointfloor']:
+					if o['id'] == f['Cpoint_id'] and f['Floor__dae_FloorName'] == static_name:
+						meshes.append(o)
+						break
+				for k in args['pointkabinet']:
+					if o['id'] == k['Cpoint_id']:
+						if k['Kabinet__Floor_id'] == fid:
+							meshes.append(o)
+							break
+			return JsonResponse({'string': meshes})
+		# показывать только привязанные точки kabinet
+		if string['method'] == 'showlinkedpointskabinet':
+			static_name = string['static_name']
+			args['pointkabinet'] = PointKabinet.objects.filter( \
+				Kabinet__LoadLandscape_id=landscape_id, \
+				 Kabinet__dae_Kabinet_n_OuterName=static_name).values('Kabinet_id', 'Cpoint_id', \
+		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
+			landscape_id = string['landscape_id']
+			meshes = []
+			points = Cpoint.objects.filter(\
+				LoadLandscape_id=landscape_id).values('id', 'Name', 'xCoord', 'yCoord', 'zCoord', \
+				'pointbeencalibrated__Date')
+			for o in points:
+				for k in args['pointkabinet']:
+					if o['id'] == k['Cpoint_id']:
+						meshes.append(o)
+						break
+			return JsonResponse({'string': meshes})
+		# показать только привязанные объекты building
+		if string['method'] == 'showlinkedobjectsbuilding':
+			# args['coloredobjects'] = ObjectObjectType.objects.filter(ObjectType_id=string['objecttype'])
+			args['objectbuilding'] = ObjectBuilding.objects.filter( \
+		Building__LoadLandscape_id=landscape_id).values('Building_id', \
+				 'Object_id', 'Building__dae_BuildingName')
+			args['objectfloor'] = ObjectFloor.objects.filter( \
+				Floor__LoadLandscape_id=landscape_id).values('Floor_id', 'Object_id', \
+			 'Floor__dae_FloorName', 'Floor__Building_id')
+			args['objectkabinet'] = ObjectKabinet.objects.filter( \
+				Kabinet__LoadLandscape_id=landscape_id).values('Kabinet_id', 'Object_id', \
+				 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
+			args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id).values( \
+				'dae_BuildingName', 'id')
+			args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id).values( \
+				'Building_id', 'id')
+			landscape_id = string['landscape_id']
+			objecttype_id = string['objecttype_id']
+			static_name = string['static_name']
+			meshes = []
+			for b in args['buildings']:
+				if b['dae_BuildingName'] == static_name:
+					bid = b['id']
+					break
+			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
+				LoadLandscape_id=landscape_id).values('id', \
+			 'Name', 'xCoord', 'yCoord', 'zCoord', \
+			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
+			   'server_radius', 'server_minNumPoints')
+			for o in obj:
+				for b in args['objectbuilding']:
+					if o['id'] == b['Object_id'] and b['Building__dae_BuildingName'] == static_name:
+						meshes.append(o)
+						break
+				fid = []
+				for f in args['floors']:
+					if f['Building_id'] == bid:
+						fid.append(f['id'])
+				for f in args['objectfloor']:
+					if o['id'] == f['Object_id'] and f['Floor__Building_id'] == bid:
+						fid.append(f['Floor_id'])
+						meshes.append(o)
+						break
+				for k in args['objectkabinet']:
+					if o['id'] == k['Object_id']:
+						for f in fid:
+							if k['Kabinet__Floor_id'] == f:
+								meshes.append(o)
+								break
+			return JsonResponse({'string':meshes})
+		# показывать только привязанные объекты floor
+		if string['method'] == 'showlinkedobjectsfloor':
+			args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id).values( \
+				'id', 'dae_FloorName')
+			args['objectfloor'] = ObjectFloor.objects.filter( \
+				Floor__LoadLandscape_id=landscape_id).values('Floor_id', 'Object_id', \
+			 'Floor__dae_FloorName', 'Floor__Building_id')
+			args['objectkabinet'] = ObjectKabinet.objects.filter( \
+				Kabinet__LoadLandscape_id=landscape_id).values('Kabinet_id', 'Object_id', \
+				 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
+			landscape_id = string['landscape_id']
+			objecttype_id = string['objecttype_id']
+			static_name = string['static_name']
+			meshes = []
+			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
+				LoadLandscape_id=landscape_id).values('id', \
+			 'Name', 'xCoord', 'yCoord', 'zCoord', \
+			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
+			   'server_radius', 'server_minNumPoints')
+			for f in args['floors']:
+				if f['dae_FloorName'] == static_name:
+					fid = f['id']
+			for o in obj:
+				for f in args['objectfloor']:
+					if o['id'] == f['Object_id'] and f['Floor__dae_FloorName'] == static_name:
+						meshes.append(o)
+						break
+				for k in args['objectkabinet']:
+					if o['id'] == k['Object_id']:
+						if k['Kabinet__Floor_id'] == fid:
+							meshes.append(o)
+							break
+			return JsonResponse({'string': meshes})
+		# показывать только привязанные объекты kabinet
+		if string['method'] == 'showlinkedobjectskabinet':
+			args['objectkabinet'] = ObjectKabinet.objects.filter( \
+				Kabinet__LoadLandscape_id=landscape_id).values('Kabinet_id', 'Object_id', \
+				 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
+			landscape_id = string['landscape_id']
+			objecttype_id = string['objecttype_id']
+			static_name = string['static_name']
+			meshes = []
+			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
+				LoadLandscape_id=landscape_id).values('id', \
+			 'Name', 'xCoord', 'yCoord', 'zCoord', \
+			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
+			   'server_radius', 'server_minNumPoints')
+			for o in obj:
+				for k in args['objectkabinet']:
+					if o['id'] == k['Object_id'] and k['Kabinet__dae_Kabinet_n_OuterName'] == static_name:
+						meshes.append(o)
+						break
+			return JsonResponse({'string': meshes})
+		# формируем словарь с вершинами объекта
+		if string['method'] == 'objvertices':
+			obj = {}
+			dae_name = string['dae_name']
+			obj['vertices'] = []
+			if string['type'] == 'building':
+				obj['type'] = 'building'
+				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
+				obj['minz'] = b.minz
+				obj['maxz'] = b.maxz
+				verticesbuilding = VerticesBuilding.objects.filter(Building_id=b.id).values('x', 'y')
+				for v in verticesbuilding:
+					obj['vertices'].append([v['x'], v['y']])
+				# ищем зоны входа для building
+				zones = BuildingIncomeZone.objects.filter(Building_id=b.id).values('IncomeZone_id')
+				obj['izone'] = []
+				for z in zones:
+					zoneid = z['IncomeZone_id']
+					# вершины
+					vertices = VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['izone'].append({'id': z['IncomeZone_id'], 'vertices': vToSend, \
+					 'faces': getFacesFromVert(vToSend)})
+				# ищем зоны исключения для building
+				zones = BuildingExcludeZone.objects.filter(Building_id=b.id).values('ExcludeZone_id')
+				obj['ezone'] = []
+				for z in zones:
+					zoneid = z['ExcludeZone_id']
+					# вершины
+					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['ezone'].append({'id': z['ExcludeZone_id'], 'vertices': vToSend, \
+					 'faces': getFacesFromVert(vToSend)})
+				# ищем зоны пользователя для building
+				zones = BuildingUserZone.objects.filter(Building_id=b.id).values('UserZone_id')
+				obj['uzone'] = []
+				for z in zones:
+					zoneid = z['UserZone_id']
+					# вершины
+					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['uzone'].append({'id': z['UserZone_id'], 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
+			elif string['type'] == 'floor':
+				obj['type'] = 'floor'
+				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
+				obj['minz'] = f.minz
+				obj['maxz'] = f.maxz
+				verticesfloor = VerticesFloor.objects.filter(Floor_id=f.id).values('x', 'y')
+				for v in verticesfloor:
+					obj['vertices'].append([v['x'], v['y']])
+				# ищем зоны входа для floor
+				zones = FloorIncomeZone.objects.filter(Floor_id=f.id).values('IncomeZone_id')
+				obj['izone'] = []
+				for z in zones:
+					zoneid = z['IncomeZone_id']
+					# вершины
+					vertices = VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['izone'].append({'id': z['IncomeZone_id'], 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны исключения для floor
+				zones = FloorExcludeZone.objects.filter(Floor_id=f.id).values('ExcludeZone_id')
+				obj['ezone'] = []
+				for z in zones:
+					zoneid = z.ExcludeZone_id
+					# вершины
+					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны пользователя для floor
+				zones = FloorUserZone.objects.filter(Floor_id=f.id).values('UserZone_id')
+				obj['uzone'] = []
+				for z in zones:
+					zoneid = z['UserZone_id']
+					# вершины
+					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
+					vToSend = []
+					for v in vertices:
+						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
+					obj['uzone'].append({'id': z['UserZone_id'], 'vertices': vToSend, \
+						 'faces': getFacesFromVert(vToSend)})
+			elif string['type'] == 'kabinet':
+				obj['type'] = 'kabinet'
+				verticeskabinet = VerticesKabinet_n_Outer.objects.filter( \
+					Kabinet_n_Outer__dae_Kabinet_n_OuterName=dae_name, \
+					Kabinet_n_Outer__LoadLandscape_id=landscape_id).values( \
+					'x', 'y', 'Kabinet_n_Outer__minz', 'Kabinet_n_Outer__maxz', 'Kabinet_n_Outer__id')
+				obj['minz'] = verticeskabinet[0]['Kabinet_n_Outer__minz']
+				obj['maxz'] = verticeskabinet[0]['Kabinet_n_Outer__maxz']
+				for v in verticeskabinet:
+					obj['vertices'].append([v['x'], v['y']])
+				# ищем зоны входа для kabinet
+				incomezones = []
+				zones = KabinetIncomeZone.objects.filter( \
+					Kabinet_id=verticeskabinet[0]['Kabinet_n_Outer__id']).values('IncomeZone_id')
+				for z in zones:
+					incomezones.append(z['IncomeZone_id'])
+				# вершины
+				vertices = VerticesIncomeZone.objects.filter(IncomeZone_id__in=incomezones).values( \
+	'xCoord', 'yCoord', 'zmin', 'zmax', 'IncomeZone_id')
+				obj['izone'] = []
+				for z in incomezones:
+					vToSend = []
+					for v in vertices:
+						if v['IncomeZone_id'] == z:
+							vToSend.append({'x': v['xCoord'], 'y': v['yCoord'], 'zmin': v['zmin'], \
+							 'zmax': v['zmax']})
+					obj['izone'].append({'id': z, 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны исключения для kabinet
+				excludezones = []
+				zones = KabinetExcludeZone.objects.filter( \
+					Kabinet_id=verticeskabinet[0]['Kabinet_n_Outer__id']).values('ExcludeZone_id')
+				for z in zones:
+					excludezones.append(z['ExcludeZone_id'])
+				# вершины
+				vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id__in=excludezones).values( \
+					'xCoord', 'yCoord', 'zmin', 'zmax', 'ExcludeZone_id')
+				obj['ezone'] = []
+				for z in excludezones:
+					vToSend = []
+					for v in vertices:
+						if v['ExcludeZone_id'] == z:
+							vToSend.append({'x': v['xCoord'], 'y': v['yCoord'], 'zmin': v['zmin'], \
+							 'zmax': v['zmax']})
+					obj['ezone'].append({'id': z, 'vertices': vToSend, \
+						'faces': getFacesFromVert(vToSend)})
+				# ищем зоны пользователя для kabinet
+				uzones = []
+				zones = KabinetUserZone.objects.filter( \
+					Kabinet_id=verticeskabinet[0]['Kabinet_n_Outer__id']).values('UserZone_id')
+				for z in zones:
+					uzones.append(z['UserZone_id'])
+				# вершины
+					vertices = VerticesUserZone.objects.filter(UserZone_id__in=uzones).values( \
+						'xCoord', 'yCoord', 'zmin', 'zmax', 'UserZone_id')
+				obj['uzone'] = []
+				for z in uzones:
+					vToSend = []
+					for v in vertices:
+						if v['UserZone_id'] == z:
+							vToSend.append({'x': v['xCoord'], 'y': v['yCoord'], 'zmin': v['zmin'], \
+							 'zmax': v['zmax']})
+					obj['uzone'].append({'id': z, 'vertices': vToSend, \
+						 'faces': getFacesFromVert(vToSend)})
+			return JsonResponse(obj)
+		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице incomezone
+		if string['method'] == 'colored':
+			dae_name = string['dae_name']
+			if string['type'] == 'building':
+				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
+				args['colored'] = BuildingIncomeZone.objects.filter(Building_id=b.id)
+			elif string['type'] == 'floor':
+				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
+				args['colored'] = FloorIncomeZone.objects.filter(Floor_id=f.id)
+			elif string['type'] == 'kabinet':
+				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
+				 dae_Kabinet_n_OuterName=dae_name)
+				args['colored'] = KabinetIncomeZone.objects.filter(Kabinet_id=k.id)
+			return render(request, 'incomezonetable.html', args)
+		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице excludezone
+		if string['method'] == 'colored_exclude':
+			dae_name = string['dae_name']
+			if string['type'] == 'building':
+				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
+				args['colored'] = BuildingExcludeZone.objects.filter(Building_id=b.id)
+			elif string['type'] == 'floor':
+				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
+				args['colored'] = FloorExcludeZone.objects.filter(Floor_id=f.id)
+			elif string['type'] == 'kabinet':
+				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
+				 dae_Kabinet_n_OuterName=dae_name)
+				args['colored'] = KabinetExcludeZone.objects.filter(Kabinet_id=k.id)
+			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
+			return render(request, 'excludezonetable.html', args)
+		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице userzone
+		if string['method'] == 'colored_uzone':
+			ugrzoneid = string['ugrzoneid']
+			args['colored'] = GroupUserZoneUserZone.objects.filter(GroupUserZone_id= \
+				ugrzoneid).values('UserZone__id')
+			mesh = []
+			for i in args['colored']:
+				mesh.append({'id': i['UserZone__id'], 'vertices': [], 'izones': [], 'ezones': []})
+			# записываем вершины для отображения зон группы
+			for i in VerticesUserZone.objects.all():
+				for j in mesh:
+					if i.UserZone_id == j['id']:
+						j['vertices'].append({'x': i.xCoord, 'y': i.yCoord, 'zmin': i.zmin, \
+						 'zmax': i.zmax})
+			# записывем поверхности для отображения зон групп
+			for i in mesh:
+				i['faces'] = getFacesFromVert(i['vertices'])
+			# записываем зоны входа
+			for j in mesh:
+				for i in args['izoneuzone']:
+					if i.UserZone_id == j['id']:
+						j['izones'].append({'id': i.IncomeZone_id, \
+						 'vertices': [], 'faces': []})
+			 	for iz in j['izones']:
+			 		for v in args['vzones']:
+			 			if iz['id'] == v.IncomeZone_id:
+			 				iz['vertices'].append({'x': v.xCoord, 'y': v.yCoord, \
+			 				 'zmin': v.zmin, 'zmax': v.zmax})
+	 				iz['faces'] = getFacesFromVert(iz['vertices'])
+			# записываем зоны исключения
+			for j in mesh:
+				for i in args['ezoneuzone']:
+					if i.UserZone_id == j['id']:
+						j['ezones'].append({'id': i.ExcludeZone_id, \
+							'vertices': [], 'faces': []})
+				for ez in j['ezones']:
+					for v in args['evzones']:
+						if ez['id'] == v.ExcludeZone_id:
+							ez['vertices'].append({'x': v.xCoord, 'y': v.yCoord, \
+								'zmin': v.zmin, 'zmax': v.zmax})
+					ez['faces'] = getFacesFromVert(ez['vertices'])
+			args['data'] = {}
+			args['data']['mesh'] = mesh
+			args['data']['userzonetable'] = render_to_string('userzonetable.html', args)
+			return JsonResponse(args['data'])
 	args['unique'] = unique
 	args['sceneop'] = LoadLandscape.objects.get(landscape_id=landscape_id)
 	args['link'] = LoadLandscape.objects.get(landscape_id=landscape_id).landscape_source
@@ -2094,11 +2619,14 @@ def incomezonedefine(request, landscape_id='0000'):
 	args['objects'] = Object.objects.all()
 	args['objectobjecttypes'] = ObjectObjectType.objects.all().values('ObjectType_id', \
 		 'Object_id', 'ObjectType__Name')
-	args['objectbuilding'] = ObjectBuilding.objects.all().values('Building_id', \
+	args['objectbuilding'] = ObjectBuilding.objects.filter( \
+		Building__LoadLandscape_id=landscape_id).values('Building_id', \
 				 'Object_id', 'Building__dae_BuildingName')
-	args['objectfloor'] = ObjectFloor.objects.all().values('Floor_id', 'Object_id', \
+	args['objectfloor'] = ObjectFloor.objects.filter( \
+		Floor__LoadLandscape_id=landscape_id).values('Floor_id', 'Object_id', \
 	 'Floor__dae_FloorName', 'Floor__Building_id')
-	args['objectkabinet'] = ObjectKabinet.objects.all().values('Kabinet_id', 'Object_id', \
+	args['objectkabinet'] = ObjectKabinet.objects.filter( \
+		Kabinet__LoadLandscape_id=landscape_id).values('Kabinet_id', 'Object_id', \
 		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
 	args['objecttable'] = render_to_string('objecttable.html', args)
 	args['points'] = Cpoint.objects.filter(LoadLandscape_id=landscape_id)
@@ -2407,84 +2935,6 @@ def incomezonedefine(request, landscape_id='0000'):
 			for i in objType:
 				meshes.append(i)
 			return JsonResponse({'string':meshes})
-		# показать только привязанные объекты building
-		if string['method'] == 'showlinkedobjectsbuilding':
-			landscape_id = string['landscape_id']
-			objecttype_id = string['objecttype_id']
-			static_name = string['static_name']
-			meshes = []
-			for b in args['buildings']:
-				if b.dae_BuildingName == static_name:
-					bid = b.id
-					break
-			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
-				LoadLandscape_id=landscape_id).values('id', \
-			 'Name', 'xCoord', 'yCoord', 'zCoord', \
-			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
-			   'server_radius', 'server_minNumPoints')
-			for o in obj:
-				for b in args['objectbuilding']:
-					if o['id'] == b['Object_id'] and b['Building__dae_BuildingName'] == static_name:
-						meshes.append(o)
-						break
-				fid = []
-				for f in args['floors']:
-					if f.Building_id == bid:
-						fid.append(f.id)
-				for f in args['objectfloor']:
-					if o['id'] == f['Object_id'] and f['Floor__Building_id'] == bid:
-						fid.append(f['Floor_id'])
-						meshes.append(o)
-						break
-				for k in args['objectkabinet']:
-					if o['id'] == k['Object_id']:
-						for f in fid:
-							if k['Kabinet__Floor_id'] == f:
-								meshes.append(o)
-								break
-			return JsonResponse({'string':meshes})
-		# показывать только привязанные объекты floor
-		if string['method'] == 'showlinkedobjectsfloor':
-			landscape_id = string['landscape_id']
-			objecttype_id = string['objecttype_id']
-			static_name = string['static_name']
-			meshes = []
-			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
-				LoadLandscape_id=landscape_id).values('id', \
-			 'Name', 'xCoord', 'yCoord', 'zCoord', \
-			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
-			   'server_radius', 'server_minNumPoints')
-			for f in args['floors']:
-				if f.dae_FloorName == static_name:
-					fid = f.id
-			for o in obj:
-				for f in args['objectfloor']:
-					if o['id'] == f['Object_id'] and f['Floor__dae_FloorName'] == static_name:
-						meshes.append(o)
-						break
-				for k in args['objectkabinet']:
-					if o['id'] == k['Object_id']:
-						if k['Kabinet__Floor_id'] == fid:
-							meshes.append(o)
-							break
-			return JsonResponse({'string': meshes})
-		# показывать только привязанные объекты kabinet
-		if string['method'] == 'showlinkedobjectskabinet':
-			landscape_id = string['landscape_id']
-			objecttype_id = string['objecttype_id']
-			static_name = string['static_name']
-			meshes = []
-			obj = Object.objects.filter(objectobjecttype__ObjectType_id=objecttype_id, \
-				LoadLandscape_id=landscape_id).values('id', \
-			 'Name', 'xCoord', 'yCoord', 'zCoord', \
-			  'objectobjecttype__ObjectType_id', 'server_id', 'server_inUse', 'server_type', \
-			   'server_radius', 'server_minNumPoints')
-			for o in obj:
-				for k in args['objectkabinet']:
-					if o['id'] == k['Object_id'] and k['Kabinet__dae_Kabinet_n_OuterName'] == static_name:
-						meshes.append(o)
-						break
-			return JsonResponse({'string': meshes})
 		#изменить координаты
 		if string['method'] == 'changecoords':
 			Object.objects.filter(id=string['obj']).update(xCoord=string['xCoord'], \
@@ -2912,80 +3362,6 @@ def incomezonedefine(request, landscape_id='0000'):
 			args['uzones'] = UserZone.objects.filter(LoadLandscape_id=landscape_id, \
 				User_id=auth.get_user(request).id)
 			return render(request, 'userzonetable.html', args)
-		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице incomezone
-		if string['method'] == 'colored':
-			dae_name = string['dae_name']
-			if string['type'] == 'building':
-				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
-				args['colored'] = BuildingIncomeZone.objects.filter(Building_id=b.id)
-			elif string['type'] == 'floor':
-				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
-				args['colored'] = FloorIncomeZone.objects.filter(Floor_id=f.id)
-			elif string['type'] == 'kabinet':
-				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
-				 dae_Kabinet_n_OuterName=dae_name)
-				args['colored'] = KabinetIncomeZone.objects.filter(Kabinet_id=k.id)
-			return render(request, 'incomezonetable.html', args)
-		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице excludezone
-		if string['method'] == 'colored_exclude':
-			dae_name = string['dae_name']
-			if string['type'] == 'building':
-				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
-				args['colored'] = BuildingExcludeZone.objects.filter(Building_id=b.id)
-			elif string['type'] == 'floor':
-				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
-				args['colored'] = FloorExcludeZone.objects.filter(Floor_id=f.id)
-			elif string['type'] == 'kabinet':
-				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
-				 dae_Kabinet_n_OuterName=dae_name)
-				args['colored'] = KabinetExcludeZone.objects.filter(Kabinet_id=k.id)
-			args['ezones'] = ExcludeZone.objects.filter(LoadLandscape_id=landscape_id)
-			return render(request, 'excludezonetable.html', args)
-		# возвращаем зоны, привязанные к объекту, чтобы их окрасить в таблице userzone
-		if string['method'] == 'colored_uzone':
-			ugrzoneid = string['ugrzoneid']
-			args['colored'] = GroupUserZoneUserZone.objects.filter(GroupUserZone_id= \
-				ugrzoneid).values('UserZone__id')
-			mesh = []
-			for i in args['colored']:
-				mesh.append({'id': i['UserZone__id'], 'vertices': [], 'izones': [], 'ezones': []})
-			# записываем вершины для отображения зон группы
-			for i in VerticesUserZone.objects.all():
-				for j in mesh:
-					if i.UserZone_id == j['id']:
-						j['vertices'].append({'x': i.xCoord, 'y': i.yCoord, 'zmin': i.zmin, \
-						 'zmax': i.zmax})
-			# записывем поверхности для отображения зон групп
-			for i in mesh:
-				i['faces'] = getFacesFromVert(i['vertices'])
-			# записываем зоны входа
-			for j in mesh:
-				for i in args['izoneuzone']:
-					if i.UserZone_id == j['id']:
-						j['izones'].append({'id': i.IncomeZone_id, \
-						 'vertices': [], 'faces': []})
-			 	for iz in j['izones']:
-			 		for v in args['vzones']:
-			 			if iz['id'] == v.IncomeZone_id:
-			 				iz['vertices'].append({'x': v.xCoord, 'y': v.yCoord, \
-			 				 'zmin': v.zmin, 'zmax': v.zmax})
-	 				iz['faces'] = getFacesFromVert(iz['vertices'])
-			# записываем зоны исключения
-			for j in mesh:
-				for i in args['ezoneuzone']:
-					if i.UserZone_id == j['id']:
-						j['ezones'].append({'id': i.ExcludeZone_id, \
-							'vertices': [], 'faces': []})
-				for ez in j['ezones']:
-					for v in args['evzones']:
-						if ez['id'] == v.ExcludeZone_id:
-							ez['vertices'].append({'x': v.xCoord, 'y': v.yCoord, \
-								'zmin': v.zmin, 'zmax': v.zmax})
-					ez['faces'] = getFacesFromVert(ez['vertices'])
-			args['data'] = {}
-			args['data']['mesh'] = mesh
-			args['data']['userzonetable'] = render_to_string('userzonetable.html', args)
-			return JsonResponse(args['data'])
 		# показываем запрашиваемую зону incomezone
 		if string['method'] == 'show':
 			obj = {}
@@ -3057,147 +3433,7 @@ def incomezonedefine(request, landscape_id='0000'):
 			uid = string['uid']
 			GroupUserZone.objects.filter(id=uid, LoadLandscape_id=string['landscape_id']).delete()
 			return render(request, 'userzonegrouptable.html', args)
-		# формируем словарь с вершинами объекта
-		if string['method'] == 'objvertices':
-			obj = {}
-			dae_name = string['dae_name']
-			obj['vertices'] = []
-			if string['type'] == 'building':
-				obj['type'] = 'building'
-				b = Building.objects.get(LoadLandscape_id=landscape_id, dae_BuildingName=dae_name)
-				obj['minz'] = b.minz
-				obj['maxz'] = b.maxz
-				verticesbuilding = VerticesBuilding.objects.filter(Building_id=b.id)
-				for v in verticesbuilding:
-					obj['vertices'].append([v.x, v.y])
-				# ищем зоны входа для building
-				zones = BuildingIncomeZone.objects.filter(Building_id=b.id)
-				obj['izone'] = []
-				for z in zones:
-					zoneid = z.IncomeZone_id
-					# вершины
-					vertices = VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['izone'].append({'id': z.IncomeZone_id, 'vertices': vToSend, \
-					 'faces': getFacesFromVert(vToSend)})
-				# ищем зоны исключения для building
-				zones = BuildingExcludeZone.objects.filter(Building_id=b.id)
-				obj['ezone'] = []
-				for z in zones:
-					zoneid = z.ExcludeZone_id
-					# вершины
-					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
-					 'faces': getFacesFromVert(vToSend)})
-				# ищем зоны пользователя для building
-				zones = BuildingUserZone.objects.filter(Building_id=b.id)
-				obj['uzone'] = []
-				for z in zones:
-					zoneid = z.UserZone_id
-					# вершины
-					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['uzone'].append({'id': z.UserZone_id, 'vertices': vToSend, \
-						'faces': getFacesFromVert(vToSend)})
-			elif string['type'] == 'floor':
-				obj['type'] = 'floor'
-				f = Floor.objects.get(LoadLandscape_id=landscape_id, dae_FloorName=dae_name)
-				obj['minz'] = f.minz
-				obj['maxz'] = f.maxz
-				verticesfloor = VerticesFloor.objects.filter(Floor_id=f.id)
-				for v in verticesfloor:
-					obj['vertices'].append([v.x, v.y])
-				# ищем зоны входа для floor
-				zones = FloorIncomeZone.objects.filter(Floor_id=f.id)
-				obj['izone'] = []
-				for z in zones:
-					zoneid = z.IncomeZone_id
-					# вершины
-					vertices = VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['izone'].append({'id': z.IncomeZone_id, 'vertices': vToSend, \
-						'faces': getFacesFromVert(vToSend)})
-				# ищем зоны исключения для floor
-				zones = FloorExcludeZone.objects.filter(Floor_id=f.id)
-				obj['ezone'] = []
-				for z in zones:
-					zoneid = z.ExcludeZone_id
-					# вершины
-					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
-						'faces': getFacesFromVert(vToSend)})
-				# ищем зоны пользователя для floor
-				zones = FloorUserZone.objects.filter(Floor_id=f.id)
-				obj['uzone'] = []
-				for z in zones:
-					zoneid = z.UserZone_id
-					# вершины
-					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['uzone'].append({'id': z.UserZone_id, 'vertices': vToSend, \
-						 'faces': getFacesFromVert(vToSend)})
-			elif string['type'] == 'kabinet':
-				obj['type'] = 'kabinet'
-				k = Kabinet_n_Outer.objects.get(LoadLandscape_id=landscape_id, \
-				 dae_Kabinet_n_OuterName=dae_name)
-				obj['minz'] = k.minz
-				obj['maxz'] = k.maxz
-				verticeskabinet = VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=k.id)
-				for v in verticeskabinet:
-					obj['vertices'].append([v.x, v.y])
-				# ищем зоны входа для kabinet
-				zones = KabinetIncomeZone.objects.filter(Kabinet_id=k.id)
-				obj['izone'] = []
-				for z in zones:
-					zoneid = z.IncomeZone_id
-					# вершины
-					vertices = VerticesIncomeZone.objects.filter(IncomeZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['izone'].append({'id': z.IncomeZone_id, 'vertices': vToSend, \
-						'faces': getFacesFromVert(vToSend)})
-				# ищем зоны исключения для kabinet
-				zones = KabinetExcludeZone.objects.filter(Kabinet_id=k.id)
-				obj['ezone'] = []
-				for z in zones:
-					zoneid = z.ExcludeZone_id
-					# вершины
-					vertices = VerticesExcludeZone.objects.filter(ExcludeZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['ezone'].append({'id': z.ExcludeZone_id, 'vertices': vToSend, \
-						'faces': getFacesFromVert(vToSend)})
-				# ищем зоны пользователя для kabinet
-				zones = KabinetUserZone.objects.filter(Kabinet_id=k.id)
-				obj['uzone'] = []
-				for z in zones:
-					zoneid = z.UserZone_id
-					# вершины
-					vertices = VerticesUserZone.objects.filter(UserZone_id=zoneid)
-					vToSend = []
-					for v in vertices:
-						vToSend.append({'x': v.xCoord, 'y': v.yCoord, 'zmin': v.zmin, 'zmax': v.zmax})
-					obj['uzone'].append({'id': z.UserZone_id, 'vertices': vToSend, \
-						 'faces': getFacesFromVert(vToSend)})
-			return JsonResponse(obj)
-		args['zones'] = IncomeZone.objects.filter(LoadLandscape_id=landscape_id)
-		return render(request, 'incomezonetable.html', args)
+	args['zones'] = IncomeZone.objects.filter(LoadLandscape_id=landscape_id)
 	return render(request, 'incomezonedefine.html', args)
 
 #поверхности
@@ -3281,7 +3517,7 @@ def getobjectlistfromserver(request):
 	args['LoadLandscape'] = LoadLandscape.objects.all()
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
-		url = 'http://192.168.1.111:8000'
+		url = 'http://192.168.1.111:7000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 		# откорректировать информацию object
 		if string['method'] == 'correctobject':
@@ -3389,7 +3625,7 @@ def getobjectlistfromserver(request):
 	return render(request, 'getobjectlistfromserver.html', args)
 
 def getObjectDifference(layer_id, obj_type):
-	url = 'http://192.168.1.111:8000'
+	url = 'http://192.168.1.111:7000'
 	headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 	args = {}
 	sp_layer_id = layer_id
@@ -3441,7 +3677,7 @@ def getsessionsfromserver(request):
 	command = Command.objects.all()
 	if request.method == 'POST':
 		string = simplejson.loads(request.body)
-		url = 'http://192.168.1.111:8000'
+		url = 'http://192.168.1.111:7000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 		# изменить параметр сессии
 		if string['method'] == 'inusechange':

@@ -1,146 +1,41 @@
-<div class="large-12 small-12 columns" style="padding-top:5px; padding-bottom:5px;">
-	<div class="large-7 small-7 columns">
+<div class="large-12 small-12 columns" style="padding-top:5px; padding-bottom:5px;" data-closable>
 		Тип: {{obj_type.Name}}
+		<br>
 		Имя: {{obj.Name}}
-		{% for ob in objectbuilding %}
-			{% if obj.id == ob.Object_id %}
-				{% for b in buildings %}
-					{% if b.id == ob.Building_id %}
-						Привязан: {% if b.BuildingName != None %}{{b.BuildingName}}{%else%}{{b.dae_BuildingName}}{% endif%}
-					{% endif %}
-				{% endfor%}
-			{% endif %}
-		{% endfor %}
-		{% for of in objectfloor %}
-			{% if obj.id == of.Object_id %}
-				{% for f in floors %}
-					{% if f.id == of.Floor_id %}
-						Привязан: {% if f.FloorName != None %}{{f.FloorName}}{% else %}{{f.dae_FloorName}}{% endif %}
-					{% endif %}
-				{% endfor %}
-			{% endif %}
-		{% endfor %}
-		{% for ok in objectkabinet %}
-			{% if obj1.id == ok.Object_id %}
-				{% for k in kabinet_n_outer %}
-					{% if k.id == ok.Kabinet_id %}
-						Привязан: {% if k.Kabinet_n_OuterName != None %}{{k.Kabinet_n_OuterName}}{% else %}{{k.dae_Kabinet_n_OuterName}}{% endif %}
-					{% endif %}
-				{% endfor %}
-			{% endif %}
-		{% endfor %}
-	</div>
-	<!-- <div class="large-5 small-5 columns">
-		<button class="button" data-toggle="dropdownobject{{obj.id}}">Действие</button>
-		<div class="dropdown-pane left" id="dropdownobject{{obj.id}}" data-dropdown style="width:200px;">
-			<ul class="vertical dropdown menu" data-dropdown-menu>
-				<li>
-				 	<a href="#" id="changetype" data-id="{{obj.id}}">Изменить тип</a>
-				 	<ul class="menu">
-				 		<li>
-				 			<select name="" id="objectobjecttype" data-id="{{obj.id}}" style="margin-bottom:0;">
-	        {% for type in objecttype %}
-	            <option value="{{type.id}}" {% if objectobjecttype.ObjectType_id == type.id %}selected="selected"{% endif %}>{{type.Name}}</option>
-	        {% endfor %}
-	    		</select>
-				 		</li>
-				 	</ul>
-				</li>
-				<li>
-					<a href="#" id="changename" data-id="{{obj.id}}">Изменить имя</a>
-					<ul class="menu">
-						<li>
-							<input type="text" placeholder="имя" data-id="{{obj.id}}" {% if obj.Name %}value="{{obj.Name}}"{% endif %}>
-						</li>
-					</ul>
-				</li>
-				<li>
-					<a href="#" id="changecoords" data-id="{{obj.id}}">Изменить координаты</a>
-					<ul class="menu">
-						<li>{{obj.Name}}</li>
-						<li>
-							<label for="xCoord">Координата X
-								<input type="number" id="xCoord" data-id="{{obj.id}}" step="0.01" value="{{obj.xCoord|decToPoint}}">	
-							</label>
-						</li>
-						<li>
-							<label for="yCoord">Координата Y
-								<input type="number" id="yCoord" data-id="{{obj.id}}" step="0.01" value="{{obj.yCoord|decToPoint}}">
-							</label>
-						</li>
-						<li>
-							<label for="zCoord">Координата Z
-								<input type="number" id="zCoord" data-id="{{obj.id}}" step="0.01" value="{{obj.zCoord|decToPoint}}">
-							</label>
-						</li>
-						<li>
-							<button class="button success" data-id="{{obj.id}}" id="savecoords">Сохранить</button>
-						</li>
-					</ul>
-				</li>
-				<li>
-					<a href="#" data-toggle="animatedModal{{obj.id}}" id="parameters">Параметры</a>
-					<div class="full reveal" id="animatedModal{{obj.id}}" data-reveal data-close-on-click="true" data-animation-in="slide-in-left" data-animation-out="slide-out-right" data-overlay="false">
-								{% if obj_type.id == 2 %}
-	<h4>Параметры {{obj_type.Name}}а "{{obj.Name}}"</h1>
-	<label for="server_id">Идентификатор
-	<input type="text" id="server_id" value="{% if obj.server_id %}{{obj.server_id}}{% endif %}">
-	</label>
-	<label for="object_name">Наименование
-	<input type="text" id="objname" value="{% if obj.Name %}{{obj.Name}}{% endif %}">
-	</label>
-	<label for="objdescription">Описание
-	<textarea name="" id="objdescription" cols="30" rows="3">{% if obj.Description %}{{obj.Description}}{% endif %}</textarea>
-	</label>
-	<label for="server_inuse">Флаг использования устройств. Отмечен - использовать, отстутствует отметка - не использовать.
-	<input type="checkbox" id="server_inuse" {% if obj.server_inUse == 1 %}checked="checked"{% endif %}>
-	</label>
-	<label for="server_type">Тип роутера. W(work) - обычный рабочий роутер, S(stage) - роутер перехода с этажа на этаж, I(indoor) - роутер контроля нахождения внутри здания/зоны.
-	<select name="" id="server_type">
-	<option value="W" {% if obj.server_type == 'W' %}selected="selected"{% endif %}>W</option>
-	<option value="S" {% if obj.server_type == 'S' %}selected="selected"{% endif %}>S</option>
-	<option value="I" {% if obj.server_type == 'I' %}selected="selected"{% endif %}>I</option>
-	</select>
-	</label>
-	<label for="server_radius">Радиус окресности, попадание в которую означает нахождение в зоне действия этого роутера.
-	<input type="number" step="0.10" value="{% if obj.server_radius %}{{obj.server_radius|decToPoint}}{% endif %}" id="server_radius">
-	</label>
-	<label for="minnumpoints">Минимальное количество точек последовательного попадания в окрестность после которого считается, что метка находится в зоне действия роутера
-	<input type="number" id="minnumpoints" value="{% if obj.server_minNumPoints %}{{obj.server_minNumPoints}}{% endif %}">
-	</label>
-	
-								{% elif obj_type.id == 1 %}
-	
-	<h4>Параметры {{obj_type.Name}}а "{{obj.Name}}"</h1>
-	<label for="server_id">Идентификатор
-	<input type="text" id="server_id" value="{% if obj.server_id %}{{obj.server_id}}{% endif %}">
-	</label>
-	<label for="object_name">Наименование
-	<input type="text" id="objname" value="{% if obj.Name %}{{obj.Name}}{% endif%}">
-	</label>
-	<label for="objdescription">Описание
-	<textarea name="" id="objdescription" cols="30" rows="3">{% if obj.Description %}{{obj.Description}}{% endif %}</textarea>
-	</label>
-	<label for="server_inuse">Флаг использования устройств. Отмечен - использовать, отстутствует отметка - не использовать.
-	<input type="checkbox" id="server_inuse" {% if obj.server_inUse == 1 %}checked="checked"{% endif %}>
-	</label>
-								{% endif %}
-						<button class="button success" id="saveparameters" data-id="{{obj.id}}" data-type="{{obj_type.id}}">Сохранить параметры</button>
-						<button class="button alert" data-close aria-label="Close reveal" type="button">Закрыть</button>
-						<button class="close-button" data-close aria-label="Close reveal" type="button">
-							<span aria-hidden="true">&times;</span>
-						</button>
-					</div>
-				</li>
-				<li>
-					<a href="#" id="objectdelete" data-id="{{obj.id}}">Удалить</a>
-				</li>
-				<li>
-					<a href="#" id="sendobjecttoserver" data-id="{{obj.id}}" data-landscape="{{landscape_id}}">Отправить на сервер</a>
-				</li>
-			</ul>
-		</div> -->
-	</div>
+		<br>
+		<h6 class="subheader">
+			<span class="alert badge">x</span>
+			<small>{{obj.xCoord|floatformat:2}}</small>
+			<span class="success badge">y</span>
+			<small>{{obj.yCoord|floatformat:2}}</small>
+			<span class="badge">z</span>
+			<small>{{obj.zCoord|floatformat:2}}</small>
+		</h6>
+		<a id="objectgorizontal">Откорректировать по горизонтали</a>
+		<hr>
+		<a data-landscape="{{landscape_id}}" data-id="{{obj.server_id}}" id="objinfocalibration">Данные калибровки</a>
+		<br>
+		<a data-landscape="{{landscape_id}}" data-id="{{obj.server_id}}" id="objdeletecaldata">Очистить данные калибровки</a>
+		<br>
+		<hr>
+		<a id="getobjfitcalfunc">Вычислить калибровочную функцию для роутера</a>
+		<div id="powerofpolynom" class="reveal" data-reveal data-close-on-click="true" data-animation-in="slide-in-left" data-animation-out="slide-out-right" data-overlay="false">
+			<label for="choosepower">Степень полинома
+				<input id="choosepower" data-id="{{keyname}}" type="number" step="0.1" value="3">
+			</label>
+			<br>
+			<button class="button success" data-landscape="{{landscape_id}}" data-id="{{obj.server_id}}" id="objfitcalfunc">Отправить</button>
+			<button class="close-button" data-close aria-label="Close" type="button">
+				<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+		<button class="button" id="objinfoparams" data-id="{{obj.id}}">Параметры</button>
+		<div id="shortparams" class="reveal" data-reveal data-close-on-click="true" data-animation-in="slide-in-left" data-animation-out="slide-out-right" data-overlay="false">
+			
+		</div>
+		<button class="close-button" data-close aria-label="Close" type="button">
+			<span aria-hidden="true">&times;</span>
+		</button>
 </div>
 <script>
 	$('#objectwindow').foundation();

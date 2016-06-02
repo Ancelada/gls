@@ -1,0 +1,55 @@
+									{% for oot in objectobjecttypes %}
+										{% if oot.Object_id == o.id%}
+											{% if oot.ObjectType_id == 2 %}
+<h4>Параметры {{oot.ObjectType__Name}}а "{{o.Name}}"</h1>
+<label for="server_id">Идентификатор
+	<input type="text" id="server_id" value="{% if o.server_id %}{{o.server_id}}{% endif %}">
+	<span id="error"></span>
+</label>
+<label for="object_name">Наименование
+	<input type="text" id="objname" value="{% if o.Name %}{{o.Name}}{% endif %}">
+</label>
+<label for="objdescription">Описание
+	<textarea name="" id="objdescription" cols="30" rows="3">{% if o.Description %}{{o.Description}}{% endif %}</textarea>
+</label>
+<label for="server_inuse">Флаг использования устройств. Отмечен - использовать, отстутствует отметка - не использовать.
+	<input type="checkbox" id="server_inuse" {% if o.server_inUse == 1 %}checked="checked"{% endif %}>
+</label>
+<label for="server_type">Тип роутера. W(work) - обычный рабочий роутер, S(stage) - роутер перехода с этажа на этаж, I(indoor) - роутер контроля нахождения внутри здания/зоны.
+	<select name="" id="server_type">
+		<option value="W" {% if o.server_type == 'W' %}selected="selected"{% endif %}>W</option>
+		<option value="S" {% if o.server_type == 'S' %}selected="selected"{% endif %}>S</option>
+		<option value="I" {% if o.server_type == 'I' %}selected="selected"{% endif %}>I</option>
+	</select>
+</label>
+<label for="server_radius">Радиус окресности, попадание в которую означает нахождение в зоне действия этого роутера.
+	<input type="number" step="0.10" value="{% if o.server_radius %}{{o.server_radius|decToPoint}}{% endif %}" id="server_radius">
+</label>
+<label for="minnumpoints">Минимальное количество точек последовательного попадания в окрестность после которого считается, что метка находится в зоне действия роутера
+	<input type="number" id="minnumpoints" value="{% if o.server_minNumPoints %}{{o.server_minNumPoints}}{% endif %}">
+</label>
+
+											{% elif oot.ObjectType_id == 1 %}
+
+<h4>Параметры {{oot.ObjectType__Name}}а "{{o.Name}}"</h1>
+<label for="server_id">Идентификатор
+	<input type="text" id="server_id" value="{% if o.server_id %}{{o.server_id}}{% endif %}">
+	<span id="error"></span>
+</label>
+<label for="object_name">Наименование
+	<input type="text" id="objname" value="{% if o.Name %}{{o.Name}}{% endif%}">
+</label>
+<label for="objdescription">Описание
+	<textarea name="" id="objdescription" cols="30" rows="3">{% if o.Description %}{{o.Description}}{% endif %}</textarea>
+</label>
+<label for="server_inuse">Флаг использования устройств. Отмечен - использовать, отстутствует отметка - не использовать.
+	<input type="checkbox" id="server_inuse" {% if o.server_inUse == 1 %}checked="checked"{% endif %}>
+</label>
+											{% endif %}
+										{% endif %}
+									{% endfor %}
+									<div id="info"></div>
+									<button class="button success" id="saveparameters" data-id="{{o.id}}" data-type="{% for oot in objectobjecttypes %}{% if oot.Object_id == o.id%}{{oot.ObjectType_id}}{% endif %}{% endfor %}">Сохранить параметры</button>
+									<button class="close-button" data-close aria-label="Close reveal" type="button">
+										<span aria-hidden="true">&times;</span>
+									</button>

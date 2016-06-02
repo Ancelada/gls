@@ -1,4 +1,226 @@
+//вычислить калибровочную функцию для роутера filAnchorCalFunc
+//*********************************************
+//открыть параметр степень полинома powerofpolynom
+$('#objectwindow').delegate('#getobjfitcalfunc', 'click', function(){
+	$('#powerofpolynom').foundation('open');
+});
+
+$('#objectwindow').delegate('#objfitcalfunc', 'click', function(){
+	parameters  = {};
+	parameters['power_of_polynom'] = parseInt($(this).parent().find('input')[0].value);
+	parameters['obj_server_id'] = $(this).attr('data-id');
+	parameters['landscape_id'] = $(this).attr('data-landscape');
+	parameters['method'] = 'fitanchorcalfunc';
+	makeAjax(parameters);
+});
+
+//записать изменение координат point
+$('#confirmpointyes').on('click', function(){
+	$('#confirmpoint').foundation('close');
+	parameters = {};
+	parameters['point_id'] = pointtomove['Id'];
+	parameters['x'] = meshtomove['position']['x'];
+	parameters['y'] = meshtomove['position']['y'];
+	parameters['z'] = meshtomove['position']['z'] + 1.2;
+	parameters['method'] = 'updatepointcoords';
+	makeAjax(parameters);
+	pointtomove = 0;
+});
+
+$('#confirmpointno').on('click', function(){
+	$('#confirmpoint').foundation('close');
+});
+
+//записать изменения координат object
+$('#confirmyes').on('click', function(){
+	$('#confirm').foundation('close');
+	parameters = {};
+	parameters['obj_id'] = objecttomove['Id'];
+	parameters['x'] = meshtomove['position']['x'];
+	parameters['y'] = meshtomove['position']['y'];
+	parameters['z'] = meshtomove['position']['z'];
+	parameters['method'] = 'updatecoords';
+	makeAjax(parameters);
+});
+
+$('#confirmno').on('click', function(){
+	$('#confirm').foundation('close');
+});
+
+//показать данные калибровки objinfo
+$('#objectwindow').delegate('#objinfocalibration', 'click', function(){
+	parameters = {};
+	parameters['obj_server_id'] = $(this).attr('data-id');
+	parameters['landscape_id'] = $(this).attr('data-landscape');
+	parameters['method'] = 'getobjectcalibration';
+	makeAjax(parameters);
+});
+
+//удалить очистить данные калибровки
+$('#objectwindow').delegate('#objdeletecaldata', 'click', function(){
+	parameters['obj_server_id'] = $(this).attr('data-id');
+	parameters['landscape_id'] = $(this).attr('data-landscape');
+	parameters['method'] = 'deleteobjectcalibration';
+	makeAjax(parameters);
+});
+
+//показать параметры objinfo
+$('#objectwindow').delegate('#objinfoparams', 'click', function(){
+	obj_id = $(this).attr('data-id');
+	parameters = {};
+	parameters['method'] = 'getobjectparamters';
+	parameters['obj_id'] = parseInt(obj_id);
+	makeAjax(parameters);
+});
+
 //calibration
+//скрыть точки, если снят флажок Показывать точки
+$('#showpointstumbler').on('change', function(){
+	if ($(this)[0].checked == false){
+		hideAllPoints();
+	}
+})
+
+//отобразить все точки калибровки
+$('#showallpoints').on('click', function(){
+	showPoint('showallpoints', 0);
+});
+
+function showPoint(methodname, static_name){
+	parameters = {};
+	parameters['method'] = methodname;
+	parameters['landscape_id'] = landscape_id;
+	parameters['static_name'] = static_name;
+	pointsize = $('#pointsize').val();
+	pointcolor = $('#pointcolor').val();
+	$.ajax({
+		type: "POST",
+    	url: "/incomezonedefine/"+landscape_id,
+    	data: JSON.stringify(parameters),
+    	contentType: "application/json; charset=utf-8",
+    	dataType: "json",
+    	async: true,
+    	success: function(data, textStatus, jqXHR){
+    		if (methodname == 'showallpoints'){
+    			//наполняем массив Objects
+    			hideAllPoints();
+    			fillPoints(data);
+    			addPointMesh(PointShowed);
+    			addCssHelpers(PointShowed);
+    		} else if (methodname == 'showlinkedpointsbuilding'){
+    			hideAllPoints();
+    			fillPoints(data);
+    			addPointMesh(PointShowed);
+    			addCssHelpers(PointShowed);
+/*    			console.log('building');*/
+			} else if(methodname == 'showlinkedpointsfloor'){
+				hideAllPoints();
+    			fillPoints(data);
+    			addPointMesh(PointShowed);
+    			addCssHelpers(PointShowed);
+    			/*console.log('floor');*/
+    		} else if(methodname == 'showlinkedpointskabinet'){
+    			hideAllPoints();
+    			fillPoints(data);
+    			addPointMesh(PointShowed);
+    			addCssHelpers(PointShowed);
+    			/*console.log('kabinet');*/
+    		}
+    		if (methodname == 'hideallobjects'){
+
+    		}
+    		$('#loading').foundation('close');
+    	}	
+	})
+}
+
+//функция записи подсказок рядом с точками калибровки cpoints
+function addCssHelpers(arr){
+	helpers = [];
+	$.each(arr, function(index){
+		a = toScreenPosition(arr[index]['mesh'], camera);
+		helpers.push({'id': arr[index]['id'], 'x': arr[index]['mesh']['position'].x, 'y': arr[index]['mesh']['position'].y, 'z': arr[index]['mesh']['position'].z, 'screenX': a.x, 'screenY': a.y});
+	});
+	parameters = {};
+	parameters['helpers'] = helpers;
+	parameters['method'] = 'addhelpers';
+	makeAjax(parameters);
+}
+
+//создание фигур точек калибровки point
+function addPointMesh(PointShowed){
+	pointsize = $('#pointsize').val();
+	pointcolor = $('#pointcolor').val();
+	//добавляем геометрию, материал, фигуры
+	$.each(PointShowed, function(index){
+		x = PointShowed[index]['x'];
+		y = PointShowed[index]['y'];
+		z = PointShowed[index]['z'];
+		if (('geometry' in PointShowed[index]) == false){
+			//размер, цвет, позиция точки
+			PointShowed[index]['pointsize'] = pointsize;
+			PointShowed[index]['pointcolor'] = pointcolor;
+			PointShowed[index]['geometry'] = new THREE.CircleGeometry(parseFloat(pointsize), 32);
+			if (PointShowed[index]['pointbeencalibrated__Date'] != null){
+				PointShowed[index]['material'] = new THREE.MeshBasicMaterial( {color: 0xb42573} );
+			} else {
+				PointShowed[index]['material'] = new THREE.MeshBasicMaterial( {color: parseInt('0x'+pointcolor)} );
+			}
+			PointShowed[index]['mesh'] = new THREE.Mesh( PointShowed[index]['geometry'], PointShowed[index]['material'] );
+			PointShowed[index]['mesh'].position.set(x, y, z-1.15);
+		} else {
+			//меняем размер и  цвет, если указан новый
+			if (PointShowed[index]['pointsize'] != pointsize || PointShowed[index]['pointcolor'] != pointcolor){
+				scene.remove(PointShowed[index]['mesh']);
+				PointShowed[index]['geometry'] = new THREE.CircleGeometry(parseFloat(pointsize), 32);
+				if (PointShowed[index]['pointbeencalibrated__Date'] != null){
+					PointShowed[index]['material'] = new THREE.MeshBasicMaterial( {color: 0xb42573} );
+				} else {
+					PointShowed[index]['material'] = new THREE.MeshBasicMaterial( {color: parseInt('0x'+pointcolor)} );	
+				}
+				PointShowed[index]['mesh'] = new THREE.Mesh( PointShowed[index]['geometry'], PointShowed[index]['material'] );
+				PointShowed[index]['mesh'].position.set(x, y, z-1.15);
+				scene.add(PointShowed[index]['mesh']);
+			}
+		}
+	});
+	//показываем все фигуры Objects
+	$.each(PointShowed, function(index){
+			scene.remove(PointShowed[index]['mesh']);
+			scene.add(PointShowed[index]['mesh']);
+	});
+}
+
+
+function hideAllPoints(){
+	$.each(PointShowed, function(index){
+		if ('CssObject' in PointShowed[index]){
+			PointShowed[index]['CssObject'].remove();	
+		}
+		scene.remove(PointShowed[index]['mesh']);
+	});
+	PointShowed = [];
+}
+
+function fillPoints(data){
+	$.each(data['string'], function(index){
+		Name = data['string'][index]['Name'];
+		xCoord = data['string'][index]['xCoord'];
+		yCoord = data['string'][index]['yCoord'];
+		zCoord = data['string'][index]['zCoord'];
+		id = data['string'][index]['id'];
+		objdoubled = 0;
+		$.each(PointShowed, function(ind){
+			if (PointShowed[ind]['id'] == id){
+				objdoubled = 1;
+			}
+		});
+		if (objdoubled == 0){
+			PointShowed.push({'x': xCoord, 'y': yCoord, 'z': zCoord, 'id': id, 'pointbeencalibrated__Date': data['string'][index]['pointbeencalibrated__Date']});
+		}
+	});
+}
+
 // отобразить параметры запроса при изменении query,  parameters change
 $('#queries').on('change', function(){
 	parameters = {};
@@ -15,6 +237,10 @@ $('#sendquery').on('click', function(){
 	$.each(list, function(index){
 		parameters['keyvalues'].push({'key': list[index]['dataset']['id'], 'value': list[index].value});
 	});
+	inputs = $('#queryparameters').find('input');
+	$.each(inputs, function(index){
+		parameters['keyvalues'].push({'key': inputs[index]['dataset']['id'], 'value': parseInt(inputs[index].value)})
+	});
 	parameters['landscape_id'] = landscape_id;
 	parameters['method'] = 'sendquery';
 	makeAjax(parameters);
@@ -27,27 +253,51 @@ $('#cpointwindow').delegate('#makecalibration', 'click', function(){
 		$(this).addClass('secondary');
 		$(this).text('Остановить');
 		parameters = {};
-		parameters['node_server_id'] = parseInt($(this).parent().find('#nodeforcalibration option:selected')[0].value);
+		if (typeof $('#nodeforcalibration option:selected')[0] != 'undefined'){
+			parameters['node_server_id'] = parseInt($(this).parent().find('#nodeforcalibration option:selected')[0].value);			
+		}
 		parameters['x'] = $(this).attr('data-x');
 		parameters['y'] = $(this).attr('data-y');
 		parameters['z'] = $(this).attr('data-z');
 		parameters['enableCalibration'] = 'true';
 		parameters['landscape_id'] = landscape_id;
+		parameters['point_id'] = parseInt($(this).attr('data-point'));
 		parameters['method'] = 'setnodeforcalibration';
-		makeAjax(parameters);
+		if (typeof $('#nodeforcalibration option:selected')[0] != 'undefined'){
+			makeAjax(parameters);	
+		}
+		//выделяем mesh цветом
+		$.each(PointShowed, function(index){
+			if (PointShowed[index]['id'] == parameters['point_id']){
+				x = PointShowed[index]['x'];
+				y = PointShowed[index]['y'];
+				z = PointShowed[index]['z'];
+				scene.remove(PointShowed[index]['mesh']);
+				PointShowed[index]['geometry'] = new THREE.CircleGeometry(parseFloat(pointsize), 32);
+				PointShowed[index]['material'] = new THREE.MeshBasicMaterial( {color: 0xb42573} );
+				PointShowed[index]['mesh'] = new THREE.Mesh( PointShowed[index]['geometry'], PointShowed[index]['material'] );
+				PointShowed[index]['mesh'].position.set(x, y, z-1.2);
+				scene.add(PointShowed[index]['mesh']);
+				return false	
+			}
+		});
 	} else if ($(this).text() == 'Остановить'){
 		$(this).removeClass('secondary');
 		$(this).addClass('success');
 		$(this).text('Начать калибровку');
 		parameters = {};
-		parameters['node_server_id'] = parseInt($(this).parent().find('#nodeforcalibration option:selected')[0].value);
+		if (typeof $('#nodeforcalibration option:selected')[0] != 'undefined'){
+			parameters['node_server_id'] = parseInt($(this).parent().find('#nodeforcalibration option:selected')[0].value);
+		}
 		parameters['x'] = $(this).attr('data-x');
 		parameters['y'] = $(this).attr('data-y');
 		parameters['z'] = $(this).attr('data-z');
 		parameters['enableCalibration'] = 'false';
 		parameters['method'] = 'setnodeforcalibration';
 		parameters['landscape_id'] = landscape_id;
-		makeAjax(parameters);
+		if (typeof $('#nodeforcalibration option:selected')[0] != 'undefined'){
+			makeAjax(parameters);
+		}
 	}
 });
 
@@ -63,6 +313,7 @@ function makeAjax(parameters){
     		if (parameters['method'] == 'querychange'){
     			$('#qparameters').html(data['string']);
     		} else if(parameters['method'] == 'sendquery') {
+    			console.log(data);
     			if (data['routers'] != undefined){
 					buildPointDiagram(data['routers'][0]['points'], data['routers'][0]['id']);
     				$('#diagram').foundation('open');
@@ -71,6 +322,26 @@ function makeAjax(parameters){
     				$('#queryerror').html(data['error']);
     				$('#queryerror').show();
     			}
+    		} else if(parameters['method'] == 'getobjectparamters'){
+    			$('#shortparams').html(data['string']);
+    			$('#shortparams').foundation('open');
+    		} else if(parameters['method'] == 'getobjectcalibration'){
+    			if (data['routers'] != undefined){
+    				buildPointDiagram(data['routers'][0]['points'], data['routers'][0]['id']);
+    				$('#diagram').foundation('open');
+    			}
+    		} else if(parameters['method'] == 'addhelpers'){
+    			$.each(PointShowed, function(index){
+					$.each(data['string'], function(ind){
+						if (PointShowed[index]['id'] == data['string'][ind]['id']){
+							$('#helpers').append(data['string'][ind]['html']);
+							PointShowed[index].CssObject = $('#helpers span.helperwindow[data-id="'+ PointShowed[index]['id'] + '"]');
+							return false;	
+						}
+	    			});
+    			});
+    		} else if(parameters['method'] == 'fitanchorcalfunc'){
+    			console.log(data);
     		}
     	}
     });
@@ -116,7 +387,7 @@ function buildPointDiagram(arr, name){
 		plotOptions:{
 			scatter: {
 				marker: {
-					radius: 5,
+					radius: 2,
 					states: {
 						hover: {
 							enabled: true,
@@ -368,6 +639,8 @@ function pointTable(parameters){
     	async: true,
     	success: function(data, textStatus, jqXHR){
     		$('#pointstable').html(data['string']);
+    		//обновляем pointhelpers
+    		showPoint('showallpoints', 0);
     	}
     });
 }
@@ -398,6 +671,20 @@ $('#objecttable').delegate('#server_id', 'keyup', function(){
     		
     	}
 	});
+});
+moveenable = 0;
+
+//***********************************
+//изменить расположение конкретного объекта по горизонтали
+$('#objectwindow').delegate('#objectgorizontal', 'click', function(){
+	moveenable = 1;
+	$('#objectwindow').hide();
+});
+
+//изменить расположение конкретной точки калибровки по горизонтали
+$('#cpointwindow').delegate('#pointgorizontal', 'click', function(){
+	movepointenable = 1;
+	$('#cpointwindow').hide();
 });
 
 //***********************************
@@ -686,9 +973,11 @@ function showObjMesh(Obj, objectsize, objectcolor){
 
 //показать
 $('body').delegate('#showallobjects', 'click', function(){
+	$('#loading').foundation('open');
 	objecttype_id = $(this).attr('data-id');
 	showObjectType('showallobjects', objecttype_id, 0);
 });
+
 //скрыть
 $('body').delegate('#hideallobjects', 'click', function(){
 	id = $(this).attr('data-id')
@@ -770,6 +1059,9 @@ function addMesh(Objects, objecttype_id){
 		});
 	});
 }
+
+
+
 function showObjectType(methodname, objecttype_id, static_name){
 	parameters = {};
 	parameters['method'] = methodname;
@@ -787,7 +1079,6 @@ function showObjectType(methodname, objecttype_id, static_name){
     	async: true,
     	success: function(data, textStatus, jqXHR){
     		if (methodname == 'showallobjects'){
-    			//наполняем массив Objects
     			hideAllObjects();
     			fillObjects(data);
     			addMesh(Objects, objecttype_id);
@@ -807,6 +1098,7 @@ function showObjectType(methodname, objecttype_id, static_name){
     		if (methodname == 'hideallobjects'){
 
     		}
+    		$('#loading').foundation('close');
     	}	
 	})
 }
@@ -1736,8 +2028,61 @@ function addremoveuzonefromgroup(type, uzoneid, groupid){
 		}
 	});
 }
+//отобразить многоугольник выбранного кабинета
+var planeKabinet;
+function getPlaneKabinet(dae_elem, object){
+	parameters = {};
+	parameters['method'] = 'objvertices';
+	parameters['landscape_id'] = landscape_id;
+	parameters['type'] = 'kabinet';
+	parameters['dae_name'] = dae_elem;
+	$.ajax({
+		type: "POST", 
+		url: "/incomezonedefine/"+landscape_id,
+		data: JSON.stringify(parameters),
+		contentType: "application/json; charset=utf-8",
+		dataType: "json",
+		async: true,
+		success: function(data, textStatus, jqXHR){
+			scene.remove(planeKabinet);
+			selObject = data;
+			kabinetVert = [];
+			kabinetFaces = [];
+			$.each(selObject['vertices'], function(index){
+				value = selObject['vertices'][index];
+				kabinetVert.push({'x': value[0], 'y': value[1], 'z': selObject['minz']});
+			});
+			$.each(object['geometry']['faces'], function(index){
+				value = object['geometry']['faces'][index];
+				kabinetFaces.push({'a': value['a'], 'b': value['b'], 'c': value['c']});
+			});
+			//строим плоскость
+			var planeGeometry = new THREE.Geometry();
+			$.each(kabinetVert, function(index){
+				x = kabinetVert[index]['x'];
+				y = kabinetVert[index]['y'];
+				z = kabinetVert[index]['z'];
+				planeGeometry.vertices.push(
+					new THREE.Vector3(x, y, z+0.1)
+				)
+			});
+			$.each(kabinetFaces, function(index){
+				a = kabinetFaces[index]['a'];
+				b = kabinetFaces[index]['b'];
+				c = kabinetFaces[index]['c'];
+				planeGeometry.faces.push(
+					new THREE.Face3(a, b, c)
+				)
+			});
+			planeGeometry.computeBoundingSphere();
+			var planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity:0.7});
+			planeKabinet = new THREE.Mesh(planeGeometry, planeMaterial);
+			scene.add(planeKabinet);
+		}
+	});
+}
 
-//получить вершины объекта x, y. Отдельно минимальное значение z.
+//Отобразить многоугольник выбранной статики и привязанные к нему зоны исключения и зоны входа.
 var ObjMesh;
 var ObjMeshUp;
 
