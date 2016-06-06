@@ -21,11 +21,18 @@ from django.contrib import auth
 from django.conf import settings
 from shapely.geometry import *
 import math
+import numpy as np
 
 import pkg_resources
 pkg_resources.require('matplotlib')
 import pylab
 import matplotlib.patches as patches
+
+
+#create list of users
+from django.contrib.auth.models import User
+from django.contrib.sessions.models import Session
+from django.utils import timezone
 
 # глобальный словарь static статичные объекты
 static = []
@@ -444,15 +451,18 @@ def correctF():
 		        	i['z'] -= step
 	#send coordinates to usersession
 	for i in active_users:
-		arr = []
-		for j in unique:
-			if 'vertices' in i:
-				if inObject(i, j['x'], j['y'], j['z']):
-					arr.append(j)
-		try:
-			service_queue('coords_server_lock', json({'user': i['id'],'data': arr}))
-		except:
-			pass
+		for j in i['sessions']:
+			arr = []
+			session_key = j['key']
+			for x in unique:
+				if 'vertices' in j:
+					if inObject(j, x['x'], x['y'], x['z']):
+						arr.append(x)
+			try:
+				service_queue('coords_server_lock', json({'user': i['id'], \
+				 'session_key': session_key, 'data': arr}))
+			except:
+				pass
 
 # определение принадлежности метки объекту сцены
 def UniqueToStatic():
@@ -966,49 +976,56 @@ def correctUniqueInMilisec():
 # подсвечиваем принадлежность метки, если запрос пользователя
 def lightUpTagBelongTo():
 	for a in active_users:
-		if 'belong' in a:
-			tag_id = a['belong']['tag_id']
-			for i in unique:
-				if i['tag_id'] == tag_id:
-					if 'location' in i:
-						if not 'id' in a['belong']:
-							a['belong']['type'] = i['location']['type']
-							a['belong']['id'] = i['location']['id']
-							sendToUserElemForLightUp(i['location']['type'], i['location']['id'], a['id'])
-						elif a['belong']['id'] != i['location']['id']:
-							a['belong']['type'] = i['location']['type']
-							a['belong']['id'] = i['location']['id']
-							sendToUserElemForLightUp(i['location']['type'], i['location']['id'], a['id'])
+		for b in a['sessions']:
+			if 'belong' in b:
+				tag_id = b['belong']['tag_id']
+				for i in unique:
+					if i['tag_id'] == tag_id:
+						if 'location' in i:
+							if not 'id' in b['belong']:
+								b['belong']['type'] = i['location']['type']
+								b['belong']['id'] = i['location']['id']
+								sendToUserElemForLightUp(i['location']['type'], \
+								 i['location']['id'], a['id'], b['key'])
+							elif b['belong']['id'] != i['location']['id']:
+								b['belong']['type'] = i['location']['type']
+								b['belong']['id'] = i['location']['id']
+								sendToUserElemForLightUp(i['location']['type'], \
+								 i['location']['id'], a['id'], b['key'])
 
 # подсвечиваем принадлежность метки зоне пользователя, если запрос пользователя
 def lightUpTagBelongToUzone():
 	for a in active_users:
-		if 'belonguzone' in a:
-			tag_id = a['belonguzone']['tag_id']
-			if not 'type' in a['belonguzone']:
-				a['belonguzone']['type'] = '' 
-			for i in unique:
-				if i['tag_id'] == tag_id:
-					for user in i['userzone']:
-						if user['user_id'] == a['id']:
-							if user['UserZoneLocation']['type'] == 'inuzone':
-								if not 'id' in a['belonguzone']:
-									a['belonguzone']['id'] = user['UserZoneLocation']['id']
-									a['belonguzone']['type'] = user['UserZoneLocation']['type']
-									sendToUserUzoneForLightUp('inuzone', \
-										 user['UserZoneLocation']['id'], a['id'], i['zone_id'])
-								elif a['belonguzone']['id'] != user['UserZoneLocation']['id']:
-									a['belonguzone']['id'] = user['UserZoneLocation']['id']
-									a['belonguzone']['type'] = user['UserZoneLocation']['type']
-									sendToUserUzoneForLightUp('inuzone', \
-										 user['UserZoneLocation']['id'], a['id'], i['zone_id'])
-							elif user['UserZoneLocation']['type'] == 'outofzone' \
-							 and a['belonguzone']['type'] == 'inuzone':
-							 	a['belonguzone']['type'] = 'outofzone'
-							 	a['belonguzone']['id'] = 0
-							 	sendToUserUzoneForLightUp('outofzone', 0, a['id'], i['zone_id'])
+		for b in a['sessions']:
+			if 'belonguzone' in b:
+				tag_id = b['belonguzone']['tag_id']
+				if not 'type' in b['belonguzone']:
+					b['belonguzone']['type'] = '' 
+				for i in unique:
+					if i['tag_id'] == tag_id:
+						for user in i['userzone']:
+							if user['user_id'] == a['id']:
+								if user['UserZoneLocation']['type'] == 'inuzone':
+									if not 'id' in b['belonguzone']:
+										b['belonguzone']['id'] = user['UserZoneLocation']['id']
+										b['belonguzone']['type'] = user['UserZoneLocation']['type']
+										sendToUserUzoneForLightUp('inuzone', \
+											 user['UserZoneLocation']['id'], a['id'], i['zone_id'], \
+											 b['key'])
+									elif b['belonguzone']['id'] != user['UserZoneLocation']['id']:
+										b['belonguzone']['id'] = user['UserZoneLocation']['id']
+										b['belonguzone']['type'] = user['UserZoneLocation']['type']
+										sendToUserUzoneForLightUp('inuzone', \
+											 user['UserZoneLocation']['id'], a['id'], i['zone_id'], \
+											 b['key'])
+								elif user['UserZoneLocation']['type'] == 'outofzone' \
+								 and b['belonguzone']['type'] == 'inuzone':
+								 	b['belonguzone']['type'] = 'outofzone'
+								 	b['belonguzone']['id'] = 0
+								 	sendToUserUzoneForLightUp('outofzone', 0, a['id'], i['zone_id'], \
+								 		b['key'])
 
-def sendToUserElemForLightUp(elemtype, elemid, user_id):
+def sendToUserElemForLightUp(elemtype, elemid, user_id, session_key):
 	#определение dae_name и рассылка пользователю для подсветки
 	if elemtype == 'floor':
 		fid = elemid
@@ -1017,7 +1034,8 @@ def sendToUserElemForLightUp(elemtype, elemid, user_id):
 		dae_id = dae.id
 		vertices = list(VerticesFloor.objects.filter(Floor_id=dae_id).values('x', 'y'))
 		service_queue('show_location', json({'user': user_id, 'data': {'type': \
-			'floor', 'location': dae_name, 'vertices': json(vertices)}}))
+			'floor', 'location': dae_name, 'vertices': json(vertices)}, \
+			 'session_key': session_key}))
 	elif elemtype == 'kabinet':
 		kid = elemid
 		dae = Kabinet_n_Outer.objects.get(id=kid)
@@ -1026,26 +1044,29 @@ def sendToUserElemForLightUp(elemtype, elemid, user_id):
 		vertices = list(VerticesKabinet_n_Outer.objects.filter(Kabinet_n_Outer_id=dae_id).values('x', \
 		 'y'))
 		service_queue('show_location', json({'user': user_id, 'data': {'type': \
-			'kabinet', 'location': dae_name, 'vertices': json(vertices)}}))
+			'kabinet', 'location': dae_name, 'vertices': json(vertices)}, \
+			'session_key': session_key}))
 
-def sendToUserUzoneForLightUp(elemtype, elemid, user_id, landscape_id):
+def sendToUserUzoneForLightUp(elemtype, elemid, user_id, landscape_id, session_key):
 	if elemid != 0:
 		uzoneid = elemid
-		vertices = list(VerticesUserZone.objects.filter(UserZone_id=elemid).values('xCoord', 'yCoord', 'zmin'))
+		vertices = list(VerticesUserZone.objects.filter(UserZone_id=elemid).values('xCoord', \
+		 'yCoord', 'zmin'))
 		vxy = []
 		zmin = vertices[0]['zmin']
 		for v in vertices:
 			vxy.append([v['xCoord'], v['yCoord']])
 		service_queue('show_location', json({'user': user_id, 'data': {'type': elemtype, \
 		 'vertices': vxy, 'faces': getFacesFromVert(vertices), 'id': elemid, 'zmin': zmin, \
-		  'landscape_id': landscape_id}}))
+		  'landscape_id': landscape_id}, 'session_key': session_key }))
 	elif elemid == 0:
 		service_queue('show_location', json({'user': user_id, 'data': {'type': elemtype, \
-			'vertices':0, 'id': 0}}))
+			'vertices':0, 'id': 0}, 'session_key': session_key }))
+		
 #receive coordinates
 def receive_slmp(request):
 	if request.method == 'POST':
-		update_active_users()
+		update_active_users(request)
 		line = request.body.decode('utf-8')
 		line = line.split('Zone')
 		# first line
@@ -1211,7 +1232,9 @@ def values_server(request, landscape_id='0000'):
 	return render(request, 'values_server.html', args)
 
 def values(request, landscape_id='0000'):
+	update_active_users(request)
 	args = {}
+	args['session_key'] = request.session._session_key
 	landscape_id = landscape_id
 	a = request.get_host().split(':')
 	args['hostname'] = a[0]
@@ -1574,6 +1597,7 @@ def sockjs(request):
 	args['username'] = auth.get_user(request).username
 	args['id'] = auth.get_user(request).id
 	request.session.set_expiry(4000)
+	update_active_users(request)
 	return render(request, 'sockjs.html', args)
 
 def orderadd(request):
@@ -1582,44 +1606,82 @@ def orderadd(request):
 	service_queue('order_lock', json({'user': 1,'order': 10}))
 	return JsonResponse({'result': 'ok'})
 
-#create list of users
-from django.contrib.auth.models import User
-from django.contrib.sessions.models import Session
-from django.utils import timezone
 
-def get_all_logged_in_users():
-	sessions = Session.objects.filter(expire_date__gte = timezone.now())
-	uid_list = []
+# def get_all_logged_in_users():
+# 	sessions = Session.objects.filter(expire_date__gte = datetime.datetime.now())
+# 	uid_list = []
 
-	for session in sessions:
-		data = session.get_decoded()
-		uid_list.append(data.get('_auth_user_id', None))
+# 	for session in sessions:
+# 		data = session.get_decoded()
+# 		print data
+# 		uid_list.append(data.get('_auth_user_id', None))
 
-	return User.objects.filter(id__in = uid_list)
+# 	a = User.objects.filter(id__in = uid_list)
+# 	values = []
+# 	# наполняем id активными пользователями
+# 	for i in a:
+# 		got = 0
+# 		for j in values:
+# 			if i.id == j['id']:
+# 				got = 1
+# 		if got == 0:
+# 			values.append({'id': i.id})
+# 	# если пользователь не определен как активный, добавляем вручную пользователя  и сессию
+# 	return values
 
-def update_active_users():
-	all_loged = get_all_logged_in_users()
-	values = []
-	for j in active_users:
-		for i in all_loged:
-			if j['id'] == i.id:
-				values.append(i.id)
+def get_cur_logged_in_user(request):
+	active_user = auth.get_user(request).id
+	active_session = request.session._session_key
+	return {'id': active_user, 'key': active_session}
 
-	for q in active_users:
-		if not(q['id'] in values):
-			active_users.remove(q)
+def update_active_users(request):
+	cur_loged = get_cur_logged_in_user(request)
+	gotAU = 0
+	for i in active_users:
+		if i['id'] == cur_loged['id']:
+			gotAU = 1
+			got = 0
+			for s in i['sessions']:
+				if s['key'] == cur_loged['key']:
+					got = 1
+			if got == 0:
+				i['sessions'].append({'key': cur_loged['key'], 'date': datetime.datetime.now()})
+	if gotAU == 0:
+		active_users.append({'id': cur_loged['id'], 'sessions': [{'key': cur_loged['key'], \
+			'date': datetime.datetime.now()}] })
 
-	for i in all_loged:
-		got = False
-		for j in active_users:
-			if j['id'] == i.id:
-				got = True
-		if not(got):
-			active_users.append({'id': i.id})
+	delta = datetime.timedelta(days=1)
+	for i in active_users:
+		for j in i['sessions']:
+			if j['date'] + delta < datetime.datetime.now():
+				i['sessions'].remove(j)
+	# for i in active_users:
+	# 	print datetime.datetime.today()
+	# 	if i['date'] < datetime.datetime.today():
+	# 		active_users.remove(i)
+	# all_loged = get_all_logged_in_users()
+	# print cur_loged
+	# values = []
+	# for j in active_users:
+	# 	for i in all_loged:
+	# 		if j['id'] == i['id']:
+	# 			values.append(i['id'])
+
+	# for q in active_users:
+	# 	if not(q['id'] in values):
+	# 		active_users.remove(q)
+
+	# for i in all_loged:
+	# 	got = False
+	# 	for j in active_users:
+	# 		if j['id'] == i['id']:
+	# 			got = True
+	# 	if not(got):
+	# 		active_users.append({'id': i['id'], 'sessions': []})
 
 # look sessions and their properties
 def getsessions(request):
-	update_active_users()
+	update_active_users(request)
 	return JsonResponse({'active_users':active_users, 'marks': marks})
 
 
@@ -1632,7 +1694,7 @@ def setproperty(request):
 # set min max to session
 def minmaxtosession(request):
 	if request.method == 'POST':
-		update_active_users()
+		update_active_users(request)
 		unjson = simplejson.loads
 		string = unjson(request.body)
 		strmax = string['max']
@@ -1640,20 +1702,23 @@ def minmaxtosession(request):
 		dae_elem = string['dae_elem']
 		username = int(string['username'])
 		landscape_id = string['landscape_id']
+		session_key = string['session_key']
 		for i in active_users:
 			if i['id'] == username:
-				i['max'] = strmax
-				i['min'] = strmin
-				i['maxz'] = strmax['z']
-				i['minz'] = strmin['z']
-				i['landscape_id'] = landscape_id
-				i['dae_elem'] = dae_elem
-				i['data'] = []
-				i['vertices'] = []
-				# наполняем вершинами x, y
-				for s in static:
-					if s['landscape_id'] == landscape_id:
-						i['vertices'] = lookUpElemInStatic(dae_elem, s['buildings'])
+				for j in i['sessions']:
+					if j['key'] == session_key:
+						j['max'] = strmax
+						j['min'] = strmin
+						j['maxz'] = strmax['z']
+						j['minz'] = strmin['z']
+						j['landscape_id'] = landscape_id
+						j['dae_elem'] = dae_elem
+						j['data'] = []
+						j['vertices'] = []
+						# наполняем вершинами x, y
+						for s in static:
+							if s['landscape_id'] == landscape_id:
+								j['vertices'] = lookUpElemInStatic(dae_elem, s['buildings'])
 		return JsonResponse({'properties': active_users})
 
 def lookUpElemInStatic(name, arr):
@@ -1978,6 +2043,22 @@ def speedrequests(request):
 		landscape_id = string['landscape_id']
 		
 		
+def updatepointstable(args, landscape_id):
+	args['pointbuilding'] = PointBuilding.objects.filter( \
+		Building__LoadLandscape_id=landscape_id).values('Cpoint_id', 'Building_id')
+	args['buildings'] = Building.objects.filter(LoadLandscape_id=landscape_id).values( \
+		'id', 'BuildingName', 'dae_BuildingName')
+	args['pointfloor'] = PointFloor.objects.filter( \
+		Floor__LoadLandscape_id=landscape_id).values('Cpoint_id', 'Floor_id')
+	args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id).values( \
+		'id', 'FloorName', 'dae_FloorName', 'Building_id')
+	args['pointkabinet'] = PointKabinet.objects.filter( \
+		Kabinet__LoadLandscape_id=landscape_id).values('Cpoint_id', 'Kabinet_id')
+	args['kabinet_n_outer'] = Kabinet_n_Outer.objects.filter( \
+		LoadLandscape_id=landscape_id).values('id', 'Kabinet_n_OuterName', \
+		 'dae_Kabinet_n_OuterName', 'Floor_id')
+	return render_to_string('pointstable.html', args)
+
 # incomezone
 def incomezonedefine(request, landscape_id='0000'):
 	args = {}
@@ -1987,6 +2068,42 @@ def incomezonedefine(request, landscape_id='0000'):
 		string = simplejson.loads(request.body)
 		url = 'http://192.168.1.111:7000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
+		# запрос построить график функции для роутер drawgraphfunc
+		if string['method'] == 'drawgraphfunc':
+			data = {}
+			data['command'] = 'getAnchorCalFunc'
+			data['id'] = string['obj_server_id']
+			obj_name = Object.objects.get(server_id=string['obj_server_id'], \
+				LoadLandscape_id=string['landscape_id']).Name
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			#создаем массив значений x, величина массива 20
+			maxDist = json_data['functions'][0]['maxDist']
+			minDist = json_data['functions'][0]['minDist']
+			step = (maxDist - minDist)/19
+			xes = np.arange(minDist, maxDist+step, step)
+			#вычисляем полином
+			polynom_coefficient = len(json_data['functions'][0]['coefficients'])-1
+			coefficients = json_data['functions'][0]['coefficients']
+			values = []
+			index = 0
+			for x in xes:
+				for c in coefficients:
+					if index == 0:
+						value = c
+					else:
+						value += c * x ** index
+					index += 1
+				index = 0
+				values.append(value)
+			rounding = []
+			for i in xes:
+				a = str(i)[0:6]
+				rounding.append(a)
+			xes = rounding
+			return JsonResponse({'values': values, 'xarr': list(xes), 'json_data': json_data, \
+				'polynom_coefficient': polynom_coefficient, 'obj_server_id': string['obj_server_id'], \
+				'obj_name': obj_name})
 		# запрос вычислить калибровочную функцию для роутера fitanchorccalfunc
 		if string['method'] == 'fitanchorcalfunc':
 			power_of_polynom = string['power_of_polynom']
@@ -2006,9 +2123,12 @@ def incomezonedefine(request, landscape_id='0000'):
 			helpers_ids = []
 			for i in string['helpers']:
 				helpers_ids.append(i['id'])
-			args['cpoints'] = Cpoint.objects.filter(id__in=helpers_ids)
+			if string['type'] == 'points':
+				args['arr'] = Cpoint.objects.filter(id__in=helpers_ids)
+			elif string['type'] == 'objects':
+				args['arr'] = Object.objects.filter(id__in=helpers_ids)
 			args['helpers'] = []
-			for i in args['cpoints']:
+			for i in args['arr']:
 				for j in string['helpers']:
 					if i.id == j['id']:
 						args['id'] = i.id
@@ -2016,8 +2136,8 @@ def incomezonedefine(request, landscape_id='0000'):
 						args['screenX'] = j['screenX']
 						args['screenY'] = j['screenY']
 						args['helpers'].append({'id': i.id, \
-							'html': render_to_string('helper.html', args)})
-			return JsonResponse({'string': args['helpers']})
+							'html': render_to_string(string['filehtml'], args)})
+			return JsonResponse({string['type']: args['helpers']})
 		# обновить координаты точки калибровки cpdatepointcoords
 		if string['method'] == 'updatepointcoords':
 			point_id = string['point_id']
@@ -2036,6 +2156,7 @@ def incomezonedefine(request, landscape_id='0000'):
 			return JsonResponse({'string': 'ok'})
 		# данные калибровки объекта
 		if string['method'] == 'getobjectcalibration':
+			# точки калибровки
 			obj_server_id = string['obj_server_id']
 			landscape_id = string['landscape_id']
 			# layerId = LoadLandscape.objects.get(landscape_id=landscape_id)
@@ -2045,7 +2166,41 @@ def incomezonedefine(request, landscape_id='0000'):
 			data['id'] = obj_server_id
 			r = requests.post(url, data=json(data), headers=headers)
 			json_data = simplejson.loads(r.text)
-			return JsonResponse(json_data)
+			arr = json_data['routers'][0]['points']
+
+			# график полинома
+			data = {}
+			data['command'] = 'getAnchorCalFunc'
+			data['id'] = obj_server_id
+			obj_name = Object.objects.get(server_id=string['obj_server_id'], \
+				LoadLandscape_id=string['landscape_id']).Name
+			r = requests.post(url, data=json(data), headers=headers)
+			json_data = simplejson.loads(r.text)
+			#создаем массив значений x, величина массива 20
+			maxDist = json_data['functions'][0]['maxDist']
+			minDist = json_data['functions'][0]['minDist']
+			step = (maxDist - minDist)/39
+			xes = np.arange(minDist, maxDist+step, step)
+			#вычисляем полином
+			polynom_coefficient = len(json_data['functions'][0]['coefficients'])-1
+			coefficients = json_data['functions'][0]['coefficients']
+			values = []
+			index = 0
+			for x in xes:
+				for c in coefficients:
+					if index == 0:
+						value = c
+					else:
+						value += c * x ** index
+					index += 1
+				index = 0
+				values.append([x, value])
+			return JsonResponse({'arr': arr, 'arr2': values, \
+			 'polynom_coefficient': polynom_coefficient, 'router_id': obj_server_id, \
+			 'router_name': obj_name, 'json_data': json_data})
+
+
+
 		# удалить данные калибровки объекта
 		if string['method'] == 'deleteobjectcalibration':
 			obj_server_id = string['obj_server_id']
@@ -2165,7 +2320,7 @@ def incomezonedefine(request, landscape_id='0000'):
 		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
 			landscape_id = string['landscape_id']
 			static_name = string['static_name']
-			meshes = []
+			args['meshes'] = []
 			for b in args['buildings']:
 				if b['dae_BuildingName'] == static_name:
 					bid = b['id']
@@ -2176,7 +2331,7 @@ def incomezonedefine(request, landscape_id='0000'):
 			for o in points:
 				for b in args['pointbuilding']:
 					if o['id'] == b['Cpoint_id'] and b['Building__dae_BuildingName'] == static_name:
-						meshes.append(o)
+						args['meshes'].append(o)
 						break
 				fid = []
 				for f in args['floors']:
@@ -2185,15 +2340,15 @@ def incomezonedefine(request, landscape_id='0000'):
 				for f in args['pointfloor']:
 					if o['id'] == f['Cpoint_id'] and f['Floor__Building_id'] == bid:
 						fid.append(f['Floor_id'])
-						meshes.append(o)
+						args['meshes'].append(o)
 						break
 				for k in args['pointkabinet']:
 					if o['id'] == k['Cpoint_id']:
 						for f in fid:
 							if k['Kabinet__Floor_id'] == f:
-								meshes.append(o)
+								args['meshes'].append(o)
 								break
-			return JsonResponse({'string':meshes})
+			return JsonResponse({'string': args['meshes']})
 		# показывать только привязанные точки floor
 		if string['method'] == 'showlinkedpointsfloor':
 			args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id).values( \
@@ -2206,24 +2361,27 @@ def incomezonedefine(request, landscape_id='0000'):
 		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
 			landscape_id = string['landscape_id']
 			static_name = string['static_name']
-			meshes = []
-			points = Cpoint.objects.filter(\
+			args['meshes'] = []
+			args['points'] = Cpoint.objects.filter(\
 				LoadLandscape_id=landscape_id).values('id', 'Name', 'xCoord', 'yCoord', 'zCoord', \
 				'pointbeencalibrated__Date')
 			for f in args['floors']:
 				if f['dae_FloorName'] == static_name:
 					fid = f['id']
-			for o in points:
+			for o in args['points']:
 				for f in args['pointfloor']:
 					if o['id'] == f['Cpoint_id'] and f['Floor__dae_FloorName'] == static_name:
-						meshes.append(o)
+						args['meshes'].append(o)
 						break
 				for k in args['pointkabinet']:
 					if o['id'] == k['Cpoint_id']:
 						if k['Kabinet__Floor_id'] == fid:
-							meshes.append(o)
+							args['meshes'].append(o)
 							break
-			return JsonResponse({'string': meshes})
+			# окрасить точки в таблице
+			# args['pointstable'] = updatepointstable(args, landscape_id)
+			# return JsonResponse({'string': args['meshes'], 'pointstable': args['pointstable']})
+			return JsonResponse({'string': args['meshes']})
 		# показывать только привязанные точки kabinet
 		if string['method'] == 'showlinkedpointskabinet':
 			static_name = string['static_name']
@@ -2232,16 +2390,18 @@ def incomezonedefine(request, landscape_id='0000'):
 				 Kabinet__dae_Kabinet_n_OuterName=static_name).values('Kabinet_id', 'Cpoint_id', \
 		 'Kabinet__dae_Kabinet_n_OuterName', 'Kabinet__Floor_id')
 			landscape_id = string['landscape_id']
-			meshes = []
-			points = Cpoint.objects.filter(\
+			args['meshes'] = []
+			args['points'] = Cpoint.objects.filter(\
 				LoadLandscape_id=landscape_id).values('id', 'Name', 'xCoord', 'yCoord', 'zCoord', \
 				'pointbeencalibrated__Date')
-			for o in points:
+			for o in args['points']:
 				for k in args['pointkabinet']:
 					if o['id'] == k['Cpoint_id']:
-						meshes.append(o)
+						args['meshes'].append(o)
 						break
-			return JsonResponse({'string': meshes})
+			# окрасить точки в таблице
+			args['pointstable'] = updatepointstable(args, landscape_id)
+			return JsonResponse({'string': args['meshes'], 'pointstable': args['pointstable']})
 		# показать только привязанные объекты building
 		if string['method'] == 'showlinkedobjectsbuilding':
 			# args['coloredobjects'] = ObjectObjectType.objects.filter(ObjectType_id=string['objecttype'])
@@ -2291,7 +2451,7 @@ def incomezonedefine(request, landscape_id='0000'):
 							if k['Kabinet__Floor_id'] == f:
 								meshes.append(o)
 								break
-			return JsonResponse({'string':meshes})
+			return JsonResponse({'string': meshes})
 		# показывать только привязанные объекты floor
 		if string['method'] == 'showlinkedobjectsfloor':
 			args['floors'] = Floor.objects.filter(LoadLandscape_id=landscape_id).values( \
@@ -3481,34 +3641,44 @@ def getbelong(request):
 	string = simplejson.loads(request.body)
 	user_id = string['user_id']
 	tag_id = string['tag_id']
+	session_key = string['session_key']
 	if string['type'] == 'start':
 		for a in active_users:
 			if a['id'] == user_id:
-				a['belong'] = {'tag_id': tag_id}
-				return JsonResponse(string)
+				for b in a['sessions']:
+					if b['key'] == session_key:
+						b['belong'] = {'tag_id': tag_id}
+						return JsonResponse(string)
 	if string['type'] == 'stop':
 		for a in active_users:
 			if a['id'] == user_id:
-				if 'belong' in a:
-					del a['belong']
-				return JsonResponse(string)
+				for b in a['sessions']:
+					if b['key'] == session_key:
+						if 'belong' in b:
+							del b['belong']
+							return JsonResponse(string)
 
 # принадлежность метки зоне пользователя
 def getbelonguzone(request):
 	string = simplejson.loads(request.body)
 	user_id = string['user_id']
 	tag_id = string['tag_id']
+	session_key = string['session_key']
 	if string['type'] == 'start':
 		for a in active_users:
 			if a['id'] == user_id:
-				a['belonguzone'] = {'tag_id': tag_id}
-				return JsonResponse(string)
+				for b in a['sessions']:
+					if b['key'] == session_key:
+						b['belonguzone'] = {'tag_id': tag_id}
+						return JsonResponse(string)
 	if string['type'] == 'stop':
 		for a in active_users:
 			if a['id'] == user_id:
-				if 'belonguzone' in a:
-					del a['belonguzone']
-				return JsonResponse(string)
+				for b in a['sessions']:
+					if b['key'] == session_key:
+						if 'belonguzone' in a:
+							del a['belonguzone']
+							return JsonResponse(string)
 # получить список объектов от сервера
 def getobjectlistfromserver(request):
 	args = {}
@@ -4331,11 +4501,12 @@ def createnode(request):
 
 # работа с tag ws sp
 def tags(request):
+	update_active_users(request)
 	args = {}
 	args['username'] = auth.get_user(request).id
 	args['tagtablews'] = getTableWs(args)
 	if request.method == 'POST':
-		url = 'http://192.168.1.148:7000'
+		url = 'http://192.168.1.111:7000'
 		headers = {'content-type:': 'application/json', 'charset': 'utf-8'}
 		string = simplejson.loads(request.body)
 		# delete from sp

@@ -47,7 +47,7 @@
 		<div id ="webGL-container"></div>
         <!-- ***блок панель управления*** -->
         <!--************************-->
-        <div class="small-4 columns" id="mobile-control-panel" style="display:none;">
+        <div class="small-4 columns" id="mobile-control-panel" style="display:block;">
             <div class="small-12 columns" style="padding:0">
                 <div class="small-12 columns" style="padding:0">
                     <button id="up" class="button large float-center">Вверх</button>
@@ -171,7 +171,11 @@
                             <button class="close-button add_object_close" aria-label="Close menu" type="button">
                                  <span aria-hidden="true">x</span>
                             </button>
+                            <br>
                             <input type="checkbox" id="showobjects" checked="checked"><label for="showobjects">Показывать объекты</label>
+                            <br>
+                            <input type="checkbox" id="showobjectsname"><label for="showobjectsname">Показывать наименования</label>
+                            <br>
                             <h3 class="subheader">Тип объекта</h3>
                             <select name="" id="objecttype">
                                 {% for type in objecttype %}
@@ -1903,12 +1907,22 @@
             meshtomove.position.x = pos.x;
             meshtomove.position.y = pos.y;
         }
-        //helpers следуют за точками калибровки
+        //helpers следуют за точками калибровки cpoint
         if (typeof PointShowed != 'undefined'){
             $.each(PointShowed, function(index){
                 a = toScreenPosition(PointShowed[index]['mesh'], camera);
                 if (PointShowed[index]['CssObject'] != undefined) {
                     PointShowed[index]['CssObject'].css({top: a.y, left: a.x});
+                }
+            });
+        }
+
+        //helpers следуют за роутерами router
+        if (typeof Objects != 'undefined' && typeof Objects[0] != 'undefined'){
+            $.each(Objects[0]['objects'], function(index){
+                a = toScreenPosition(Objects[0]['objects'][index]['mesh'], camera);
+                if (Objects[0]['objects'][index]['CssObject'] != undefined) {
+                    Objects[0]['objects'][index]['CssObject'].css({top: a.y, left: a.x});
                 }
             });
         }

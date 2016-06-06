@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 import jsonfield
 from time import time
-
+from django.contrib.sessions.models import Session
 # def get_upload_file_name(instance, filename):
 # 	return 'uploaded_files/%s_%s' % (str(time).replace('.', '_'), filename)
 

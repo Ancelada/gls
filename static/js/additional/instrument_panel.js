@@ -1,6 +1,68 @@
+//построить график функции для роутера
+$('#objectwindow').delegate('#drawgraphfunc', 'click', function(){
+	parameters = {};
+	parameters['landscape_id'] = $(this).attr('data-landscape');
+	parameters['obj_server_id'] = $(this).attr('data-id');
+	parameters['method'] = 'drawgraphfunc';
+	makeAjax(parameters);
+});
+
+function buildgraphfunction(arr, xarr, polynom_coefficient, router_name, router_id){
+	$('#container').highcharts({
+		chart: {
+			type: 'spline'
+		},
+		title: {
+			text: 'График функции полинома '+polynom_coefficient+' степени для роутера '+router_name+'('+router_id+').'
+		},
+		subtitle: {
+			text: 'Степень полинома задается в "Вычеслить калибровочную функцию для роутера"'
+		},
+		xAxis: {
+			title: {
+				text: 'Переменные'
+			},
+			categories: xarr
+		},
+		yAxis: {
+			title: {
+				text: 'Значение полинома'
+			},
+			labels: {
+				formatter: function(){
+					return this.value;
+				}
+			}
+		},
+		tooltip: {
+			crosshairs: true,
+			shared: true
+		},
+		plotOptions: {
+			spline: {
+				marker: {
+					radius: 4,
+					lineColor: '#666666',
+					lineWidth: 1
+				},
+				tooltip: {
+					headerFormat: '<b>{series.name}</b><br>',
+					pointFormat: '{point.y}'
+				}
+			}
+		},
+		series: [{
+			name: 'Роутер ' + router_name,
+			marker: {
+				symbol: 'square'
+			},
+			data: arr
+		}]
+	});
+	$('#container').foundation();
+}
+
 //вычислить калибровочную функцию для роутера filAnchorCalFunc
-//*********************************************
-//открыть параметр степень полинома powerofpolynom
 $('#objectwindow').delegate('#getobjfitcalfunc', 'click', function(){
 	$('#powerofpolynom').foundation('open');
 });
@@ -106,25 +168,24 @@ function showPoint(methodname, static_name){
     			hideAllPoints();
     			fillPoints(data);
     			addPointMesh(PointShowed);
-    			addCssHelpers(PointShowed);
+    			addCssHelpers(PointShowed, 'points', 'helper.html');
     		} else if (methodname == 'showlinkedpointsbuilding'){
     			hideAllPoints();
     			fillPoints(data);
     			addPointMesh(PointShowed);
-    			addCssHelpers(PointShowed);
-/*    			console.log('building');*/
+    			addCssHelpers(PointShowed, 'points', 'helper.html');
 			} else if(methodname == 'showlinkedpointsfloor'){
 				hideAllPoints();
     			fillPoints(data);
     			addPointMesh(PointShowed);
-    			addCssHelpers(PointShowed);
-    			/*console.log('floor');*/
+    			addCssHelpers(PointShowed, 'points', 'helper.html');
+    			/*$('#pointstable').html(data['pointstable']);*/
     		} else if(methodname == 'showlinkedpointskabinet'){
     			hideAllPoints();
     			fillPoints(data);
     			addPointMesh(PointShowed);
-    			addCssHelpers(PointShowed);
-    			/*console.log('kabinet');*/
+    			addCssHelpers(PointShowed, 'points', 'helper.html');
+    			$('#pointstable').html(data['pointstable']);
     		}
     		if (methodname == 'hideallobjects'){
 
@@ -135,7 +196,7 @@ function showPoint(methodname, static_name){
 }
 
 //функция записи подсказок рядом с точками калибровки cpoints
-function addCssHelpers(arr){
+function addCssHelpers(arr, type, filehtml){
 	helpers = [];
 	$.each(arr, function(index){
 		a = toScreenPosition(arr[index]['mesh'], camera);
@@ -144,6 +205,8 @@ function addCssHelpers(arr){
 	parameters = {};
 	parameters['helpers'] = helpers;
 	parameters['method'] = 'addhelpers';
+	parameters['type'] = type;
+	parameters['filehtml'] = filehtml;
 	makeAjax(parameters);
 }
 
@@ -315,8 +378,8 @@ function makeAjax(parameters){
     		} else if(parameters['method'] == 'sendquery') {
     			console.log(data);
     			if (data['routers'] != undefined){
-					buildPointDiagram(data['routers'][0]['points'], data['routers'][0]['id']);
-    				$('#diagram').foundation('open');
+					/*buildPointDiagram(data['routers'][0]['points'], data['routers'][0]['id']);
+    				$('#diagram').foundation('open');*/
     				$('#queryerror').hide();
     			} else if (data['error']){
     				$('#queryerror').html(data['error']);
@@ -326,39 +389,60 @@ function makeAjax(parameters){
     			$('#shortparams').html(data['string']);
     			$('#shortparams').foundation('open');
     		} else if(parameters['method'] == 'getobjectcalibration'){
-    			if (data['routers'] != undefined){
-    				buildPointDiagram(data['routers'][0]['points'], data['routers'][0]['id']);
+    			console.log(data);
+    			if (data['arr'] != undefined){
+    				buildPointDiagram(data['arr'], data['arr2'], data['router_name'], data['router_id'], data['polynom_coefficient']);
     				$('#diagram').foundation('open');
     			}
     		} else if(parameters['method'] == 'addhelpers'){
-    			$.each(PointShowed, function(index){
-					$.each(data['string'], function(ind){
-						if (PointShowed[index]['id'] == data['string'][ind]['id']){
-							$('#helpers').append(data['string'][ind]['html']);
-							PointShowed[index].CssObject = $('#helpers span.helperwindow[data-id="'+ PointShowed[index]['id'] + '"]');
-							return false;	
-						}
-	    			});
-    			});
+    			// добавить helper на points
+    			if ('points' in data){
+    				$.each(PointShowed, function(index){
+						$.each(data['points'], function(ind){
+							if (PointShowed[index]['id'] == data['points'][ind]['id']){
+								$('#helpers').append(data['points'][ind]['html']);
+								PointShowed[index].CssObject = $('#helpers span.helperwindow[data-id="'+ PointShowed[index]['id'] + '"]');
+								return false;	
+							}
+		    			});
+    				});
+    			}
+    			//добавить helper на objects
+    			if ('objects' in data){
+    				$.each(Objects[0]['objects'], function(index){
+    					$.each(data['objects'], function(ind){
+    						if (Objects[0]['objects'][index]['id'] == data['objects'][ind]['id']){
+    							$('#helpers').append(data['objects'][ind]['html']);
+    							Objects[0]['objects'][index].CssObject = $('#helpers span.helperrouterwindow[data-id="'+ Objects[0]['objects'][index]['id'] + '"]');
+    						}
+    					});
+    				})
+    			}
     		} else if(parameters['method'] == 'fitanchorcalfunc'){
+    			$('#powerofpolynom').foundation('close');
+    			console.log(data);
+    		} else if(parameters['method'] == 'drawgraphfunc'){
+    			buildgraphfunction(data['values'], data['xarr'], data['polynom_coefficient'], data['obj_name'], data['obj_server_id'])
+    			$('#diagram').foundation('open');
     			console.log(data);
     		}
     	}
     });
 }
 
+
 //функция нарисовать диаграмму роутеров
-function buildPointDiagram(arr, name){
+function buildPointDiagram(arr, arr2, router_name, router_id, polynom_coefficient){
 	$('#container').highcharts({
 		chart: {
 			type: 'scatter',
 			zoomType: 'xy'
 		},
 		title: {
-			text: 'Диаграмма калибровки роутера'
+			text: 'Диаграмма калибровки роутера '+ router_name + '('+router_id+')'
 		},
 		subtitle: {
-			text: 'точки распределение уровня сигнала и растояния'
+			text: 'зависимость уровня сигнала от растояния'
 		},
 		xAxis: {
 			title: {
@@ -408,11 +492,23 @@ function buildPointDiagram(arr, name){
 				}
 			}
 		},
-		series: [{
-			name: name,
-			color: 'rgba(223, 83, 83, .5)',
-			data: arr
-		}]
+		series: [
+			{
+				name: router_name,
+				color: 'rgba(223, 83, 83, .5)',
+				data: arr
+			},
+			{
+				type: 'spline',
+				name: 'График функции полинома '+polynom_coefficient+' степени для '+router_name,
+				data: arr2,
+				marker: {
+					lineWidth: 2,
+					lineColor: '#666666',
+					fillColor: 'white'
+				}
+			}
+		]
 	});
 	$('#container').foundation();
 }
@@ -714,7 +810,6 @@ $('#objecttable').delegate('#unlinkobject', 'click', function(){
 //*Отправить конкретный объект на сервер
 //команда обновить
 $('body').delegate('#sendobjectupdatetoserver', 'click', function(){
-	console.log('process');
 	landscape_id = $(this).attr('data-landscape');
 	obj_id = $(this).attr('data-id');
 	parameters = {};
@@ -725,7 +820,6 @@ $('body').delegate('#sendobjectupdatetoserver', 'click', function(){
 });
 //команда добавить
 $('body').delegate('#sendobjecttoserver', 'click', function(){
-	console.log('process');
 	landscape_id = $(this).attr('data-landscape');
 	obj_id = $(this).attr('data-id');
 	parameters = {};
@@ -753,7 +847,6 @@ function sendServerQueryResponseToConsole(parameters){
     	dataType: "json",
     	async: true,
     	success: function(data, textStatus, jqXHR){
-    		console.log(data);
     	}
     });
 }
@@ -914,6 +1007,9 @@ function hideObject(obj_id){
 function hideAllObjects(){
 	$.each(Objects, function(index){
 		$.each(Objects[index]['objects'], function(ind){
+			if ('CssObject' in Objects[index]['objects'][ind]){
+				Objects[index]['objects'][ind]['CssObject'].remove();
+			}
 			scene.remove(Objects[index]['objects'][ind]['mesh']);	
 		});
 	});
@@ -985,6 +1081,7 @@ $('body').delegate('#hideallobjects', 'click', function(){
 		if (Objects[index]['type_id'] == id){
 			$.each(Objects[index]['objects'], function(ind){
 				scene.remove(Objects[index]['objects'][ind]['mesh']);
+				Objects[index]['objects'][ind]['CssObject'].remove();
 			});
 		}
 	});
@@ -1082,18 +1179,30 @@ function showObjectType(methodname, objecttype_id, static_name){
     			hideAllObjects();
     			fillObjects(data);
     			addMesh(Objects, objecttype_id);
+    			if (typeof Objects[0] != 'undefined'){ 
+    				addCssHelpers(Objects[0]['objects'], 'objects', 'helperrouter.html');
+				}
     		} else if (methodname == 'showlinkedobjectsbuilding'){
     			hideAllObjects();
     			fillObjects(data);
     			addMesh(Objects, objecttype_id);
+    			if (typeof Objects[0] != 'undefined'){
+    				addCssHelpers(Objects[0]['objects'], 'objects', 'helperrouter.html');
+				}
 			} else if(methodname == 'showlinkedobjectsfloor'){
 				hideAllObjects();
     			fillObjects(data);
     			addMesh(Objects, objecttype_id);
+    			if (typeof Objects[0] != 'undefined'){
+    				addCssHelpers(Objects[0]['objects'], 'objects', 'helperrouter.html');
+				}
     		} else if(methodname == 'showlinkedobjectskabinet'){
     			hideAllObjects();
     			fillObjects(data);
     			addMesh(Objects, objecttype_id);
+    			if (typeof Objects[0] != 'undefined'){
+    				addCssHelpers(Objects[0]['objects'], 'objects', 'helperrouter.html');
+				}
     		}
     		if (methodname == 'hideallobjects'){
 
@@ -1242,19 +1351,24 @@ $('body').delegate('.static_instrument_block #belongtouzone', 'click', function(
 	txt = $(this).text();
 	if (txt == 'Показывать принадлежность зоне пользователя'){
 		$(this).text('Остановить');
-		belongToUsone('start', tag_id, username);
+		belongToUzone('start', tag_id, username, session_key);
 	} else {
 		scene.remove(lightedUpUzonePlane);
 		$(this).text('Показывать принадлежность зоне пользователя');
-		belongToUsone('stop', tag_id, username);
+		belongToUzone('stop', tag_id, username, session_key);
 	}
 });
 
-function belongToUsone(type, tag_id, uname){
+function belongToUzone(type, tag_id, uname, session_key){
+	parameters = {};
+	parameters['tag_id'] = tag_id;
+	parameters['user_id'] = uname;
+	parameters['type'] = type;
+	parameters['session_key'] = session_key;
 	$.ajax({
 		type: "POST",
 		url: "/getbelonguzone",
-		data: JSON.stringify({'tag_id': tag_id, 'user_id': uname, 'type': type}),
+		data: JSON.stringify(parameters),
 		contentType: "application/json; charset=utf-8",
 		dataType: "html",
 		async: true,
@@ -1269,19 +1383,24 @@ $('body').delegate('.static_instrument_block #belong', 'click', function(){
 	txt = $(this).text();
 	if (txt == 'Показывать принадлежность'){
 		$(this).text('Остановить');
-		belong('start', tag_id, username);
+		belong('start', tag_id, username, session_key);
 	} else {
 		scene.remove(lightedUpPlane);
 		$(this).text('Показывать принадлежность');
-		belong('stop', tag_id, username);
+		belong('stop', tag_id, username, session_key);
 	}
 });
 
-function belong(type, tag_id, uname){
+function belong(type, tag_id, uname, session_key){
+	parameters = {};
+	parameters['tag_id'] = tag_id;
+	parameters['user_id'] = uname;
+	parameters['type'] = type;
+	parameters['session_key'] = session_key;
 	$.ajax({
 		type: "POST",
 		url: "/getbelong",
-		data: JSON.stringify({'tag_id': tag_id, 'user_id': uname, 'type': type}),
+		data: JSON.stringify(parameters),
 		contentType: "application/json; charset=utf-8",
     	dataType: "html",
     	async: true,

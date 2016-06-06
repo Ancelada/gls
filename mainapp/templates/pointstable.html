@@ -14,7 +14,7 @@
 	</thead>
 	<tbody>
 		{% for p in points %}
-			<tr>
+			<tr {% for m in meshes %}{% if m.id == p.id %}style="background-color:bisque;"{% endif %}{% endfor %}>
 				<td>
 					Имя:{{p.Name}}
 					{% for pb in pointbuilding %}

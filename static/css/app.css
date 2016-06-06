@@ -307,3 +307,9 @@ li.tabs-title a{
 	display:block;
 	background-color:rgba(0, 0, 0, 0.3);
 }
+
+.helperrouterwindow{
+	position:fixed;
+	display:block;
+	background-color:rgba(103, 27, 255, 0.3);
+}

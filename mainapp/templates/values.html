@@ -237,7 +237,12 @@
         {% endfor %}
     {% endfor %}
 
+    //ключ сессии
+    var session_key = '{{session_key}}';
+
 	$(document).ready(function(){
+        console.log(session_key);
+
 		var marks;
 		var unum = 0;
         //socket connection
@@ -252,75 +257,79 @@
             socket.onmessage = function(msg){
                 var channel = msg.data.type;
                 if (channel == 'location'){
-                    if (msg.data.data['data']['type'] != 'inuzone' && msg.data.data['data']['type'] != 'outofzone'){
-                        //show_location подсветить принадлежащий метке объект - комната или этаж
-                        //вершины в json
-                        a = JSON.parse(msg.data.data['data']['vertices']);
-                        msg.data.data['data']['vertices'] = a;
-                        //элемет будет храниться в loc[0]
-                        loc = [];
-                        dae_name = msg.data.data['data']['location'];
-                        ElemLookUp(colladaObjects['landscape'][0], dae_name, loc);
-                        dae_elem = loc[0];
-                        minz = dae_elem.parent['BoxMin']['z'];
+                    if (msg.data.data['session_key'] == session_key){
 
-                        //показываем объект
-                        scene.remove(lightedUpPlane);
-                        var lightedUpPlaneGeometry = new THREE.Geometry();
-                        varr = msg.data.data['data']['vertices']
-                        $.each(varr, function(index){
-                            x = varr[index]['x'];
-                            y = varr[index]['y'];
-                            z = minz + 0.2;
-                            lightedUpPlaneGeometry.vertices.push(
-                                new THREE.Vector3(x, y, z)
-                            )
-                        });
-                        $.each(dae_elem.geometry.faces, function(index){
-                            face = dae_elem.geometry.faces[index];
-                            a = face['a'];
-                            b = face['b'];
-                            c = face['c']
-                            lightedUpPlaneGeometry.faces.push(
-                                new THREE.Face3(a, b, c)
-                            )
-                        });
-                        lightedUpPlaneGeometry.computeBoundingSphere();
-                        var lightedUpPlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xe0ff85, side: THREE.DoubleSide, transparent: true, opacity:0.8});
-                        lightedUpPlane = new THREE.Mesh(lightedUpPlaneGeometry, lightedUpPlaneMaterial);
-                        scene.add(lightedUpPlane);
-                    } else {
-                        //show_location подсветить принадлежащую метке зону пользователя
-                        if (msg.data.data['data']['type'] == 'inuzone' && msg.data.data['data']['landscape_id'] == '{{landscape_id}}'){
+                        if (msg.data.data['data']['type'] != 'inuzone' && msg.data.data['data']['type'] != 'outofzone'){
+                            //show_location подсветить принадлежащий метке объект - комната или этаж
+                            //вершины в json
+                            a = JSON.parse(msg.data.data['data']['vertices']);
+                            msg.data.data['data']['vertices'] = a;
                             //элемет будет храниться в loc[0]
                             loc = [];
+                            dae_name = msg.data.data['data']['location'];
+                            ElemLookUp(colladaObjects['landscape'][0], dae_name, loc);
+                            dae_elem = loc[0];
+                            minz = dae_elem.parent['BoxMin']['z'];
+
                             //показываем объект
-                            scene.remove(lightedUpUzonePlane);
-                            var lightedUpUzonePlaneGeometry = new THREE.Geometry();
-                            varr = msg.data.data['data']['vertices'];
+                            scene.remove(lightedUpPlane);
+                            var lightedUpPlaneGeometry = new THREE.Geometry();
+                            varr = msg.data.data['data']['vertices']
                             $.each(varr, function(index){
-                                x = varr[index][0];
-                                y = varr[index][1];
-                                lightedUpUzonePlaneGeometry.vertices.push(
-                                    new THREE.Vector3(x, y, msg.data.data['data']['zmin']+0.25)
+                                x = varr[index]['x'];
+                                y = varr[index]['y'];
+                                z = minz + 0.2;
+                                lightedUpPlaneGeometry.vertices.push(
+                                    new THREE.Vector3(x, y, z)
                                 )
                             });
-                            $.each(msg.data.data['data']['faces'], function(index){
-                                face = msg.data.data['data']['faces'][index];
+                            $.each(dae_elem.geometry.faces, function(index){
+                                face = dae_elem.geometry.faces[index];
                                 a = face['a'];
                                 b = face['b'];
                                 c = face['c']
-                                lightedUpUzonePlaneGeometry.faces.push(
+                                lightedUpPlaneGeometry.faces.push(
                                     new THREE.Face3(a, b, c)
                                 )
                             });
-                            lightedUpUzonePlaneGeometry.computeBoundingSphere();
-                            var lightedUpUzonePlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xff1493, side: THREE.DoubleSide, transparent: true, opacity:0.8});
-                            lightedUpUzonePlane = new THREE.Mesh(lightedUpUzonePlaneGeometry, lightedUpUzonePlaneMaterial);
-                            scene.add(lightedUpUzonePlane);
+                            lightedUpPlaneGeometry.computeBoundingSphere();
+                            var lightedUpPlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xe0ff85, side: THREE.DoubleSide, transparent: true, opacity:0.8});
+                            lightedUpPlane = new THREE.Mesh(lightedUpPlaneGeometry, lightedUpPlaneMaterial);
+                            scene.add(lightedUpPlane);
                         } else {
-                            scene.remove(lightedUpUzonePlane);
+                            //show_location подсветить принадлежащую метке зону пользователя
+                            if (msg.data.data['data']['type'] == 'inuzone' && msg.data.data['data']['landscape_id'] == '{{landscape_id}}'){
+                                //элемет будет храниться в loc[0]
+                                loc = [];
+                                //показываем объект
+                                scene.remove(lightedUpUzonePlane);
+                                var lightedUpUzonePlaneGeometry = new THREE.Geometry();
+                                varr = msg.data.data['data']['vertices'];
+                                $.each(varr, function(index){
+                                    x = varr[index][0];
+                                    y = varr[index][1];
+                                    lightedUpUzonePlaneGeometry.vertices.push(
+                                        new THREE.Vector3(x, y, msg.data.data['data']['zmin']+0.25)
+                                    )
+                                });
+                                $.each(msg.data.data['data']['faces'], function(index){
+                                    face = msg.data.data['data']['faces'][index];
+                                    a = face['a'];
+                                    b = face['b'];
+                                    c = face['c']
+                                    lightedUpUzonePlaneGeometry.faces.push(
+                                        new THREE.Face3(a, b, c)
+                                    )
+                                });
+                                lightedUpUzonePlaneGeometry.computeBoundingSphere();
+                                var lightedUpUzonePlaneMaterial = new THREE.MeshBasicMaterial({ color: 0xff1493, side: THREE.DoubleSide, transparent: true, opacity:0.8});
+                                lightedUpUzonePlane = new THREE.Mesh(lightedUpUzonePlaneGeometry, lightedUpUzonePlaneMaterial);
+                                scene.add(lightedUpUzonePlane);
+                            } else {
+                                scene.remove(lightedUpUzonePlane);
+                            }
                         }
+
                     }
                 }
                 function ElemLookUp(node, dae_name, arr){
@@ -349,40 +358,42 @@
                 //прием координат
                 //*********************************
                 else if (channel == 'server_lock'){
-                    var data = msg.data.data['data'];
-                    $.each(data, function(index){
-                        if (data[index]['zone_id'] == '{{landscape_id}}'){
-                            //первая запись в буфере
-                            if(unique[0] == undefined){
-                                unique[0] = data[index];
-                                unum += 1;
-                            } else {
-                                //проверка на уникальность id в буфере
-                                //если нет, записать в массив
-                                tag_id_new = data[index]['tag_id'];
-                                datacoords = data[index];
-                                doubled = 0;
-                                $.each(unique, function(index){
-                                    tag_id_unique = unique[index]['tag_id'];
-                                    if (tag_id_new == tag_id_unique){
-                                        unique[index].x = datacoords.x;
-                                        unique[index].y = datacoords.y;
-                                        unique[index].z = datacoords.z;
-                                        unique[index].xNew = datacoords.xNew;
-                                        unique[index].yNew = datacoords.yNew;
-                                        unique[index].zNew = datacoords.zNew;
-                                        unique[index].cron = 0;
-                                        doubled = 1;
-                                        return false;
-                                    }
-                                });
-                                if (doubled==0){
-                                    unique[unum] = data[index];
+                    if (msg.data.data['session_key'] == session_key){
+                        var data = msg.data.data['data'];
+                        $.each(data, function(index){
+                            if (data[index]['zone_id'] == '{{landscape_id}}'){
+                                //первая запись в буфере
+                                if(unique[0] == undefined){
+                                    unique[0] = data[index];
                                     unum += 1;
+                                } else {
+                                    //проверка на уникальность id в буфере
+                                    //если нет, записать в массив
+                                    tag_id_new = data[index]['tag_id'];
+                                    datacoords = data[index];
+                                    doubled = 0;
+                                    $.each(unique, function(index){
+                                        tag_id_unique = unique[index]['tag_id'];
+                                        if (tag_id_new == tag_id_unique){
+                                            unique[index].x = datacoords.x;
+                                            unique[index].y = datacoords.y;
+                                            unique[index].z = datacoords.z;
+                                            unique[index].xNew = datacoords.xNew;
+                                            unique[index].yNew = datacoords.yNew;
+                                            unique[index].zNew = datacoords.zNew;
+                                            unique[index].cron = 0;
+                                            doubled = 1;
+                                            return false;
+                                        }
+                                    });
+                                    if (doubled==0){
+                                        unique[unum] = data[index];
+                                        unum += 1;
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
                 //*************************
                 //**конец приема координат
@@ -1158,10 +1169,17 @@
                         var min = node.children[i].BoxMin;
                         var max = node.children[i].BoxMax;
                         //записать min и max в сессию
+                        parameters = {};
+                        parameters['username'] = '{{username}}';
+                        parameters['landscape_id'] = '{{landscape_id}}';
+                        parameters['min'] = min;
+                        parameters['max'] = max;
+                        parameters['dae_elem'] = dae_elem;
+                        parameters['session_key'] = session_key;
                         $.ajax({
                             type: "POST",
                             url: "/minmaxtosession",
-                            data: JSON.stringify({'username': '{{username}}', 'landscape_id': '{{landscape_id}}', 'min':min, 'max':max, 'dae_elem': dae_elem}),
+                            data: JSON.stringify(parameters),
                             contentType: "application/json; charset=utf-8",
                             dataType: 'json',
                             async: true,
